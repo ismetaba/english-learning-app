@@ -35,6 +35,17 @@ jobs:
 
       - name: Export static web build
         run: npx expo export --platform web
+        env:
+          EXPO_BASE_URL: /english-learning-app
+
+      - name: Fix asset paths for GitHub Pages subpath
+        run: |
+          # Rewrite absolute asset paths in all HTML files to include the basePath
+          find dist -name '*.html' -exec sed -i 's|src="/\(_expo/\)|src="/english-learning-app/\1|g' {} +
+          find dist -name '*.html' -exec sed -i 's|href="/\(assets/\)|href="/english-learning-app/\1|g' {} +
+          find dist -name '*.html' -exec sed -i 's|src="/\(assets/\)|src="/english-learning-app/\1|g' {} +
+          # Fix runtime asset paths in the JS bundle (fonts, images loaded via fetch/XHR)
+          find dist/_expo -name '*.js' -exec sed -i 's|"/assets/|"/english-learning-app/assets/|g' {} +
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
