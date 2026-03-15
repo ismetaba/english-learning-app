@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { AppStateProvider, useAppContext } from '@/contexts/AppStateContext';
@@ -16,7 +17,11 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-SplashScreen.preventAutoHideAsync();
+// Only call preventAutoHideAsync on native platforms where SplashScreen is supported.
+// On web (especially static export), this can block rendering indefinitely.
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 const AppDarkTheme = {
   ...DarkTheme,
@@ -41,12 +46,20 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && Platform.OS !== 'web') {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
   if (!loaded) {
+    // On web, show a loading indicator instead of returning null (which causes blank screen)
+    if (Platform.OS === 'web') {
+      return (
+        <View style={{ flex: 1, backgroundColor: palette.bg, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={palette.primary} />
+        </View>
+      );
+    }
     return null;
   }
 
@@ -63,8 +76,10 @@ function RootLayoutNav() {
   const segments = useSegments();
 
   useEffect(() => {
-    updateStreak();
-  }, []);
+    if (isLoaded) {
+      updateStreak();
+    }
+  }, [isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -77,6 +92,19 @@ function RootLayoutNav() {
       router.replace('/(tabs)' as any);
     }
   }, [isLoaded, progress.onboardingCompleted, segments]);
+
+  // While AsyncStorage is hydrating, show a loading screen instead of rendering
+  // the navigation tree. This prevents the tabs from briefly rendering (showing
+  // only the tab bar) before the redirect to onboarding occurs.
+  if (!isLoaded) {
+    return (
+      <ThemeProvider value={AppDarkTheme}>
+        <View style={{ flex: 1, backgroundColor: palette.bg, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={palette.primary} />
+        </View>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider value={AppDarkTheme}>
