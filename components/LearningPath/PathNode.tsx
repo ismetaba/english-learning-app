@@ -9,7 +9,7 @@ export type NodeState = 'locked' | 'available' | 'completed';
 interface PathNodeProps {
   title: string;
   icon: string;
-  type: 'structure' | 'vocab' | 'scene';
+  type: 'structure' | 'vocab' | 'scene' | 'review';
   state: NodeState;
   color: string;
   onPress: () => void;
@@ -20,12 +20,14 @@ const TYPE_ICONS: Record<string, string> = {
   structure: '📖',
   vocab: '💬',
   scene: '🎬',
+  review: '⭐',
 };
 
 const TYPE_LABELS: Record<string, string> = {
   structure: 'grammar',
   vocab: 'vocab',
   scene: 'scene',
+  review: 'review',
 };
 
 export default function PathNode({ title, icon, type, state, color, onPress, delay = 0 }: PathNodeProps) {

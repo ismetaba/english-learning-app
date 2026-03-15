@@ -10,12 +10,17 @@ export interface UserProgress {
   level: number;
   streak: number;
   lastActiveDate: string;
+  onboardingCompleted: boolean;
+  onboardingLevel: 'beginner' | 'elementary' | 'intermediate' | '';
+  learningGoal: 'travel' | 'work' | 'school' | 'personal' | '';
+  dailyGoalMinutes: number;
 }
 
 const XP_PER_LESSON = 20;
 const XP_PER_VOCAB = 15;
 const XP_PER_SCENE = 10;
 const XP_PER_QUIZ_CORRECT = 5;
+const XP_PER_REVIEW = 25;
 
 const LEVEL_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200];
 const LEVEL_NAMES = ['Beginner', 'Elementary', 'Pre-Intermediate', 'Intermediate', 'Upper-Intermediate', 'Advanced', 'Expert'];
@@ -45,6 +50,10 @@ const DEFAULT_PROGRESS: UserProgress = {
   level: 1,
   streak: 0,
   lastActiveDate: '',
+  onboardingCompleted: false,
+  onboardingLevel: '',
+  learningGoal: '',
+  dailyGoalMinutes: 10,
 };
 
 interface AppStateContextType {
@@ -56,12 +65,15 @@ interface AppStateContextType {
   markLessonComplete: (id: string) => void;
   markVocabLearned: (wordId: string) => void;
   markSceneWatched: (id: string) => void;
+  markReviewComplete: (id: string) => void;
+  completeOnboarding: (level: UserProgress['onboardingLevel'], goal: UserProgress['learningGoal'], minutes: number) => void;
   updateStreak: () => void;
   getLevelInfo: () => { current: number; next: number; percent: number; name: string; level: number };
   XP_PER_LESSON: number;
   XP_PER_VOCAB: number;
   XP_PER_SCENE: number;
   XP_PER_QUIZ_CORRECT: number;
+  XP_PER_REVIEW: number;
 }
 
 const AppStateContext = createContext<AppStateContextType | null>(null);
@@ -140,6 +152,35 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, [persist]);
 
+  const markReviewComplete = useCallback((id: string) => {
+    setProgress(prev => {
+      if (prev.completedLessons.includes(id)) return prev;
+      const newXP = prev.xp + XP_PER_REVIEW;
+      const newLevel = getLevelFromXP(newXP);
+      const next = { ...prev, completedLessons: [...prev.completedLessons, id], xp: newXP, level: newLevel };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const completeOnboarding = useCallback((
+    level: UserProgress['onboardingLevel'],
+    goal: UserProgress['learningGoal'],
+    minutes: number,
+  ) => {
+    setProgress(prev => {
+      const next = {
+        ...prev,
+        onboardingCompleted: true,
+        onboardingLevel: level,
+        learningGoal: goal,
+        dailyGoalMinutes: minutes,
+      };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   const updateStreak = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     setProgress(prev => {
@@ -167,12 +208,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       markLessonComplete,
       markVocabLearned,
       markSceneWatched,
+      markReviewComplete,
+      completeOnboarding,
       updateStreak,
       getLevelInfo,
       XP_PER_LESSON,
       XP_PER_VOCAB,
       XP_PER_SCENE,
       XP_PER_QUIZ_CORRECT,
+      XP_PER_REVIEW,
     }}>
       {children}
     </AppStateContext.Provider>

@@ -5,6 +5,7 @@ import Animated, { FadeInDown, FadeInUp, FadeIn, ZoomIn } from 'react-native-rea
 import { structures } from '@/data/structures';
 import DiagramView from '@/components/SentenceDiagram/DiagramView';
 import DragExercise from '@/components/SentenceDiagram/DragExercise';
+import ReviewStation from '@/components/ReviewStation/ReviewStation';
 import { useAppContext } from '@/contexts/AppStateContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { palette, Shadows, Radius } from '@/constants/Colors';
@@ -20,6 +21,11 @@ export default function LessonScreen() {
   const [score, setScore] = useState(0);
   const { nativeLanguage, markLessonComplete, addXP, XP_PER_LESSON } = useAppContext();
   const { t } = useTranslation();
+
+  // Handle review stations
+  if (id?.startsWith('review-')) {
+    return <ReviewStation reviewId={id} />;
+  }
 
   const structure = structures.find((s) => s.id === id);
 
