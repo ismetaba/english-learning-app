@@ -1,6 +1,6 @@
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -58,15 +58,30 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const { updateStreak } = useAppContext();
+  const { updateStreak, progress, isLoaded } = useAppContext();
+  const router = useRouter();
+  const segments = useSegments();
 
   useEffect(() => {
     updateStreak();
   }, []);
 
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const inOnboarding = segments[0] === 'onboarding';
+
+    if (!progress.onboardingCompleted && !inOnboarding) {
+      router.replace('/onboarding' as any);
+    } else if (progress.onboardingCompleted && inOnboarding) {
+      router.replace('/(tabs)' as any);
+    }
+  }, [isLoaded, progress.onboardingCompleted, segments]);
+
   return (
     <ThemeProvider value={AppDarkTheme}>
       <Stack>
+        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="scenes/[id]" options={{ headerShown: false }} />

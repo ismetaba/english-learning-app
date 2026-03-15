@@ -18,6 +18,7 @@ function getNodeState(
   if (lesson.type === 'structure' && completedLessons.includes(lesson.contentId)) return 'completed';
   if (lesson.type === 'vocab' && completedLessons.includes(lesson.id)) return 'completed';
   if (lesson.type === 'scene' && watchedScenes.includes(lesson.contentId)) return 'completed';
+  if (lesson.type === 'review' && completedLessons.includes(lesson.contentId)) return 'completed';
   if (completedLessons.includes(lesson.id)) return 'completed';
 
   const prereqsMet = lesson.requiredLessonIds.every((reqId) => {
@@ -57,6 +58,8 @@ export default function LearningPath() {
       router.push('/(tabs)/vocab' as any);
     } else if (lesson.type === 'scene') {
       router.push(`/scenes/${lesson.contentId}` as any);
+    } else if (lesson.type === 'review') {
+      router.push(`/lessons/${lesson.contentId}` as any);
     }
   };
 
