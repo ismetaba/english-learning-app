@@ -37,10 +37,9 @@ function vocabWordsAppearInDialogue(scene: ReturnType<typeof getScene>): string[
 
 describe('Scene dialogue accuracy', () => {
   describe('Ratatouille', () => {
-    it('should contain the actual famous Ratatouille quote with correct wording', () => {
+    it('should contain trailer dialogue about liking good food', () => {
       const scene = getScene('ratatouille-trailer');
-      // "Anyone can cook" is a real Gusteau quote
-      expect(hasLineContaining(scene, 'Anyone can cook')).toBe(true);
+      expect(hasLineContaining(scene, 'I like good food')).toBe(true);
     });
 
     it('should NOT contain fabricated lines about bread and water', () => {
@@ -49,11 +48,9 @@ describe('Scene dialogue accuracy', () => {
       expect(hasLineContaining(scene, 'The bread needs to be fresh')).toBe(false);
     });
 
-    it('should contain the real Ego quote with correct wording (great artist, not great cook)', () => {
+    it('should NOT contain "Anyone can cook" — not spoken in this trailer clip', () => {
       const scene = getScene('ratatouille-trailer');
-      // Real quote: "Not everyone can become a great artist" (not "great cook")
-      expect(hasLineContaining(scene, 'great artist')).toBe(true);
-      expect(hasLineContaining(scene, 'great cook')).toBe(false);
+      expect(hasLineContaining(scene, 'Anyone can cook')).toBe(false);
     });
 
     it('should have vocab coverage words in dialogue', () => {
@@ -109,9 +106,9 @@ describe('Scene dialogue accuracy', () => {
   });
 
   describe('Finding Nemo', () => {
-    it('should contain the real Dory quote "Just keep swimming"', () => {
+    it('should contain "fish are friends not food" from the trailer', () => {
       const scene = getScene('finding-nemo-trailer');
-      expect(hasLineContaining(scene, 'Just keep swimming')).toBe(true);
+      expect(hasLineContaining(scene, 'fish are friends')).toBe(true);
     });
 
     it('should NOT contain fabricated "I look at you and I am happy"', () => {
@@ -133,9 +130,9 @@ describe('Scene dialogue accuracy', () => {
   });
 
   describe('Home Alone', () => {
-    it('should contain the real Kevin quote "I made my family disappear"', () => {
+    it('should contain trailer line "This is my house. I have to defend it."', () => {
       const scene = getScene('home-alone-trailer');
-      expect(hasLineContaining(scene, 'I made my family disappear')).toBe(true);
+      expect(hasLineContaining(scene, 'This is my house')).toBe(true);
     });
 
     it('should NOT contain fabricated "There is a lamp on the table"', () => {
@@ -152,9 +149,9 @@ describe('Scene dialogue accuracy', () => {
   });
 
   describe('Frozen', () => {
-    it('should contain the real Elsa quote "The cold never bothered me anyway"', () => {
+    it('should contain the trailer line about Arendelle being frozen', () => {
       const scene = getScene('frozen-trailer');
-      expect(hasLineContaining(scene, 'The cold never bothered me anyway')).toBe(true);
+      expect(hasLineContaining(scene, 'completely frozen')).toBe(true);
     });
 
     it('should NOT contain fabricated "The cloud is dark. I think it will rain soon"', () => {
@@ -164,7 +161,6 @@ describe('Scene dialogue accuracy', () => {
 
     it('should NOT contain fabricated Olaf line about sunny days that is wrong', () => {
       const scene = getScene('frozen-trailer');
-      // Olaf's actual line is "Hi, I'm Olaf and I like warm hugs!" not "hot sunny days"
       expect(hasLineContaining(scene, 'I like hot sunny days')).toBe(false);
     });
 
