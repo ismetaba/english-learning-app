@@ -185,6 +185,16 @@ function getActiveLineIndex(lines: Scene['lines'], currentTime: number): number 
   return -1;
 }
 
+function getVisibleWordCount(line: Scene['lines'][0], currentTime: number): number {
+  if (line.lineStartTime == null || line.lineEndTime == null) return 0;
+  const words = line.text.split(' ');
+  const totalWords = words.length;
+  const duration = line.lineEndTime - line.lineStartTime;
+  const elapsed = currentTime - line.lineStartTime;
+  const progress = Math.min(1, Math.max(0, elapsed / duration));
+  return Math.ceil(progress * totalWords);
+}
+
 export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -226,11 +236,23 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
           onStateChange={handleStateChange}
           onTimeUpdate={handleTimeUpdate}
         />
-        {/* Subtitle overlay */}
+        {/* Subtitle overlay — word by word */}
         {activeLineIndex >= 0 && (
           <View style={styles.subtitleOverlay} pointerEvents="none">
             <Text style={styles.subtitleText}>
-              {scene.lines[activeLineIndex].text}
+              {(() => {
+                const line = scene.lines[activeLineIndex];
+                const words = line.text.split(' ');
+                const visibleCount = getVisibleWordCount(line, currentTime);
+                return words.map((word, idx) => (
+                  <Text
+                    key={idx}
+                    style={idx < visibleCount ? styles.subtitleWordVisible : styles.subtitleWordHidden}
+                  >
+                    {word}{' '}
+                  </Text>
+                ));
+              })()}
             </Text>
           </View>
         )}
@@ -312,7 +334,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   subtitleText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
@@ -321,6 +342,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     overflow: 'hidden',
+  },
+  subtitleWordVisible: {
+    color: '#FFFFFF',
+  },
+  subtitleWordHidden: {
+    color: 'rgba(255, 255, 255, 0.3)',
   },
   activeDialogueLine: {
     backgroundColor: palette.primarySoft,
