@@ -1,0 +1,874 @@
+{
+  "ratatouille-trailer": {
+    "video_id": "NgsQ8mVkN8w",
+    "lines": [
+      {
+        "text": "[Music]",
+        "start": 8.16,
+        "duration": 5.51
+      },
+      {
+        "text": "and tonight before the dessert course we",
+        "start": 14.04,
+        "duration": 5.86
+      },
+      {
+        "text": "present for your pleasures a traditional",
+        "start": 17.77,
+        "duration": 4.95
+      },
+      {
+        "text": "cheese trolley to start we have an",
+        "start": 19.9,
+        "duration": 4.83
+      },
+      {
+        "text": "excellent clochette clearly very nice",
+        "start": 22.72,
+        "duration": 5.37
+      },
+      {
+        "text": "very light next a bloody hearty was a",
+        "start": 24.73,
+        "duration": 6.66
+      },
+      {
+        "text": "surprising particular and finally is a",
+        "start": 28.09,
+        "duration": 5.76
+      },
+      {
+        "text": "piaster is the stones a very special",
+        "start": 31.39,
+        "duration": 5.27
+      },
+      {
+        "text": "very well",
+        "start": 33.85,
+        "duration": 2.81
+      },
+      {
+        "text": "[Music]",
+        "start": 37.94,
+        "duration": 3.03
+      },
+      {
+        "text": "this is me",
+        "start": 50.01,
+        "duration": 4.0
+      },
+      {
+        "text": "I think it's apparent that I need to",
+        "start": 52.3,
+        "duration": 3.96
+      },
+      {
+        "text": "rethink my life a little bit I can't",
+        "start": 54.01,
+        "duration": 4.98
+      },
+      {
+        "text": "help myself I I like good food okay and",
+        "start": 56.26,
+        "duration": 7.23
+      },
+      {
+        "text": "good food is hard for a rat to find it",
+        "start": 58.99,
+        "duration": 6.78
+      },
+      {
+        "text": "wouldn't be so hard to find if you",
+        "start": 63.49,
+        "duration": 4.56
+      },
+      {
+        "text": "weren't so picky I don't want to eat",
+        "start": 65.77,
+        "duration": 9.54
+      },
+      {
+        "text": "garbage dad what is that I don't really",
+        "start": 68.05,
+        "duration": 10.47
+      },
+      {
+        "text": "know you don't know and you're eating it",
+        "start": 75.31,
+        "duration": 5.28
+      },
+      {
+        "text": "you know if you can sort of muscle your",
+        "start": 78.52,
+        "duration": 3.959
+      },
+      {
+        "text": "way past the gag reflex",
+        "start": 80.59,
+        "duration": 4.139
+      },
+      {
+        "text": "all kinds of food possibilities open up",
+        "start": 82.479,
+        "duration": 6.151
+      },
+      {
+        "text": "this is what I'm talking about I don't",
+        "start": 84.729,
+        "duration": 5.191
+      },
+      {
+        "text": "think any of this would have come up but",
+        "start": 88.63,
+        "duration": 4.29
+      },
+      {
+        "text": "we happen to live in Paris France and",
+        "start": 89.92,
+        "duration": 6.74
+      },
+      {
+        "text": "it's so easy to find good food in Paris",
+        "start": 92.92,
+        "duration": 11.43
+      },
+      {
+        "text": "it's just dangerous gotta rethink your",
+        "start": 96.66,
+        "duration": 9.9
+      },
+      {
+        "text": "life",
+        "start": 104.35,
+        "duration": 2.21
+      }
+    ]
+  },
+  "forrest-gump-trailer": {
+    "video_id": "bLvqoHBptjg",
+    "error": "\nCould not retrieve a transcript for the video https://www.youtube.com/watch?v=bLvqoHBptjg! This is most likely caused by:\n\nYouTube is blocking requests from your IP. This usually is due to one of the following reasons:\n- You have done too many requests and your IP has been blocked by YouTube\n- You are doing requests from an IP belonging to a cloud provider (like AWS, Google Cloud Platform, Azure, etc.). Unfortunately, most IPs from cloud providers are blocked by YouTube.\n\nThere are two things you can do to work around this:\n1. Use proxies to hide your IP address, as explained in the \"Working around IP bans\" section of the README (https://github.com/jdepoix/youtube-transcript-api?tab=readme-ov-file#working-around-ip-bans-requestblocked-or-ipblocked-exception).\n2. (NOT RECOMMENDED) If you authenticate your requests using cookies, you will be able to continue doing requests for a while. However, YouTube will eventually permanently ban the account that you have used to authenticate with! So only do this if you don't mind your account being banned!\n\nIf you are sure that the described cause is not responsible for this error and that a transcript should be retrievable, please create an issue at https://github.com/jdepoix/youtube-transcript-api/issues. Please add which version of youtube_transcript_api you are using and provide the information needed to replicate the error. Also make sure that there are no open issues which already describe your problem!"
+  },
+  "terminal-trailer": {
+    "video_id": "iZqQRmhRvyg",
+    "lines": [
+      {
+        "text": "mr. navorski please follow me",
+        "start": 11.09,
+        "duration": 5.08
+      },
+      {
+        "text": "while you were in the air there was a",
+        "start": 14.37,
+        "duration": 3.51
+      },
+      {
+        "text": "military coup in your country republic",
+        "start": 16.17,
+        "duration": 3.72
+      },
+      {
+        "text": "of krakozhia is under new leadership our",
+        "start": 17.88,
+        "duration": 4.62
+      },
+      {
+        "text": "colleges I don't think he gets it",
+        "start": 19.89,
+        "duration": 6.209
+      },
+      {
+        "text": "what do I buy the Nike shoes I'm gonna",
+        "start": 22.5,
+        "duration": 8.369
+      },
+      {
+        "text": "need the passport also no no mr.",
+        "start": 26.099,
+        "duration": 7.471
+      },
+      {
+        "text": "navorski beyond those doors is American",
+        "start": 30.869,
+        "duration": 6.71
+      },
+      {
+        "text": "soil you are not to leave this building",
+        "start": 33.57,
+        "duration": 4.009
+      },
+      {
+        "text": "[Music]",
+        "start": 37.91,
+        "duration": 3.25
+      },
+      {
+        "text": "there's a man walking around the",
+        "start": 42.579,
+        "duration": 6.221
+      },
+      {
+        "text": "terminal in a bathrobe iti don't know",
+        "start": 45.05,
+        "duration": 4.98
+      },
+      {
+        "text": "what the hell you're talking about that",
+        "start": 48.8,
+        "duration": 2.579
+      },
+      {
+        "text": "guy doesn't even speak English",
+        "start": 50.03,
+        "duration": 6.869
+      },
+      {
+        "text": "I know do you live nearby get sixty",
+        "start": 51.379,
+        "duration": 6.99
+      },
+      {
+        "text": "simple because we are very particular",
+        "start": 56.899,
+        "duration": 4.79
+      },
+      {
+        "text": "about Pichu al'lat did you say Gate 67",
+        "start": 58.369,
+        "duration": 5.551
+      },
+      {
+        "text": "we don't play for cash we play for",
+        "start": 61.689,
+        "duration": 5.79
+      },
+      {
+        "text": "unclaimed items from the lost inside",
+        "start": 63.92,
+        "duration": 3.559
+      },
+      {
+        "text": "she's a wild stallion you helped me to",
+        "start": 70.21,
+        "duration": 3.939
+      },
+      {
+        "text": "win her heart and you'll never go hungry",
+        "start": 72.679,
+        "duration": 6.44
+      },
+      {
+        "text": "again the mothers are my friends say you",
+        "start": 74.149,
+        "duration": 8.161
+      },
+      {
+        "text": "like a horse stand behind the old line",
+        "start": 79.119,
+        "duration": 7.68
+      },
+      {
+        "text": "[Music]",
+        "start": 82.31,
+        "duration": 4.489
+      },
+      {
+        "text": "[Music]",
+        "start": 89.6,
+        "duration": 5.13
+      },
+      {
+        "text": "we headed for home",
+        "start": 92.68,
+        "duration": 7.68
+      },
+      {
+        "text": "I am delay a long time",
+        "start": 94.73,
+        "duration": 5.63
+      },
+      {
+        "text": "you are the kind of woman who can get",
+        "start": 105.65,
+        "duration": 3.76
+      },
+      {
+        "text": "any guy she wants",
+        "start": 108.18,
+        "duration": 3.54
+      },
+      {
+        "text": "why viktor navorski that's something a",
+        "start": 109.41,
+        "duration": 6.5
+      },
+      {
+        "text": "guy like you could never understand",
+        "start": 111.72,
+        "duration": 4.19
+      },
+      {
+        "text": "[Music]",
+        "start": 117.13,
+        "duration": 14.17
+      },
+      {
+        "text": "they were feel like you're just living",
+        "start": 129.43,
+        "duration": 4.53
+      },
+      {
+        "text": "in an airport",
+        "start": 131.3,
+        "duration": 2.66
+      }
+    ]
+  },
+  "finding-nemo-trailer": {
+    "video_id": "2zLkasScy7A",
+    "lines": [
+      {
+        "text": "Dory do you see anything ah something's",
+        "start": 8.04,
+        "duration": 4.16
+      },
+      {
+        "text": "got me that was me I'm sorry I see a",
+        "start": 9.8,
+        "duration": 7.36
+      },
+      {
+        "text": "light what is it it's so pretty I'm",
+        "start": 12.2,
+        "duration": 9.6
+      },
+      {
+        "text": "feeling happy which is a big deal for me",
+        "start": 17.16,
+        "duration": 6.56
+      },
+      {
+        "text": "I want to touch",
+        "start": 21.8,
+        "duration": 5.799
+      },
+      {
+        "text": "it hey come back come on back here I'm",
+        "start": 23.72,
+        "duration": 6.28
+      },
+      {
+        "text": "going to get you I'm going to get you",
+        "start": 27.599,
+        "duration": 3.881
+      },
+      {
+        "text": "I'm going to get you I'm going to swim",
+        "start": 30.0,
+        "duration": 3.32
+      },
+      {
+        "text": "with you I'm going to get you I'm going",
+        "start": 31.48,
+        "duration": 7.239
+      },
+      {
+        "text": "to be your best friend good feelings",
+        "start": 33.32,
+        "duration": 5.399
+      },
+      {
+        "text": "[Music]",
+        "start": 40.25,
+        "duration": 3.989
+      },
+      {
+        "text": "gone all get",
+        "start": 42.12,
+        "duration": 5.24
+      },
+      {
+        "text": "it I got to find my sun",
+        "start": 44.239,
+        "duration": 6.121
+      },
+      {
+        "text": "Nemo",
+        "start": 47.36,
+        "duration": 3.0
+      },
+      {
+        "text": "hello fish are friends not food",
+        "start": 50.68,
+        "duration": 7.96
+      },
+      {
+        "text": "W grab shell dude grab",
+        "start": 55.16,
+        "duration": 6.28
+      },
+      {
+        "text": "one oh no hurling on the shell dude okay",
+        "start": 58.64,
+        "duration": 4.44
+      },
+      {
+        "text": "just waxed",
+        "start": 61.44,
+        "duration": 6.88
+      },
+      {
+        "text": "it duck that's not a duck it's a",
+        "start": 63.08,
+        "duration": 5.24
+      },
+      {
+        "text": "p everybody hold",
+        "start": 69.479,
+        "duration": 7.361
+      },
+      {
+        "text": "up little help over",
+        "start": 73.08,
+        "duration": 3.76
+      },
+      {
+        "text": "herewhere Beyond the Sea how's it going",
+        "start": 78.6,
+        "duration": 5.36
+      },
+      {
+        "text": "Bob you know I speak wh",
+        "start": 81.4,
+        "duration": 4.759
+      },
+      {
+        "text": "come it's just as well he might be",
+        "start": 83.96,
+        "duration": 4.119
+      },
+      {
+        "text": "hungry don't worry whales don't eat",
+        "start": 86.159,
+        "duration": 5.041
+      },
+      {
+        "text": "clown fish they eat krill",
+        "start": 88.079,
+        "duration": 9.961
+      },
+      {
+        "text": "oh look kill latches the ships that move",
+        "start": 91.2,
+        "duration": 6.84
+      },
+      {
+        "text": "[Music]",
+        "start": 101.39,
+        "duration": 4.42
+      },
+      {
+        "text": "Dory",
+        "start": 107.399,
+        "duration": 3.0
+      },
+      {
+        "text": "nice",
+        "start": 111.04,
+        "duration": 3.0
+      }
+    ]
+  },
+  "home-alone-trailer": {
+    "video_id": "jEDaVHmw7r4",
+    "lines": [
+      {
+        "text": "when the McCallister family left on",
+        "start": 6.71,
+        "duration": 8.379
+      },
+      {
+        "text": "their Christmas vacation they forgot one",
+        "start": 9.48,
+        "duration": 15.45
+      },
+      {
+        "text": "small thing did you lock up do we set",
+        "start": 15.089,
+        "duration": 21.871
+      },
+      {
+        "text": "the timers on the lights please in the",
+        "start": 24.93,
+        "duration": 13.53
+      },
+      {
+        "text": "northern suburbs are on the lookout for",
+        "start": 36.96,
+        "duration": 2.849
+      },
+      {
+        "text": "a pair of burglars who are calling",
+        "start": 38.46,
+        "duration": 3.9
+      },
+      {
+        "text": "themselves the Wet Bandits you know that",
+        "start": 39.809,
+        "duration": 5.311
+      },
+      {
+        "text": "you're in there it's Santa Claus and his",
+        "start": 42.36,
+        "duration": 7.19
+      },
+      {
+        "text": "elf get brought my property",
+        "start": 45.12,
+        "duration": 4.43
+      },
+      {
+        "text": "this is my house I have to defend",
+        "start": 49.949,
+        "duration": 4.02
+      },
+      {
+        "text": "where's your mother",
+        "start": 52.92,
+        "duration": 2.729
+      },
+      {
+        "text": "Oh mom's in the car where's your father",
+        "start": 53.969,
+        "duration": 3.241
+      },
+      {
+        "text": "she's at work what about your brothers",
+        "start": 55.649,
+        "duration": 3.151
+      },
+      {
+        "text": "and sisters I win all the child where do",
+        "start": 57.21,
+        "duration": 2.07
+      },
+      {
+        "text": "you live",
+        "start": 58.8,
+        "duration": 2.13
+      },
+      {
+        "text": "you tell you that why not cuz you're a",
+        "start": 59.28,
+        "duration": 4.8
+      },
+      {
+        "text": "stranger he's a kid we what can a kid do",
+        "start": 60.93,
+        "duration": 5.82
+      },
+      {
+        "text": "to us the kids are stupid I know I was",
+        "start": 64.08,
+        "duration": 6.469
+      },
+      {
+        "text": "you still are my mm-hm",
+        "start": 66.75,
+        "duration": 3.799
+      },
+      {
+        "text": "now I'll care if I've to get out on your",
+        "start": 72.1,
+        "duration": 3.879
+      },
+      {
+        "text": "runway and hitchhike I am going to get",
+        "start": 74.21,
+        "duration": 3.52
+      },
+      {
+        "text": "home to my son",
+        "start": 75.979,
+        "duration": 5.24
+      },
+      {
+        "text": "[Music]",
+        "start": 77.73,
+        "duration": 3.489
+      },
+      {
+        "text": "where are you little sweet",
+        "start": 83.99,
+        "duration": 6.47
+      },
+      {
+        "text": "[Music]",
+        "start": 87.73,
+        "duration": 4.99
+      },
+      {
+        "text": "what did take your shoes off",
+        "start": 90.46,
+        "duration": 3.82
+      },
+      {
+        "text": "I need dressed like a chicken Gus",
+        "start": 92.72,
+        "duration": 3.57
+      },
+      {
+        "text": "Polinski poker king of the Midwest if",
+        "start": 94.28,
+        "duration": 3.78
+      },
+      {
+        "text": "you have to get to Chicago we'll finally",
+        "start": 96.29,
+        "duration": 6.53
+      },
+      {
+        "text": "Drive you yesterday he was just a kid",
+        "start": 98.06,
+        "duration": 8.79
+      },
+      {
+        "text": "but tonight he's a home security system",
+        "start": 102.82,
+        "duration": 9.939
+      },
+      {
+        "text": "live from John Hughes you know I got a",
+        "start": 106.85,
+        "duration": 7.14
+      },
+      {
+        "text": "feeling this is gonna be your best",
+        "start": 112.759,
+        "duration": 3.691
+      },
+      {
+        "text": "Christmas ever a family comedy without",
+        "start": 113.99,
+        "duration": 7.409
+      },
+      {
+        "text": "the family home alone are you here all",
+        "start": 116.45,
+        "duration": 6.54
+      },
+      {
+        "text": "alone I'm eight years old",
+        "start": 121.399,
+        "duration": 4.65
+      },
+      {
+        "text": "you think I'd be here all wrong I don't",
+        "start": 122.99,
+        "duration": 3.84
+      },
+      {
+        "text": "think so",
+        "start": 126.049,
+        "duration": 2.791
+      },
+      {
+        "text": "directed by Chris Columbus coming",
+        "start": 126.83,
+        "duration": 5.06
+      },
+      {
+        "text": "November 16th",
+        "start": 128.84,
+        "duration": 3.05
+      },
+      {
+        "text": "[Music]",
+        "start": 132.49,
+        "duration": 3.209
+      }
+    ]
+  },
+  "frozen-trailer": {
+    "video_id": "TbQm5doF_Uc",
+    "lines": [
+      {
+        "text": "summer in the city of arendelle",
+        "start": 6.74,
+        "duration": 6.04
+      },
+      {
+        "text": "it couldn't be warmer it couldn't be",
+        "start": 9.559,
+        "duration": 5.73
+      },
+      {
+        "text": "sunnier but that's about to change",
+        "start": 12.78,
+        "duration": 8.93
+      },
+      {
+        "text": "forever arendelle it's completely frozen",
+        "start": 15.289,
+        "duration": 12.941
+      },
+      {
+        "text": "a real howler in July yeah the land is",
+        "start": 21.71,
+        "duration": 13.72
+      },
+      {
+        "text": "covered in eternal snow if we don't do",
+        "start": 28.23,
+        "duration": 8.79
+      },
+      {
+        "text": "something soon we'll all freeze to death",
+        "start": 35.43,
+        "duration": 4.35
+      },
+      {
+        "text": "you want to talk about a problem I sell",
+        "start": 37.02,
+        "duration": 4.59
+      },
+      {
+        "text": "ice for a living that's a rough business",
+        "start": 39.78,
+        "duration": 4.47
+      },
+      {
+        "text": "to be in right now I mean that is really",
+        "start": 41.61,
+        "duration": 8.82
+      },
+      {
+        "text": "mmm that's unfortunately my lady not",
+        "start": 44.25,
+        "duration": 7.59
+      },
+      {
+        "text": "you're awkward but just because we're",
+        "start": 50.43,
+        "duration": 3.359
+      },
+      {
+        "text": "I'm Robert you're gorgeous",
+        "start": 51.84,
+        "duration": 7.199
+      },
+      {
+        "text": "wait what hi everyone I'm Olaf hi you're",
+        "start": 53.789,
+        "duration": 9.241
+      },
+      {
+        "text": "creepy well we got off to a bad start I",
+        "start": 59.039,
+        "duration": 9.12
+      },
+      {
+        "text": "know how to stop this winter whoa whoa",
+        "start": 63.03,
+        "duration": 6.99
+      },
+      {
+        "text": "whoa whoa whoa get your feet down this",
+        "start": 68.159,
+        "duration": 3.331
+      },
+      {
+        "text": "is fresh lacquer seriously were you",
+        "start": 70.02,
+        "duration": 3.889
+      },
+      {
+        "text": "raised in a barn",
+        "start": 71.49,
+        "duration": 2.419
+      },
+      {
+        "text": "oh wow are you okay I've got a thick",
+        "start": 81.04,
+        "duration": 5.91
+      },
+      {
+        "text": "skull",
+        "start": 86.62,
+        "duration": 16.35
+      },
+      {
+        "text": "I don't have a skull that would have",
+        "start": 86.95,
+        "duration": 20.22
+      },
+      {
+        "text": "been nice to know not nice",
+        "start": 102.97,
+        "duration": 6.54
+      },
+      {
+        "text": "took the routes no people oh",
+        "start": 107.17,
+        "duration": 4.47
+      },
+      {
+        "text": "feisty-pants I let the Snowman beat and",
+        "start": 109.51,
+        "duration": 10.35
+      },
+      {
+        "text": "calm great oh you're melting some people",
+        "start": 111.64,
+        "duration": 10.86
+      },
+      {
+        "text": "are worth melting for no just maybe not",
+        "start": 119.86,
+        "duration": 5.42
+      },
+      {
+        "text": "right this circuit",
+        "start": 122.5,
+        "duration": 2.78
+      },
+      {
+        "text": "[Applause]",
+        "start": 126.63,
+        "duration": 3.189
+      },
+      {
+        "text": "[Music]",
+        "start": 132.08,
+        "duration": 3.179
+      },
+      {
+        "text": "my legs I can't get my legs those are my",
+        "start": 136.74,
+        "duration": 5.61
+      },
+      {
+        "text": "legs",
+        "start": 141.87,
+        "duration": 2.9
+      },
+      {
+        "text": "oh hey do me a favor grab my butt hey oh",
+        "start": 142.35,
+        "duration": 5.75
+      },
+      {
+        "text": "that feels better",
+        "start": 144.77,
+        "duration": 3.33
+      }
+    ]
+  },
+  "harry-potter-trailer": {
+    "video_id": "VyHV0BRtdxo",
+    "error": "\nCould not retrieve a transcript for the video https://www.youtube.com/watch?v=VyHV0BRtdxo! This is most likely caused by:\n\nYouTube is blocking requests from your IP. This usually is due to one of the following reasons:\n- You have done too many requests and your IP has been blocked by YouTube\n- You are doing requests from an IP belonging to a cloud provider (like AWS, Google Cloud Platform, Azure, etc.). Unfortunately, most IPs from cloud providers are blocked by YouTube.\n\nThere are two things you can do to work around this:\n1. Use proxies to hide your IP address, as explained in the \"Working around IP bans\" section of the README (https://github.com/jdepoix/youtube-transcript-api?tab=readme-ov-file#working-around-ip-bans-requestblocked-or-ipblocked-exception).\n2. (NOT RECOMMENDED) If you authenticate your requests using cookies, you will be able to continue doing requests for a while. However, YouTube will eventually permanently ban the account that you have used to authenticate with! So only do this if you don't mind your account being banned!\n\nIf you are sure that the described cause is not responsible for this error and that a transcript should be retrievable, please create an issue at https://github.com/jdepoix/youtube-transcript-api/issues. Please add which version of youtube_transcript_api you are using and provide the information needed to replicate the error. Also make sure that there are no open issues which already describe your problem!"
+  },
+  "devil-wears-prada-trailer": {
+    "video_id": "6ZOZwUQKu3E",
+    "error": "\nCould not retrieve a transcript for the video https://www.youtube.com/watch?v=6ZOZwUQKu3E! This is most likely caused by:\n\nYouTube is blocking requests from your IP. This usually is due to one of the following reasons:\n- You have done too many requests and your IP has been blocked by YouTube\n- You are doing requests from an IP belonging to a cloud provider (like AWS, Google Cloud Platform, Azure, etc.). Unfortunately, most IPs from cloud providers are blocked by YouTube.\n\nThere are two things you can do to work around this:\n1. Use proxies to hide your IP address, as explained in the \"Working around IP bans\" section of the README (https://github.com/jdepoix/youtube-transcript-api?tab=readme-ov-file#working-around-ip-bans-requestblocked-or-ipblocked-exception).\n2. (NOT RECOMMENDED) If you authenticate your requests using cookies, you will be able to continue doing requests for a while. However, YouTube will eventually permanently ban the account that you have used to authenticate with! So only do this if you don't mind your account being banned!\n\nIf you are sure that the described cause is not responsible for this error and that a transcript should be retrievable, please create an issue at https://github.com/jdepoix/youtube-transcript-api/issues. Please add which version of youtube_transcript_api you are using and provide the information needed to replicate the error. Also make sure that there are no open issues which already describe your problem!"
+  }
+}
