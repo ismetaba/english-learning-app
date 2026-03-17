@@ -9,9 +9,10 @@ interface ScenePlayerProps {
   onComplete?: () => void;
 }
 
-function YouTubePlayerWeb({ scene, onStateChange }: {
+function YouTubePlayerWeb({ scene, onStateChange, onTimeUpdate }: {
   scene: Scene;
   onStateChange: (state: 'playing' | 'paused' | 'ended') => void;
+  onTimeUpdate?: (time: number) => void;
 }) {
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
@@ -41,10 +42,19 @@ function YouTubePlayerWeb({ scene, onStateChange }: {
             const YT = (window as any).YT;
             if (e.data === YT.PlayerState.PLAYING) {
               onStateChange('playing');
+              clearInterval(intervalRef.current);
+              intervalRef.current = setInterval(() => {
+                const currentTime = playerRef.current?.getCurrentTime?.();
+                if (currentTime != null && onTimeUpdate) {
+                  onTimeUpdate(currentTime);
+                }
+              }, 250);
             } else if (e.data === YT.PlayerState.PAUSED) {
               onStateChange('paused');
+              clearInterval(intervalRef.current);
             } else if (e.data === YT.PlayerState.ENDED) {
               onStateChange('ended');
+              clearInterval(intervalRef.current);
             }
           },
         },
@@ -70,9 +80,10 @@ function YouTubePlayerWeb({ scene, onStateChange }: {
   );
 }
 
-function YouTubePlayerNative({ scene, onStateChange }: {
+function YouTubePlayerNative({ scene, onStateChange, onTimeUpdate }: {
   scene: Scene;
   onStateChange: (state: 'playing' | 'paused' | 'ended') => void;
+  onTimeUpdate?: (time: number) => void;
 }) {
   const WebView = require('react-native-webview').default;
   const webViewRef = useRef<any>(null);
@@ -95,6 +106,7 @@ function YouTubePlayerNative({ scene, onStateChange }: {
         tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
         var player;
+        var timeInterval;
         function onYouTubeIframeAPIReady() {
           player = new YT.Player('player', {
             videoId: '${scene.youtubeVideoId}',
@@ -112,10 +124,19 @@ function YouTubePlayerNative({ scene, onStateChange }: {
               onStateChange: function(e) {
                 if (e.data === YT.PlayerState.PLAYING) {
                   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'playing' }));
+                  clearInterval(timeInterval);
+                  timeInterval = setInterval(function() {
+                    var t = player.getCurrentTime();
+                    if (t != null) {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'timeUpdate', time: t }));
+                    }
+                  }, 250);
                 } else if (e.data === YT.PlayerState.PAUSED) {
                   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paused' }));
+                  clearInterval(timeInterval);
                 } else if (e.data === YT.PlayerState.ENDED) {
                   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ended' }));
+                  clearInterval(timeInterval);
                 }
               }
             }
@@ -129,11 +150,13 @@ function YouTubePlayerNative({ scene, onStateChange }: {
   const handleMessage = useCallback((event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'playing' || data.type === 'paused' || data.type === 'ended') {
+      if (data.type === 'timeUpdate' && onTimeUpdate) {
+        onTimeUpdate(data.time);
+      } else if (data.type === 'playing' || data.type === 'paused' || data.type === 'ended') {
         onStateChange(data.type);
       }
     } catch {}
-  }, [onStateChange]);
+  }, [onStateChange, onTimeUpdate]);
 
   return (
     <View style={styles.videoContainer}>
@@ -150,9 +173,24 @@ function YouTubePlayerNative({ scene, onStateChange }: {
   );
 }
 
+function getActiveLineIndex(lines: Scene['lines'], currentTime: number): number {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (line.lineStartTime != null && line.lineEndTime != null) {
+      if (currentTime >= line.lineStartTime && currentTime < line.lineEndTime) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
 export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   const { t } = useTranslation();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const linePositionsRef = useRef<Record<number, number>>({});
 
   const handleStateChange = useCallback((state: 'playing' | 'paused' | 'ended') => {
     setIsPlaying(state === 'playing');
@@ -161,16 +199,42 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
     }
   }, [onComplete]);
 
+  const handleTimeUpdate = useCallback((time: number) => {
+    setCurrentTime(time);
+  }, []);
+
   const PlayerComponent = Platform.OS === 'web' ? YouTubePlayerWeb : YouTubePlayerNative;
 
   const vocabWords = (scene.vocabCoverage || []).map(w => w.toLowerCase());
+  const activeLineIndex = getActiveLineIndex(scene.lines, currentTime);
+
+  // Auto-scroll to active line
+  useEffect(() => {
+    if (activeLineIndex >= 0 && scrollViewRef.current) {
+      const y = linePositionsRef.current[activeLineIndex];
+      if (y != null) {
+        scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+      }
+    }
+  }, [activeLineIndex]);
 
   return (
     <View style={styles.container}>
-      <PlayerComponent
-        scene={scene}
-        onStateChange={handleStateChange}
-      />
+      <View style={styles.videoWrapper}>
+        <PlayerComponent
+          scene={scene}
+          onStateChange={handleStateChange}
+          onTimeUpdate={handleTimeUpdate}
+        />
+        {/* Subtitle overlay */}
+        {activeLineIndex >= 0 && (
+          <View style={styles.subtitleOverlay} pointerEvents="none">
+            <Text style={styles.subtitleText}>
+              {scene.lines[activeLineIndex].text}
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Movie info */}
       <View style={styles.infoBar}>
@@ -181,9 +245,18 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
       {/* Dialogue lines with speaker labels and highlighted vocab */}
       <View style={styles.dialogueContainer}>
         <Text style={styles.dialogueLabel}>{t('dialogue')}</Text>
-        <ScrollView style={styles.dialogueScroll}>
+        <ScrollView ref={scrollViewRef} style={styles.dialogueScroll}>
           {scene.lines.map((line, lineIdx) => (
-            <View key={lineIdx} style={styles.dialogueLine}>
+            <View
+              key={lineIdx}
+              style={[
+                styles.dialogueLine,
+                lineIdx === activeLineIndex && styles.activeDialogueLine,
+              ]}
+              onLayout={(e) => {
+                linePositionsRef.current[lineIdx] = e.nativeEvent.layout.y;
+              }}
+            >
               <Text style={styles.speakerName}>{line.speaker}</Text>
               <Text style={styles.dialogueText}>
                 {line.text.split(' ').map((word, idx) => {
@@ -221,10 +294,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.bg,
   },
+  videoWrapper: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    position: 'relative',
+  },
   videoContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
+  },
+  subtitleOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  subtitleText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  activeDialogueLine: {
+    backgroundColor: palette.primarySoft,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginHorizontal: -8,
   },
   video: {
     flex: 1,
