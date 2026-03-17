@@ -1,6 +1,6 @@
-import { scenes, DialogueLine, Scene } from '../data/scenes';
+import { scenes, DialogueLine } from '../data/scenes';
 
-// Replicate the getActiveLineIndex logic from ScenePlayer
+// Replicate logic from ScenePlayer
 function getActiveLineIndex(lines: DialogueLine[], currentTime: number): number {
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i];
@@ -64,6 +64,49 @@ describe('Subtitle sync', () => {
     test('returns -1 after all lines end', () => {
       expect(getActiveLineIndex(testLines, 35)).toBe(-1);
       expect(getActiveLineIndex(testLines, 100)).toBe(-1);
+    });
+  });
+
+  describe('getVisibleWordCount', () => {
+    function getVisibleWordCount(line: DialogueLine, currentTime: number): number {
+      if (line.lineStartTime == null || line.lineEndTime == null) return 0;
+      const words = line.text.split(' ');
+      const totalWords = words.length;
+      const duration = line.lineEndTime - line.lineStartTime;
+      const elapsed = currentTime - line.lineStartTime;
+      const progress = Math.min(1, Math.max(0, elapsed / duration));
+      return Math.ceil(progress * totalWords);
+    }
+
+    const line: DialogueLine = {
+      speaker: 'Test',
+      text: 'one two three four',
+      lineStartTime: 10,
+      lineEndTime: 20,
+    };
+
+    test('shows 0 words at the exact start', () => {
+      expect(getVisibleWordCount(line, 10)).toBe(0);
+    });
+
+    test('shows 1 word after 25% of duration', () => {
+      expect(getVisibleWordCount(line, 12.5)).toBe(1);
+    });
+
+    test('shows 2 words at halfway', () => {
+      expect(getVisibleWordCount(line, 15)).toBe(2);
+    });
+
+    test('shows all words at the end', () => {
+      expect(getVisibleWordCount(line, 20)).toBe(4);
+    });
+
+    test('shows all words past the end', () => {
+      expect(getVisibleWordCount(line, 25)).toBe(4);
+    });
+
+    test('shows 0 words before line starts', () => {
+      expect(getVisibleWordCount(line, 5)).toBe(0);
     });
   });
 
