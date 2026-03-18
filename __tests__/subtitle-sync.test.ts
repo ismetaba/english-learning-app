@@ -1,4 +1,4 @@
-import { scenes, DialogueLine } from '../data/scenes';
+import { scenes, DialogueLine, WordTimestamp } from '../data/scenes';
 
 // Replicate logic from ScenePlayer
 function getActiveLineIndex(lines: DialogueLine[], currentTime: number): number {
@@ -68,8 +68,27 @@ describe('Subtitle sync', () => {
   });
 
   describe('getVisibleWordCount', () => {
-    function getVisibleWordCount(line: DialogueLine, currentTime: number): number {
+    function getVisibleWordCount(
+      line: DialogueLine,
+      currentTime: number,
+      wordTimestamps?: WordTimestamp[],
+    ): number {
       if (line.lineStartTime == null || line.lineEndTime == null) return 0;
+
+      // Use per-word timestamps if available
+      if (wordTimestamps && wordTimestamps.length > 0) {
+        let count = 0;
+        for (const wt of wordTimestamps) {
+          if (currentTime >= wt.startTime) {
+            count++;
+          } else {
+            break;
+          }
+        }
+        return count;
+      }
+
+      // Fallback: linear interpolation
       const words = line.text.split(' ');
       const totalWords = words.length;
       const duration = line.lineEndTime - line.lineStartTime;
@@ -107,6 +126,40 @@ describe('Subtitle sync', () => {
 
     test('shows 0 words before line starts', () => {
       expect(getVisibleWordCount(line, 5)).toBe(0);
+    });
+
+    // Word-level timestamp tests
+    describe('with word-level timestamps', () => {
+      const wordTimestamps: WordTimestamp[] = [
+        { word: 'one', startTime: 10, endTime: 12 },
+        { word: 'two', startTime: 12.5, endTime: 14 },
+        { word: 'three', startTime: 15, endTime: 17 },
+        { word: 'four', startTime: 18, endTime: 20 },
+      ];
+
+      test('shows 0 words before first word starts', () => {
+        expect(getVisibleWordCount(line, 9.5, wordTimestamps)).toBe(0);
+      });
+
+      test('shows 1 word when first word has started', () => {
+        expect(getVisibleWordCount(line, 10, wordTimestamps)).toBe(1);
+      });
+
+      test('shows 2 words when second word has started', () => {
+        expect(getVisibleWordCount(line, 12.5, wordTimestamps)).toBe(2);
+      });
+
+      test('shows 3 words at 15s (third word starts)', () => {
+        expect(getVisibleWordCount(line, 15, wordTimestamps)).toBe(3);
+      });
+
+      test('shows all 4 words at 18s', () => {
+        expect(getVisibleWordCount(line, 18, wordTimestamps)).toBe(4);
+      });
+
+      test('still shows 1 word between first and second word start', () => {
+        expect(getVisibleWordCount(line, 11, wordTimestamps)).toBe(1);
+      });
     });
   });
 
