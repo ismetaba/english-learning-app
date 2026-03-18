@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
 import { Scene } from '@/data/scenes';
 import { useTranslation } from '@/hooks/useTranslation';
-import { palette, Radius } from '@/constants/Colors';
+import { palette, Radius, Shadows } from '@/constants/Colors';
 
 interface ScenePlayerProps {
   scene: Scene;
@@ -195,6 +195,12 @@ function getVisibleWordCount(line: Scene['lines'][0], currentTime: number): numb
   return Math.ceil(progress * totalWords);
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -223,89 +229,140 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
     if (activeLineIndex >= 0 && scrollViewRef.current) {
       const y = linePositionsRef.current[activeLineIndex];
       if (y != null) {
-        scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+        scrollViewRef.current.scrollTo({ y: Math.max(0, y - 40), animated: true });
       }
     }
   }, [activeLineIndex]);
 
+  const duration = scene.endTime - scene.startTime;
+  const elapsed = Math.max(0, Math.min(currentTime - scene.startTime, duration));
+  const progressPercent = duration > 0 ? (elapsed / duration) * 100 : 0;
+
   return (
     <View style={styles.container}>
-      <View style={styles.videoWrapper}>
-        <PlayerComponent
-          scene={scene}
-          onStateChange={handleStateChange}
-          onTimeUpdate={handleTimeUpdate}
-        />
-        {/* Subtitle overlay — word by word */}
-        {activeLineIndex >= 0 && (
-          <View style={styles.subtitleOverlay} pointerEvents="none">
-            <Text style={styles.subtitleText}>
-              {(() => {
-                const line = scene.lines[activeLineIndex];
-                const words = line.text.split(' ');
-                const visibleCount = getVisibleWordCount(line, currentTime);
-                return words.map((word, idx) => (
-                  <Text
-                    key={idx}
-                    style={idx < visibleCount ? styles.subtitleWordVisible : styles.subtitleWordHidden}
-                  >
-                    {word}{' '}
-                  </Text>
-                ));
-              })()}
-            </Text>
-          </View>
-        )}
-      </View>
+      {/* Video */}
+      <PlayerComponent
+        scene={scene}
+        onStateChange={handleStateChange}
+        onTimeUpdate={handleTimeUpdate}
+      />
 
-      {/* Movie info */}
+      {/* Info bar with title, genre, and progress */}
       <View style={styles.infoBar}>
-        <Text style={styles.movieTitle}>{scene.movieTitle}</Text>
-        <Text style={styles.genre}>{scene.genre}</Text>
-      </View>
-
-      {/* Dialogue lines with speaker labels and highlighted vocab */}
-      <View style={styles.dialogueContainer}>
-        <Text style={styles.dialogueLabel}>{t('dialogue')}</Text>
-        <ScrollView ref={scrollViewRef} style={styles.dialogueScroll}>
-          {scene.lines.map((line, lineIdx) => (
-            <View
-              key={lineIdx}
-              style={[
-                styles.dialogueLine,
-                lineIdx === activeLineIndex && styles.activeDialogueLine,
-              ]}
-              onLayout={(e) => {
-                linePositionsRef.current[lineIdx] = e.nativeEvent.layout.y;
-              }}
-            >
-              <Text style={styles.speakerName}>{line.speaker}</Text>
-              <Text style={styles.dialogueText}>
-                {line.text.split(' ').map((word, idx) => {
-                  const cleanWord = word.replace(/[^a-zA-Z']/g, '').toLowerCase();
-                  const isVocab = vocabWords.some(v => cleanWord === v || cleanWord === v + 's' || cleanWord === v + 'ing' || cleanWord === v + 'ed');
-                  return (
-                    <Text key={idx} style={isVocab ? styles.highlightedWord : undefined}>
-                      {word}{' '}
-                    </Text>
-                  );
-                })}
-              </Text>
+        <View style={styles.infoLeft}>
+          <Text style={styles.movieTitle}>{scene.movieTitle}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.difficultyBadge}>
+              <Text style={styles.difficultyText}>{scene.difficulty}</Text>
             </View>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Vocab coverage */}
-      <View style={styles.vocabBar}>
-        <Text style={styles.vocabLabel}>{t('targetWords')}</Text>
-        <View style={styles.vocabChips}>
-          {scene.vocabCoverage.map((word, index) => (
-            <View key={index} style={styles.vocabChip}>
-              <Text style={styles.vocabChipText}>{word}</Text>
-            </View>
-          ))}
+            <Text style={styles.genreText}>{scene.genre}</Text>
+            <Text style={styles.timeText}>{formatTime(elapsed)} / {formatTime(duration)}</Text>
+          </View>
         </View>
+      </View>
+
+      {/* Progress bar */}
+      <View style={styles.progressBarTrack}>
+        <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+      </View>
+
+      {/* Transcript with word-by-word sync */}
+      <View style={styles.transcriptContainer}>
+        <View style={styles.transcriptHeader}>
+          <Text style={styles.transcriptLabel}>{t('dialogue')}</Text>
+          <View style={styles.vocabChips}>
+            {scene.vocabCoverage.map((word, index) => (
+              <View key={index} style={styles.vocabChip}>
+                <Text style={styles.vocabChipText}>{word}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <ScrollView ref={scrollViewRef} style={styles.transcriptScroll} showsVerticalScrollIndicator={false}>
+          {scene.lines.map((line, lineIdx) => {
+            const isActive = lineIdx === activeLineIndex;
+            const isPast = line.lineEndTime != null && currentTime >= line.lineEndTime;
+            const words = line.text.split(' ');
+            const visibleCount = isActive ? getVisibleWordCount(line, currentTime) : 0;
+
+            return (
+              <View
+                key={lineIdx}
+                style={[
+                  styles.lineRow,
+                  isActive && styles.lineRowActive,
+                ]}
+                onLayout={(e) => {
+                  linePositionsRef.current[lineIdx] = e.nativeEvent.layout.y;
+                }}
+              >
+                {/* Timeline dot */}
+                <View style={styles.timelineCol}>
+                  <View style={[
+                    styles.timelineDot,
+                    isActive && styles.timelineDotActive,
+                    isPast && styles.timelineDotPast,
+                  ]} />
+                  {lineIdx < scene.lines.length - 1 && (
+                    <View style={[
+                      styles.timelineLine,
+                      isPast && styles.timelineLinePast,
+                    ]} />
+                  )}
+                </View>
+
+                {/* Content */}
+                <View style={styles.lineContent}>
+                  <View style={styles.lineMeta}>
+                    <Text style={[
+                      styles.speakerName,
+                      isActive && styles.speakerNameActive,
+                    ]}>{line.speaker}</Text>
+                    {line.lineStartTime != null && (
+                      <Text style={styles.lineTimestamp}>{formatTime(line.lineStartTime)}</Text>
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.lineText,
+                    isActive && styles.lineTextActive,
+                    isPast && styles.lineTextPast,
+                  ]}>
+                    {isActive ? (
+                      words.map((word, idx) => {
+                        const cleanWord = word.replace(/[^a-zA-Z']/g, '').toLowerCase();
+                        const isVocab = vocabWords.some(v => cleanWord === v || cleanWord === v + 's' || cleanWord === v + 'ing' || cleanWord === v + 'ed');
+                        const isRevealed = idx < visibleCount;
+                        return (
+                          <Text
+                            key={idx}
+                            style={[
+                              isRevealed ? styles.wordRevealed : styles.wordPending,
+                              isVocab && isRevealed && styles.wordVocab,
+                            ]}
+                          >
+                            {word}{' '}
+                          </Text>
+                        );
+                      })
+                    ) : (
+                      words.map((word, idx) => {
+                        const cleanWord = word.replace(/[^a-zA-Z']/g, '').toLowerCase();
+                        const isVocab = vocabWords.some(v => cleanWord === v || cleanWord === v + 's' || cleanWord === v + 'ing' || cleanWord === v + 'ed');
+                        return (
+                          <Text key={idx} style={isVocab ? styles.wordVocab : undefined}>
+                            {word}{' '}
+                          </Text>
+                        );
+                      })
+                    )}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+          <View style={styles.scrollPadding} />
+        </ScrollView>
       </View>
     </View>
   );
@@ -316,130 +373,210 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.bg,
   },
-  videoWrapper: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    position: 'relative',
-  },
   videoContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
   },
-  subtitleOverlay: {
-    position: 'absolute',
-    bottom: 8,
-    left: 16,
-    right: 16,
-    alignItems: 'center',
-  },
-  subtitleText: {
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  subtitleWordVisible: {
-    color: '#FFFFFF',
-  },
-  subtitleWordHidden: {
-    color: 'rgba(255, 255, 255, 0.3)',
-  },
-  activeDialogueLine: {
-    backgroundColor: palette.primarySoft,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginHorizontal: -8,
-  },
   video: {
     flex: 1,
     backgroundColor: '#000',
   },
+
+  // Info bar
   infoBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: palette.bgCard,
+  },
+  infoLeft: {
+    flex: 1,
   },
   movieTitle: {
     color: palette.textPrimary,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  genre: {
-    color: palette.textMuted,
-    fontSize: 13,
-  },
-  dialogueContainer: {
-    flex: 1,
-    backgroundColor: palette.bgElevated,
-    padding: 16,
-  },
-  dialogueLabel: {
-    color: palette.primary,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  dialogueScroll: {
-    flex: 1,
-  },
-  dialogueLine: {
-    marginBottom: 12,
-  },
-  speakerName: {
-    color: palette.primary,
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  dialogueText: {
-    color: palette.textSecondary,
     fontSize: 17,
-    lineHeight: 28,
-  },
-  highlightedWord: {
-    color: palette.xp,
     fontWeight: '700',
-    backgroundColor: palette.xpGlow,
-    borderRadius: 3,
+    marginBottom: 4,
   },
-  vocabBar: {
-    backgroundColor: palette.bgCard,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
+    gap: 10,
   },
-  vocabLabel: {
+  difficultyBadge: {
+    backgroundColor: palette.primarySoft,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+  },
+  difficultyText: {
+    color: palette.primaryLight,
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  genreText: {
     color: palette.textMuted,
     fontSize: 12,
-    marginRight: 4,
   },
+  timeText: {
+    color: palette.textMuted,
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+  },
+
+  // Progress bar
+  progressBarTrack: {
+    height: 3,
+    backgroundColor: palette.bgSurface,
+  },
+  progressBarFill: {
+    height: 3,
+    backgroundColor: palette.primary,
+  },
+
+  // Transcript
+  transcriptContainer: {
+    flex: 1,
+    backgroundColor: palette.bgElevated,
+  },
+  transcriptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.border,
+  },
+  transcriptLabel: {
+    color: palette.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  transcriptScroll: {
+    flex: 1,
+    paddingTop: 8,
+  },
+
+  // Line rows
+  lineRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  lineRowActive: {
+    backgroundColor: palette.primarySoft,
+  },
+
+  // Timeline column
+  timelineCol: {
+    width: 20,
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  timelineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: palette.bgSurface,
+    marginTop: 6,
+  },
+  timelineDotActive: {
+    backgroundColor: palette.primary,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  timelineDotPast: {
+    backgroundColor: palette.accent,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: palette.border,
+    marginTop: 4,
+  },
+  timelineLinePast: {
+    backgroundColor: palette.accentSoft,
+  },
+
+  // Line content
+  lineContent: {
+    flex: 1,
+  },
+  lineMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  speakerName: {
+    color: palette.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  speakerNameActive: {
+    color: palette.primary,
+  },
+  lineTimestamp: {
+    color: palette.textDisabled,
+    fontSize: 10,
+    fontVariant: ['tabular-nums'],
+  },
+  lineText: {
+    color: palette.textSecondary,
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  lineTextActive: {
+    color: palette.textPrimary,
+    fontSize: 16,
+    lineHeight: 26,
+  },
+  lineTextPast: {
+    color: palette.textMuted,
+  },
+
+  // Word-by-word styles
+  wordRevealed: {
+    color: palette.textPrimary,
+  },
+  wordPending: {
+    color: palette.textDisabled,
+  },
+  wordVocab: {
+    color: palette.xp,
+    fontWeight: '700',
+  },
+
+  // Vocab chips
   vocabChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
   },
   vocabChip: {
-    backgroundColor: palette.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    backgroundColor: palette.bgSurface,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: palette.border,
   },
   vocabChipText: {
-    color: '#fff',
-    fontSize: 12,
+    color: palette.xp,
+    fontSize: 11,
     fontWeight: '600',
+  },
+
+  scrollPadding: {
+    height: 40,
   },
 });
