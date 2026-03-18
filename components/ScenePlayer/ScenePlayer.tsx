@@ -304,7 +304,7 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
             const isActive = lineIdx === activeLineIndex;
             const isPast = line.lineEndTime != null && currentTime >= line.lineEndTime;
             const words = line.text.split(' ');
-            const wordTs = getWordTimestamps(scene.id, lineIdx);
+            const wordTs = scene.subtitleStatus === 'approved' ? getWordTimestamps(scene.id, lineIdx) : undefined;
             const visibleCount = isActive ? getVisibleWordCount(line, currentTime, wordTs) : 0;
 
             return (

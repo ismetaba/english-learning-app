@@ -10,6 +10,7 @@
     "test": "jest",
     "subtitles:fetch": "npx ts-node --project scripts/tsconfig.json scripts/fetch-youtube-transcripts.ts",
     "subtitles:align": "npx ts-node --project scripts/tsconfig.json scripts/align-subtitles.ts",
+    "subtitles:review": "npx ts-node --project scripts/tsconfig.json scripts/review-alignment.ts",
     "subtitles:apply": "npx ts-node --project scripts/tsconfig.json scripts/apply-alignment.ts"
   },
   "dependencies": {
