@@ -2,10 +2,14 @@
  * Apply aligned timing data to the scene source file.
  *
  * Usage:
- *   npx ts-node scripts/apply-alignment.ts [--min-confidence 0.5]
+ *   npx ts-node scripts/apply-alignment.ts [--min-confidence 0.5] [--skip-review]
  *
- * Reads data/scenes/aligned-timing.json and updates data/scenes/index.ts
- * with corrected timestamps and word-level timing data.
+ * Reads data/scenes/aligned-timing.json and data/scenes/alignment-review.json,
+ * then updates data/scenes/index.ts with corrected timestamps, word-level
+ * timing data, and subtitleStatus for approved scenes.
+ *
+ * Only scenes marked 'approved' in alignment-review.json are applied.
+ * Use --skip-review to bypass the review check (not recommended).
  *
  * Only applies lines with confidence >= threshold (default 0.5).
  */
@@ -40,6 +44,15 @@ interface AlignedScene {
   alignedAt: string;
 }
 
+interface SceneReview {
+  sceneId: string;
+  decision: 'approved' | 'rejected' | 'pending';
+}
+
+interface AlignmentReview {
+  scenes: SceneReview[];
+}
+
 function main() {
   const args = process.argv.slice(2);
   let minConfidence = 0.5;
@@ -47,11 +60,12 @@ function main() {
   if (confIdx !== -1 && args[confIdx + 1]) {
     minConfidence = parseFloat(args[confIdx + 1]);
   }
+  const skipReview = args.includes('--skip-review');
 
   const alignmentPath = path.resolve(__dirname, '../data/scenes/aligned-timing.json');
   if (!fs.existsSync(alignmentPath)) {
     console.error('❌ aligned-timing.json not found.');
-    console.error('   Run: npx ts-node scripts/align-subtitles.ts');
+    console.error('   Run: npm run subtitles:align');
     process.exit(1);
   }
 
@@ -59,15 +73,56 @@ function main() {
     fs.readFileSync(alignmentPath, 'utf-8'),
   );
 
+  // Load review decisions
+  const reviewPath = path.resolve(__dirname, '../data/scenes/alignment-review.json');
+  let approvedSceneIds: Set<string>;
+
+  if (skipReview) {
+    console.log('⚠️  Skipping review check (--skip-review). All scenes will be applied.');
+    approvedSceneIds = new Set(alignments.map(s => s.sceneId));
+  } else {
+    if (!fs.existsSync(reviewPath)) {
+      console.error('❌ alignment-review.json not found.');
+      console.error('   Run: npm run subtitles:review');
+      console.error('   Or use --skip-review to bypass (not recommended).');
+      process.exit(1);
+    }
+
+    const review: AlignmentReview = JSON.parse(
+      fs.readFileSync(reviewPath, 'utf-8'),
+    );
+
+    approvedSceneIds = new Set(
+      review.scenes
+        .filter(s => s.decision === 'approved')
+        .map(s => s.sceneId),
+    );
+
+    if (approvedSceneIds.size === 0) {
+      console.log('⚠️  No scenes approved yet. Run: npm run subtitles:review');
+      process.exit(0);
+    }
+
+    console.log(`📋 ${approvedSceneIds.size} scene(s) approved for application`);
+  }
+
   const scenesPath = path.resolve(__dirname, '../data/scenes/index.ts');
   let code = fs.readFileSync(scenesPath, 'utf-8');
 
   let totalUpdated = 0;
   let totalSkipped = 0;
+  const appliedSceneIds: string[] = [];
 
   for (const scene of alignments) {
+    if (!approvedSceneIds.has(scene.sceneId)) {
+      console.log(`\n⏭ Skipping ${scene.movieTitle} — not approved`);
+      totalSkipped += scene.lines.length;
+      continue;
+    }
+
     console.log(`\n🎬 ${scene.movieTitle} (avg confidence: ${(scene.avgConfidence * 100).toFixed(0)}%)`);
 
+    let sceneUpdated = false;
     for (const line of scene.lines) {
       if (line.source !== 'youtube-auto' || line.confidence < minConfidence) {
         console.log(`   ⏭ Skipped: "${line.text.substring(0, 40)}..." (${line.source}, ${(line.confidence * 100).toFixed(0)}%)`);
@@ -76,17 +131,14 @@ function main() {
       }
 
       // Find and replace the line's timing in the source
-      // Match the specific line by its text content
       const escapedText = line.text
         .replace(/\\/g, '\\\\')
         .replace(/'/g, "\\'");
 
-      // Build a regex to find this specific line object
       const linePattern = new RegExp(
         `(\\{[^}]*speaker:\\s*'${escapeRegex(line.speaker)}'[^}]*text:\\s*'${escapeRegex(escapedText)}'[^}]*lineStartTime:\\s*)\\d+(\\.\\d+)?(\\s*,\\s*lineEndTime:\\s*)\\d+(\\.\\d+)?(\\s*[,}])`,
       );
 
-      // Also try with escaped quotes in the source
       const altPattern = new RegExp(
         `(\\{[^}]*speaker:\\s*'${escapeRegex(line.speaker)}'[^}]*text:\\s*["']${escapeRegex(line.text).replace(/'/g, "\\\\?'")}["'][^}]*lineStartTime:\\s*)\\d+(\\.\\d+)?(\\s*,\\s*lineEndTime:\\s*)\\d+(\\.\\d+)?(\\s*[,}])`,
       );
@@ -113,11 +165,42 @@ function main() {
             `   ✓ Updated: "${line.text.substring(0, 40)}..." ${line.lineStartTime}s-${line.lineEndTime}s (drift: ${drift}s)`,
           );
           totalUpdated++;
+          sceneUpdated = true;
         }
       } else {
         console.log(`   ⚠ Could not find in source: "${line.text.substring(0, 40)}..."`);
         totalSkipped++;
       }
+    }
+
+    if (sceneUpdated) {
+      appliedSceneIds.push(scene.sceneId);
+    }
+  }
+
+  // Set subtitleStatus: 'approved' for applied scenes
+  for (const sceneId of appliedSceneIds) {
+    // Find the scene object in the source and add/update subtitleStatus
+    const sceneBlockPattern = new RegExp(
+      `(id:\\s*'${escapeRegex(sceneId)}'[\\s\\S]*?description:\\s*'[^']*')`,
+    );
+    const sceneMatch = code.match(sceneBlockPattern);
+    if (sceneMatch) {
+      const block = sceneMatch[0];
+      if (block.includes('subtitleStatus')) {
+        // Update existing
+        code = code.replace(
+          new RegExp(`(id:\\s*'${escapeRegex(sceneId)}'[\\s\\S]*?)subtitleStatus:\\s*'[^']*'`),
+          `$1subtitleStatus: 'approved'`,
+        );
+      } else {
+        // Add after description
+        code = code.replace(
+          new RegExp(`(id:\\s*'${escapeRegex(sceneId)}'[\\s\\S]*?description:\\s*'[^']*',?)`),
+          `$1\n    subtitleStatus: 'approved',`,
+        );
+      }
+      console.log(`   🏷 Set subtitleStatus: 'approved' for ${sceneId}`);
     }
   }
 
@@ -125,10 +208,10 @@ function main() {
   fs.writeFileSync(scenesPath, code);
   console.log(`\n✅ Updated ${totalUpdated} lines, skipped ${totalSkipped}`);
 
-  // Also save the word-level timing as a separate data file
-  // (used by the player for accurate word reveal)
+  // Save word-level timing only for approved scenes
   const wordTimingData: Record<string, Record<number, WordTimestamp[]>> = {};
   for (const scene of alignments) {
+    if (!approvedSceneIds.has(scene.sceneId)) continue;
     wordTimingData[scene.sceneId] = {};
     scene.lines.forEach((line, idx) => {
       if (line.wordTimestamps.length > 0 && line.confidence >= minConfidence) {
