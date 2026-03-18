@@ -1,9 +1,21 @@
+export interface WordTimestamp {
+  word: string;
+  /** Start time in seconds */
+  startTime: number;
+  /** End time in seconds */
+  endTime: number;
+}
+
 export interface DialogueLine {
   speaker: string;
   text: string;
   lineStartTime?: number;
   lineEndTime?: number;
+  /** Per-word timestamps from YouTube auto-captions alignment */
+  wordTimestamps?: WordTimestamp[];
 }
+
+export type SubtitleStatus = 'draft' | 'approved';
 
 export interface Scene {
   id: string;
@@ -17,6 +29,8 @@ export interface Scene {
   difficulty: 'beginner' | 'elementary' | 'intermediate' | 'upper-intermediate' | 'advanced';
   genre: string;
   description: string;
+  /** Subtitle timing status. Only 'approved' subtitles are shown to learners. */
+  subtitleStatus?: SubtitleStatus;
 }
 
 // Curated scenes — lines are what the characters actually say in the clip.
