@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
 import { Scene } from '@/data/scenes';
+import { getWordTimestamps } from '@/data/scenes/word-timing';
 import { useTranslation } from '@/hooks/useTranslation';
 import { palette, Radius, Shadows } from '@/constants/Colors';
 
@@ -185,8 +186,27 @@ function getActiveLineIndex(lines: Scene['lines'], currentTime: number): number 
   return -1;
 }
 
-function getVisibleWordCount(line: Scene['lines'][0], currentTime: number): number {
+function getVisibleWordCount(
+  line: Scene['lines'][0],
+  currentTime: number,
+  wordTimestamps?: import('@/data/scenes').WordTimestamp[],
+): number {
   if (line.lineStartTime == null || line.lineEndTime == null) return 0;
+
+  // Use per-word timestamps if available (from YouTube auto-caption alignment)
+  if (wordTimestamps && wordTimestamps.length > 0) {
+    let count = 0;
+    for (const wt of wordTimestamps) {
+      if (currentTime >= wt.startTime) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }
+
+  // Fallback: linear interpolation
   const words = line.text.split(' ');
   const totalWords = words.length;
   const duration = line.lineEndTime - line.lineStartTime;
@@ -284,7 +304,8 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
             const isActive = lineIdx === activeLineIndex;
             const isPast = line.lineEndTime != null && currentTime >= line.lineEndTime;
             const words = line.text.split(' ');
-            const visibleCount = isActive ? getVisibleWordCount(line, currentTime) : 0;
+            const wordTs = scene.subtitleStatus === 'approved' ? getWordTimestamps(scene.id, lineIdx) : undefined;
+            const visibleCount = isActive ? getVisibleWordCount(line, currentTime, wordTs) : 0;
 
             return (
               <View

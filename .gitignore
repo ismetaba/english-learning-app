@@ -36,6 +36,12 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# cache (audio files, whisperx output)
+.cache/
+
+# Python virtual environment
+.venv/
+
 # generated native folders
 /ios
 /android
