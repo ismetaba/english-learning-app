@@ -51,6 +51,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="clips"
+        options={{
+          title: 'Kesitler',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🎞️" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="scenes"
         options={{
           title: t('scenes'),
