@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getAllVideos } from '@/lib/db';
 import AddVideoButton from '@/components/AddVideoButton';
+import DeleteButton from '@/components/DeleteButton';
 import Database from 'better-sqlite3';
 import path from 'path';
 
@@ -116,6 +117,7 @@ export default function VideosPage() {
                   </svg>
                   Edit
                 </Link>
+                <DeleteButton endpoint="/api/videos" id={v.id} />
               </div>
             </div>
           );

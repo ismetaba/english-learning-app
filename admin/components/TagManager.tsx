@@ -36,6 +36,18 @@ export default function TagManager({ initialTags }: { initialTags: Tag[] }) {
     }
   };
 
+  const removeTag = async (tagId: number) => {
+    const res = await fetch('/api/tags', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tagId }),
+    });
+    if (res.ok) {
+      setTags(prev => prev.filter(t => t.id !== tagId));
+      router.refresh();
+    }
+  };
+
   const grouped = tags.reduce<Record<string, Tag[]>>((acc, t) => {
     (acc[t.category] = acc[t.category] || []).push(t);
     return acc;
@@ -86,9 +98,16 @@ export default function TagManager({ initialTags }: { initialTags: Tag[] }) {
                 {catTags.map(tag => (
                   <span
                     key={tag.id}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${config.bg} ${config.color} transition-colors hover:brightness-110`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border ${config.bg} ${config.color} transition-colors hover:brightness-110 group/tag`}
                   >
                     {tag.name}
+                    <button
+                      onClick={() => removeTag(tag.id)}
+                      className="opacity-0 group-hover/tag:opacity-100 ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 transition-all text-[10px]"
+                      title="Delete tag"
+                    >
+                      ✕
+                    </button>
                   </span>
                 ))}
               </div>
