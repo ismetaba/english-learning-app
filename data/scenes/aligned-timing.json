@@ -1,0 +1,4760 @@
+[
+  {
+    "sceneId": "ratatouille-trailer",
+    "movieTitle": "Ratatouille",
+    "videoId": "NgsQ8mVkN8w",
+    "lines": [
+      {
+        "speaker": "Waiter",
+        "text": "And tonight, before the dessert course, we present for your pleasure a traditional cheese trolley.",
+        "lineStartTime": 15.8,
+        "lineEndTime": 21.2,
+        "wordTimestamps": [
+          {
+            "word": "And",
+            "startTime": 15.8,
+            "endTime": 15.9
+          },
+          {
+            "word": "tonight,",
+            "startTime": 16,
+            "endTime": 16.4
+          },
+          {
+            "word": "before",
+            "startTime": 16.4,
+            "endTime": 16.8
+          },
+          {
+            "word": "the",
+            "startTime": 16.9,
+            "endTime": 17
+          },
+          {
+            "word": "dessert",
+            "startTime": 17,
+            "endTime": 17.4
+          },
+          {
+            "word": "course,",
+            "startTime": 17.4,
+            "endTime": 17.6
+          },
+          {
+            "word": "we",
+            "startTime": 17.7,
+            "endTime": 17.8
+          },
+          {
+            "word": "present",
+            "startTime": 17.8,
+            "endTime": 18.3
+          },
+          {
+            "word": "for",
+            "startTime": 18.3,
+            "endTime": 18.5
+          },
+          {
+            "word": "your",
+            "startTime": 18.5,
+            "endTime": 18.6
+          },
+          {
+            "word": "pleasure",
+            "startTime": 18.7,
+            "endTime": 19.2
+          },
+          {
+            "word": "a",
+            "startTime": 19.3,
+            "endTime": 19.3
+          },
+          {
+            "word": "traditional",
+            "startTime": 19.4,
+            "endTime": 19.9
+          },
+          {
+            "word": "cheese",
+            "startTime": 20.3,
+            "endTime": 20.7
+          },
+          {
+            "word": "trolley.",
+            "startTime": 20.8,
+            "endTime": 21.2
+          }
+        ],
+        "confidence": 0.93,
+        "source": "whisperx",
+        "originalStartTime": 14,
+        "originalEndTime": 25.3
+      },
+      {
+        "speaker": "Waiter",
+        "text": "To start, we have an excellent clochette. Clearly very nice, very light.",
+        "lineStartTime": 21.5,
+        "lineEndTime": 25.4,
+        "wordTimestamps": [
+          {
+            "word": "To",
+            "startTime": 21.5,
+            "endTime": 21.7
+          },
+          {
+            "word": "start,",
+            "startTime": 21.7,
+            "endTime": 22.1
+          },
+          {
+            "word": "we",
+            "startTime": 22.4,
+            "endTime": 22.5
+          },
+          {
+            "word": "have",
+            "startTime": 22.5,
+            "endTime": 22.6
+          },
+          {
+            "word": "an",
+            "startTime": 22.7,
+            "endTime": 22.7
+          },
+          {
+            "word": "excellent",
+            "startTime": 22.9,
+            "endTime": 23.3
+          },
+          {
+            "word": "clochette.",
+            "startTime": 23.4,
+            "endTime": 23.7
+          },
+          {
+            "word": "Clearly",
+            "startTime": 23.8,
+            "endTime": 23.9
+          },
+          {
+            "word": "very",
+            "startTime": 24.3,
+            "endTime": 24.5
+          },
+          {
+            "word": "nice,",
+            "startTime": 24.6,
+            "endTime": 24.9
+          },
+          {
+            "word": "very",
+            "startTime": 24.9,
+            "endTime": 25.1
+          },
+          {
+            "word": "light.",
+            "startTime": 25.1,
+            "endTime": 25.4
+          }
+        ],
+        "confidence": 0.8,
+        "source": "whisperx",
+        "originalStartTime": 21.1,
+        "originalEndTime": 31.7
+      },
+      {
+        "speaker": "Remy",
+        "text": "This is me. I think it's apparent that I need to rethink my life a little bit.",
+        "lineStartTime": 50.9,
+        "lineEndTime": 55.3,
+        "wordTimestamps": [
+          {
+            "word": "This",
+            "startTime": 50.9,
+            "endTime": 51.1
+          },
+          {
+            "word": "is",
+            "startTime": 51.4,
+            "endTime": 51.6
+          },
+          {
+            "word": "me.",
+            "startTime": 51.8,
+            "endTime": 52.1
+          },
+          {
+            "word": "I",
+            "startTime": 52.1,
+            "endTime": 52.1
+          },
+          {
+            "word": "think",
+            "startTime": 52.9,
+            "endTime": 53
+          },
+          {
+            "word": "it's",
+            "startTime": 53.1,
+            "endTime": 53.2
+          },
+          {
+            "word": "apparent",
+            "startTime": 53.2,
+            "endTime": 53.5
+          },
+          {
+            "word": "that",
+            "startTime": 53.6,
+            "endTime": 53.7
+          },
+          {
+            "word": "I",
+            "startTime": 53.7,
+            "endTime": 53.7
+          },
+          {
+            "word": "need",
+            "startTime": 53.8,
+            "endTime": 53.9
+          },
+          {
+            "word": "to",
+            "startTime": 54,
+            "endTime": 54
+          },
+          {
+            "word": "rethink",
+            "startTime": 54,
+            "endTime": 54.4
+          },
+          {
+            "word": "my",
+            "startTime": 54.4,
+            "endTime": 54.5
+          },
+          {
+            "word": "life",
+            "startTime": 54.6,
+            "endTime": 54.8
+          },
+          {
+            "word": "a",
+            "startTime": 54.8,
+            "endTime": 54.8
+          },
+          {
+            "word": "little",
+            "startTime": 54.9,
+            "endTime": 55
+          },
+          {
+            "word": "bit.",
+            "startTime": 55.1,
+            "endTime": 55.3
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 50,
+        "originalEndTime": 60
+      },
+      {
+        "speaker": "Remy",
+        "text": "I can't help myself. I like good food, okay? And good food is hard for a rat to find.",
+        "lineStartTime": 55.9,
+        "lineEndTime": 63.2,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 55.9,
+            "endTime": 56
+          },
+          {
+            "word": "can't",
+            "startTime": 56.1,
+            "endTime": 56.3
+          },
+          {
+            "word": "help",
+            "startTime": 56.4,
+            "endTime": 56.5
+          },
+          {
+            "word": "myself.",
+            "startTime": 56.6,
+            "endTime": 57
+          },
+          {
+            "word": "I",
+            "startTime": 57.4,
+            "endTime": 57.5
+          },
+          {
+            "word": "like",
+            "startTime": 57.5,
+            "endTime": 57.7
+          },
+          {
+            "word": "good",
+            "startTime": 57.8,
+            "endTime": 58
+          },
+          {
+            "word": "food,",
+            "startTime": 58,
+            "endTime": 58.3
+          },
+          {
+            "word": "okay?",
+            "startTime": 58.5,
+            "endTime": 58.9
+          },
+          {
+            "word": "And",
+            "startTime": 58.9,
+            "endTime": 59
+          },
+          {
+            "word": "good",
+            "startTime": 59.7,
+            "endTime": 59.9
+          },
+          {
+            "word": "food",
+            "startTime": 60,
+            "endTime": 60.4
+          },
+          {
+            "word": "is",
+            "startTime": 60.4,
+            "endTime": 60.5
+          },
+          {
+            "word": "hard",
+            "startTime": 61.7,
+            "endTime": 62
+          },
+          {
+            "word": "for",
+            "startTime": 62.1,
+            "endTime": 62.2
+          },
+          {
+            "word": "a",
+            "startTime": 62.3,
+            "endTime": 62.3
+          },
+          {
+            "word": "rat",
+            "startTime": 62.3,
+            "endTime": 62.5
+          },
+          {
+            "word": "to",
+            "startTime": 62.5,
+            "endTime": 62.6
+          },
+          {
+            "word": "find.",
+            "startTime": 62.7,
+            "endTime": 63.2
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 55.2,
+        "originalEndTime": 69.4
+      },
+      {
+        "speaker": "Django",
+        "text": "It wouldn't be so hard to find if you weren't so picky.",
+        "lineStartTime": 63.5,
+        "lineEndTime": 66.7,
+        "wordTimestamps": [
+          {
+            "word": "It",
+            "startTime": 63.5,
+            "endTime": 63.5
+          },
+          {
+            "word": "wouldn't",
+            "startTime": 63.6,
+            "endTime": 63.9
+          },
+          {
+            "word": "be",
+            "startTime": 63.9,
+            "endTime": 64.1
+          },
+          {
+            "word": "so",
+            "startTime": 64.2,
+            "endTime": 64.4
+          },
+          {
+            "word": "hard",
+            "startTime": 64.4,
+            "endTime": 64.7
+          },
+          {
+            "word": "to",
+            "startTime": 64.8,
+            "endTime": 64.9
+          },
+          {
+            "word": "find",
+            "startTime": 65,
+            "endTime": 65.4
+          },
+          {
+            "word": "if",
+            "startTime": 65.4,
+            "endTime": 65.5
+          },
+          {
+            "word": "you",
+            "startTime": 65.7,
+            "endTime": 65.8
+          },
+          {
+            "word": "weren't",
+            "startTime": 65.9,
+            "endTime": 66.1
+          },
+          {
+            "word": "so",
+            "startTime": 66.1,
+            "endTime": 66.3
+          },
+          {
+            "word": "picky.",
+            "startTime": 66.4,
+            "endTime": 66.7
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 62.9,
+        "originalEndTime": 75.8
+      },
+      {
+        "speaker": "Remy",
+        "text": "I don't want to eat garbage, Dad!",
+        "lineStartTime": 67.1,
+        "lineEndTime": 69.2,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 67.1,
+            "endTime": 67.1
+          },
+          {
+            "word": "don't",
+            "startTime": 67.3,
+            "endTime": 67.5
+          },
+          {
+            "word": "want",
+            "startTime": 67.6,
+            "endTime": 67.8
+          },
+          {
+            "word": "to",
+            "startTime": 67.8,
+            "endTime": 67.9
+          },
+          {
+            "word": "eat",
+            "startTime": 68,
+            "endTime": 68.1
+          },
+          {
+            "word": "garbage,",
+            "startTime": 68.2,
+            "endTime": 68.7
+          },
+          {
+            "word": "Dad!",
+            "startTime": 68.8,
+            "endTime": 69.2
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 66.6,
+        "originalEndTime": 78.9
+      },
+      {
+        "speaker": "Django",
+        "text": "What is that?",
+        "lineStartTime": 71.2,
+        "lineEndTime": 72.2,
+        "wordTimestamps": [
+          {
+            "word": "What",
+            "startTime": 71.2,
+            "endTime": 71.5
+          },
+          {
+            "word": "is",
+            "startTime": 71.7,
+            "endTime": 71.8
+          },
+          {
+            "word": "that?",
+            "startTime": 72,
+            "endTime": 72.2
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 70.4,
+        "originalEndTime": 82.2
+      },
+      {
+        "speaker": "Remy",
+        "text": "I don't really know.",
+        "lineStartTime": 74.8,
+        "lineEndTime": 75.7,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 74.8,
+            "endTime": 74.9
+          },
+          {
+            "word": "don't",
+            "startTime": 74.9,
+            "endTime": 75.1
+          },
+          {
+            "word": "really",
+            "startTime": 75.1,
+            "endTime": 75.4
+          },
+          {
+            "word": "know.",
+            "startTime": 75.5,
+            "endTime": 75.7
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 72.2,
+        "originalEndTime": 80.6
+      },
+      {
+        "speaker": "Django",
+        "text": "You don't know, and you're eating it?",
+        "lineStartTime": 76,
+        "lineEndTime": 78.5,
+        "wordTimestamps": [
+          {
+            "word": "You",
+            "startTime": 76,
+            "endTime": 76.2
+          },
+          {
+            "word": "don't",
+            "startTime": 76.2,
+            "endTime": 76.4
+          },
+          {
+            "word": "know,",
+            "startTime": 76.5,
+            "endTime": 76.7
+          },
+          {
+            "word": "and",
+            "startTime": 76.7,
+            "endTime": 76.8
+          },
+          {
+            "word": "you're",
+            "startTime": 77.9,
+            "endTime": 78.1
+          },
+          {
+            "word": "eating",
+            "startTime": 78.2,
+            "endTime": 78.4
+          },
+          {
+            "word": "it?",
+            "startTime": 78.4,
+            "endTime": 78.5
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 75.6,
+        "originalEndTime": 83.5
+      },
+      {
+        "speaker": "Remy",
+        "text": "You know, if you can sort of muscle your way past the gag reflex, all kinds of food possibilities open up.",
+        "lineStartTime": 78.6,
+        "lineEndTime": 84.7,
+        "wordTimestamps": [
+          {
+            "word": "You",
+            "startTime": 78.6,
+            "endTime": 78.7
+          },
+          {
+            "word": "know,",
+            "startTime": 78.7,
+            "endTime": 78.9
+          },
+          {
+            "word": "if",
+            "startTime": 79,
+            "endTime": 79.1
+          },
+          {
+            "word": "you",
+            "startTime": 79.1,
+            "endTime": 79.2
+          },
+          {
+            "word": "can",
+            "startTime": 79.2,
+            "endTime": 79.4
+          },
+          {
+            "word": "sort",
+            "startTime": 79.4,
+            "endTime": 79.7
+          },
+          {
+            "word": "of",
+            "startTime": 79.7,
+            "endTime": 79.8
+          },
+          {
+            "word": "muscle",
+            "startTime": 80,
+            "endTime": 80.4
+          },
+          {
+            "word": "your",
+            "startTime": 80.4,
+            "endTime": 80.6
+          },
+          {
+            "word": "way",
+            "startTime": 80.7,
+            "endTime": 80.9
+          },
+          {
+            "word": "past",
+            "startTime": 81,
+            "endTime": 81.3
+          },
+          {
+            "word": "the",
+            "startTime": 81.4,
+            "endTime": 81.4
+          },
+          {
+            "word": "gag",
+            "startTime": 81.5,
+            "endTime": 81.8
+          },
+          {
+            "word": "reflex,",
+            "startTime": 81.9,
+            "endTime": 82.3
+          },
+          {
+            "word": "all",
+            "startTime": 82.6,
+            "endTime": 82.7
+          },
+          {
+            "word": "kinds",
+            "startTime": 82.8,
+            "endTime": 83.1
+          },
+          {
+            "word": "of",
+            "startTime": 83.2,
+            "endTime": 83.2
+          },
+          {
+            "word": "food",
+            "startTime": 83.3,
+            "endTime": 83.5
+          },
+          {
+            "word": "possibilities",
+            "startTime": 83.5,
+            "endTime": 84.3
+          },
+          {
+            "word": "open",
+            "startTime": 84.4,
+            "endTime": 84.6
+          },
+          {
+            "word": "up.",
+            "startTime": 84.6,
+            "endTime": 84.7
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 78.5,
+        "originalEndTime": 90.8
+      },
+      {
+        "speaker": "Remy",
+        "text": "I don't think any of this would have come up, but we happen to live in Paris, France. And it's so easy to find good food in Paris — it's just dangerous.",
+        "lineStartTime": 88.4,
+        "lineEndTime": 100.3,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 88.4,
+            "endTime": 88.5
+          },
+          {
+            "word": "don't",
+            "startTime": 88.5,
+            "endTime": 88.6
+          },
+          {
+            "word": "think",
+            "startTime": 88.6,
+            "endTime": 88.8
+          },
+          {
+            "word": "any",
+            "startTime": 89,
+            "endTime": 89.2
+          },
+          {
+            "word": "of",
+            "startTime": 89.2,
+            "endTime": 89.2
+          },
+          {
+            "word": "this",
+            "startTime": 89.3,
+            "endTime": 89.4
+          },
+          {
+            "word": "would",
+            "startTime": 89.4,
+            "endTime": 89.5
+          },
+          {
+            "word": "have",
+            "startTime": 89.6,
+            "endTime": 89.6
+          },
+          {
+            "word": "come",
+            "startTime": 89.7,
+            "endTime": 89.8
+          },
+          {
+            "word": "up,",
+            "startTime": 89.8,
+            "endTime": 89.9
+          },
+          {
+            "word": "but",
+            "startTime": 89.9,
+            "endTime": 90
+          },
+          {
+            "word": "we",
+            "startTime": 90,
+            "endTime": 90.2
+          },
+          {
+            "word": "happen",
+            "startTime": 90.2,
+            "endTime": 90.5
+          },
+          {
+            "word": "to",
+            "startTime": 90.6,
+            "endTime": 90.6
+          },
+          {
+            "word": "live",
+            "startTime": 90.7,
+            "endTime": 90.9
+          },
+          {
+            "word": "in",
+            "startTime": 91.4,
+            "endTime": 91.5
+          },
+          {
+            "word": "Paris,",
+            "startTime": 91.7,
+            "endTime": 92.1
+          },
+          {
+            "word": "France.",
+            "startTime": 92.2,
+            "endTime": 92.6
+          },
+          {
+            "word": "And",
+            "startTime": 93.4,
+            "endTime": 93.5
+          },
+          {
+            "word": "it's",
+            "startTime": 93.5,
+            "endTime": 93.7
+          },
+          {
+            "word": "so",
+            "startTime": 94,
+            "endTime": 94.4
+          },
+          {
+            "word": "easy",
+            "startTime": 94.6,
+            "endTime": 94.9
+          },
+          {
+            "word": "to",
+            "startTime": 95,
+            "endTime": 95.1
+          },
+          {
+            "word": "find",
+            "startTime": 95.1,
+            "endTime": 95.4
+          },
+          {
+            "word": "good",
+            "startTime": 95.4,
+            "endTime": 95.7
+          },
+          {
+            "word": "food",
+            "startTime": 95.8,
+            "endTime": 96
+          },
+          {
+            "word": "in",
+            "startTime": 96,
+            "endTime": 96.1
+          },
+          {
+            "word": "Paris",
+            "startTime": 96.2,
+            "endTime": 96.7
+          },
+          {
+            "word": "—",
+            "startTime": 97.6,
+            "endTime": 97.8
+          },
+          {
+            "word": "it's",
+            "startTime": 97.8,
+            "endTime": 98.1
+          },
+          {
+            "word": "just",
+            "startTime": 99.7,
+            "endTime": 100.3
+          },
+          {
+            "word": "dangerous.",
+            "startTime": 99.7,
+            "endTime": 100.3
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 86.1,
+        "originalEndTime": 108.9
+      },
+      {
+        "speaker": "Django",
+        "text": "Gotta rethink your life.",
+        "lineStartTime": 103.7,
+        "lineEndTime": 104.7,
+        "wordTimestamps": [
+          {
+            "word": "Gotta",
+            "startTime": 103.7,
+            "endTime": 103.8
+          },
+          {
+            "word": "rethink",
+            "startTime": 103.9,
+            "endTime": 104.2
+          },
+          {
+            "word": "your",
+            "startTime": 104.2,
+            "endTime": 104.4
+          },
+          {
+            "word": "life.",
+            "startTime": 104.4,
+            "endTime": 104.7
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 102.7,
+        "originalEndTime": 106.6
+      }
+    ],
+    "avgConfidence": 0.98,
+    "alignedAt": "2026-03-19T00:53:58.694Z"
+  },
+  {
+    "sceneId": "forrest-gump-trailer",
+    "movieTitle": "Forrest Gump",
+    "videoId": "bLvqoHBptjg",
+    "lines": [
+      {
+        "speaker": "Forrest",
+        "text": "Mama always said life was like a box of chocolates. You never know what you're gonna get.",
+        "lineStartTime": 5,
+        "lineEndTime": 15,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 5,
+        "originalEndTime": 15
+      },
+      {
+        "speaker": "Forrest",
+        "text": "I just felt like running.",
+        "lineStartTime": 15,
+        "lineEndTime": 25,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 15,
+        "originalEndTime": 25
+      },
+      {
+        "speaker": "Jenny",
+        "text": "Run, Forrest! Run!",
+        "lineStartTime": 25,
+        "lineEndTime": 35,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 25,
+        "originalEndTime": 35
+      },
+      {
+        "speaker": "Forrest",
+        "text": "That day, for no particular reason, I decided to go for a little run.",
+        "lineStartTime": 35,
+        "lineEndTime": 50,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 35,
+        "originalEndTime": 50
+      },
+      {
+        "speaker": "Forrest",
+        "text": "I ran to the end of the road, and when I got there I thought maybe I would run to the end of town.",
+        "lineStartTime": 50,
+        "lineEndTime": 65,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 50,
+        "originalEndTime": 65
+      },
+      {
+        "speaker": "Forrest",
+        "text": "When I got tired, I slept. When I got hungry, I ate. When I had to go, you know, I went.",
+        "lineStartTime": 65,
+        "lineEndTime": 80,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 65,
+        "originalEndTime": 80
+      },
+      {
+        "speaker": "Forrest",
+        "text": "I think I'll go home now. I'm pretty tired. I think I'll just walk.",
+        "lineStartTime": 80,
+        "lineEndTime": 95,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 80,
+        "originalEndTime": 95
+      },
+      {
+        "speaker": "Forrest",
+        "text": "Mama always said, dying was a part of life. I sure wish it wasn't.",
+        "lineStartTime": 95,
+        "lineEndTime": 110,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 95,
+        "originalEndTime": 110
+      },
+      {
+        "speaker": "Forrest",
+        "text": "Jenny taught me how to read, and I taught her how to climb.",
+        "lineStartTime": 110,
+        "lineEndTime": 130,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 110,
+        "originalEndTime": 130
+      },
+      {
+        "speaker": "Forrest",
+        "text": "I wrote you every day for a year.",
+        "lineStartTime": 130,
+        "lineEndTime": 150,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 130,
+        "originalEndTime": 150
+      }
+    ],
+    "avgConfidence": 0,
+    "alignedAt": "2026-03-19T00:54:30.421Z"
+  },
+  {
+    "sceneId": "terminal-trailer",
+    "movieTitle": "The Terminal",
+    "videoId": "iZqQRmhRvyg",
+    "lines": [
+      {
+        "speaker": "Frank",
+        "text": "Mr. Navorski, please follow me.",
+        "lineStartTime": 11.7,
+        "lineEndTime": 14,
+        "wordTimestamps": [
+          {
+            "word": "Mr.",
+            "startTime": 11.7,
+            "endTime": 12.3
+          },
+          {
+            "word": "Navorski,",
+            "startTime": 12.3,
+            "endTime": 13
+          },
+          {
+            "word": "please",
+            "startTime": 13.2,
+            "endTime": 13.5
+          },
+          {
+            "word": "follow",
+            "startTime": 13.5,
+            "endTime": 13.8
+          },
+          {
+            "word": "me.",
+            "startTime": 13.9,
+            "endTime": 14
+          }
+        ],
+        "confidence": 0.8,
+        "source": "whisperx",
+        "originalStartTime": 11.1,
+        "originalEndTime": 18.8
+      },
+      {
+        "speaker": "Frank",
+        "text": "While you were in the air, there was a military coup in your country. Republic of Krakozhia is under new leadership.",
+        "lineStartTime": 14.9,
+        "lineEndTime": 19.9,
+        "wordTimestamps": [
+          {
+            "word": "While",
+            "startTime": 14.9,
+            "endTime": 15.1
+          },
+          {
+            "word": "you",
+            "startTime": 15.1,
+            "endTime": 15.2
+          },
+          {
+            "word": "were",
+            "startTime": 15.2,
+            "endTime": 15.3
+          },
+          {
+            "word": "in",
+            "startTime": 15.4,
+            "endTime": 15.4
+          },
+          {
+            "word": "the",
+            "startTime": 15.5,
+            "endTime": 15.5
+          },
+          {
+            "word": "air,",
+            "startTime": 15.7,
+            "endTime": 15.8
+          },
+          {
+            "word": "there",
+            "startTime": 15.9,
+            "endTime": 16
+          },
+          {
+            "word": "was",
+            "startTime": 16,
+            "endTime": 16.1
+          },
+          {
+            "word": "a",
+            "startTime": 16.2,
+            "endTime": 16.2
+          },
+          {
+            "word": "military",
+            "startTime": 16.2,
+            "endTime": 16.6
+          },
+          {
+            "word": "coup",
+            "startTime": 16.6,
+            "endTime": 16.8
+          },
+          {
+            "word": "in",
+            "startTime": 16.9,
+            "endTime": 16.9
+          },
+          {
+            "word": "your",
+            "startTime": 16.9,
+            "endTime": 17.1
+          },
+          {
+            "word": "country.",
+            "startTime": 17.1,
+            "endTime": 17.4
+          },
+          {
+            "word": "Republic",
+            "startTime": 17.5,
+            "endTime": 17.9
+          },
+          {
+            "word": "of",
+            "startTime": 17.9,
+            "endTime": 18
+          },
+          {
+            "word": "Krakozhia",
+            "startTime": 18,
+            "endTime": 18.8
+          },
+          {
+            "word": "is",
+            "startTime": 19,
+            "endTime": 19
+          },
+          {
+            "word": "under",
+            "startTime": 19.1,
+            "endTime": 19.3
+          },
+          {
+            "word": "new",
+            "startTime": 19.3,
+            "endTime": 19.4
+          },
+          {
+            "word": "leadership.",
+            "startTime": 19.4,
+            "endTime": 19.9
+          }
+        ],
+        "confidence": 0.95,
+        "source": "whisperx",
+        "originalStartTime": 14.4,
+        "originalEndTime": 24
+      },
+      {
+        "speaker": "Frank",
+        "text": "I don't think he gets it.",
+        "lineStartTime": 21.2,
+        "lineEndTime": 21.6,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 21.2,
+            "endTime": 21.2
+          },
+          {
+            "word": "don't",
+            "startTime": 21.3,
+            "endTime": 21.4
+          },
+          {
+            "word": "think",
+            "startTime": 21.5,
+            "endTime": 21.6
+          },
+          {
+            "word": "he",
+            "startTime": 21.5,
+            "endTime": 21.6
+          },
+          {
+            "word": "gets",
+            "startTime": 21.5,
+            "endTime": 21.6
+          },
+          {
+            "word": "it.",
+            "startTime": 21.5,
+            "endTime": 21.6
+          }
+        ],
+        "confidence": 0.67,
+        "source": "whisperx",
+        "originalStartTime": 20.4,
+        "originalEndTime": 28.3
+      },
+      {
+        "speaker": "Viktor",
+        "text": "What do I buy the Nike shoes? I'm gonna need the passport also.",
+        "lineStartTime": 23.5,
+        "lineEndTime": 27.3,
+        "wordTimestamps": [
+          {
+            "word": "What",
+            "startTime": 23.5,
+            "endTime": 23.6
+          },
+          {
+            "word": "do",
+            "startTime": 23.6,
+            "endTime": 23.7
+          },
+          {
+            "word": "I",
+            "startTime": 23.8,
+            "endTime": 24
+          },
+          {
+            "word": "buy",
+            "startTime": 24,
+            "endTime": 24.2
+          },
+          {
+            "word": "the",
+            "startTime": 26.3,
+            "endTime": 26.4
+          },
+          {
+            "word": "Nike",
+            "startTime": 26.4,
+            "endTime": 27
+          },
+          {
+            "word": "shoes?",
+            "startTime": 27,
+            "endTime": 27.3
+          },
+          {
+            "word": "I'm",
+            "startTime": 27,
+            "endTime": 27.3
+          },
+          {
+            "word": "gonna",
+            "startTime": 27,
+            "endTime": 27.3
+          },
+          {
+            "word": "need",
+            "startTime": 27,
+            "endTime": 27.3
+          },
+          {
+            "word": "the",
+            "startTime": 27,
+            "endTime": 27.3
+          },
+          {
+            "word": "passport",
+            "startTime": 27,
+            "endTime": 27.3
+          },
+          {
+            "word": "also.",
+            "startTime": 27,
+            "endTime": 27.3
+          }
+        ],
+        "confidence": 0.96,
+        "source": "whisperx",
+        "originalStartTime": 22.5,
+        "originalEndTime": 34.4
+      },
+      {
+        "speaker": "Frank",
+        "text": "No, no. Mr. Navorski, beyond those doors is American soil. You are not to leave this building.",
+        "lineStartTime": 29.7,
+        "lineEndTime": 35.8,
+        "wordTimestamps": [
+          {
+            "word": "No,",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "no.",
+            "startTime": 30.2,
+            "endTime": 30.4
+          },
+          {
+            "word": "Mr.",
+            "startTime": 30.6,
+            "endTime": 30.8
+          },
+          {
+            "word": "Navorski,",
+            "startTime": 30.9,
+            "endTime": 31.4
+          },
+          {
+            "word": "beyond",
+            "startTime": 31.8,
+            "endTime": 32.1
+          },
+          {
+            "word": "those",
+            "startTime": 32.1,
+            "endTime": 32.3
+          },
+          {
+            "word": "doors",
+            "startTime": 32.4,
+            "endTime": 32.7
+          },
+          {
+            "word": "is",
+            "startTime": 33,
+            "endTime": 33.1
+          },
+          {
+            "word": "American",
+            "startTime": 33.1,
+            "endTime": 33.6
+          },
+          {
+            "word": "soil.",
+            "startTime": 33.7,
+            "endTime": 34.1
+          },
+          {
+            "word": "You",
+            "startTime": 34.2,
+            "endTime": 34.3
+          },
+          {
+            "word": "are",
+            "startTime": 34.4,
+            "endTime": 34.4
+          },
+          {
+            "word": "not",
+            "startTime": 34.5,
+            "endTime": 34.6
+          },
+          {
+            "word": "to",
+            "startTime": 34.7,
+            "endTime": 34.8
+          },
+          {
+            "word": "leave",
+            "startTime": 34.8,
+            "endTime": 35.1
+          },
+          {
+            "word": "this",
+            "startTime": 35.2,
+            "endTime": 35.3
+          },
+          {
+            "word": "building.",
+            "startTime": 35.4,
+            "endTime": 35.8
+          }
+        ],
+        "confidence": 0.94,
+        "source": "whisperx",
+        "originalStartTime": 27.7,
+        "originalEndTime": 39.3
+      },
+      {
+        "speaker": "Frank",
+        "text": "There's a man walking around the terminal in a bathrobe.",
+        "lineStartTime": 43.4,
+        "lineEndTime": 46.4,
+        "wordTimestamps": [
+          {
+            "word": "There's",
+            "startTime": 43.4,
+            "endTime": 43.7
+          },
+          {
+            "word": "a",
+            "startTime": 43.7,
+            "endTime": 43.8
+          },
+          {
+            "word": "man",
+            "startTime": 43.8,
+            "endTime": 44.2
+          },
+          {
+            "word": "walking",
+            "startTime": 44.4,
+            "endTime": 44.7
+          },
+          {
+            "word": "around",
+            "startTime": 44.7,
+            "endTime": 44.9
+          },
+          {
+            "word": "the",
+            "startTime": 45,
+            "endTime": 45.1
+          },
+          {
+            "word": "terminal",
+            "startTime": 45.1,
+            "endTime": 45.5
+          },
+          {
+            "word": "in",
+            "startTime": 45.6,
+            "endTime": 45.6
+          },
+          {
+            "word": "a",
+            "startTime": 45.7,
+            "endTime": 45.7
+          },
+          {
+            "word": "bathrobe.",
+            "startTime": 45.8,
+            "endTime": 46.4
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 42.6,
+        "originalEndTime": 50.7
+      },
+      {
+        "speaker": "Frank",
+        "text": "That guy doesn't even speak English.",
+        "lineStartTime": 49.9,
+        "lineEndTime": 51.3,
+        "wordTimestamps": [
+          {
+            "word": "That",
+            "startTime": 49.9,
+            "endTime": 50
+          },
+          {
+            "word": "guy",
+            "startTime": 50.1,
+            "endTime": 50.2
+          },
+          {
+            "word": "doesn't",
+            "startTime": 50.3,
+            "endTime": 50.5
+          },
+          {
+            "word": "even",
+            "startTime": 50.5,
+            "endTime": 50.6
+          },
+          {
+            "word": "speak",
+            "startTime": 50.7,
+            "endTime": 51
+          },
+          {
+            "word": "English.",
+            "startTime": 51,
+            "endTime": 51.3
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 49.9,
+        "originalEndTime": 57.7
+      },
+      {
+        "speaker": "Enrique",
+        "text": "She's a wild stallion. You help me to win her heart, and you'll never go hungry again.",
+        "lineStartTime": 71,
+        "lineEndTime": 74.5,
+        "wordTimestamps": [
+          {
+            "word": "She's",
+            "startTime": 71,
+            "endTime": 71.2
+          },
+          {
+            "word": "a",
+            "startTime": 71.3,
+            "endTime": 71.3
+          },
+          {
+            "word": "wild",
+            "startTime": 71.4,
+            "endTime": 71.6
+          },
+          {
+            "word": "stallion.",
+            "startTime": 71.6,
+            "endTime": 72
+          },
+          {
+            "word": "You",
+            "startTime": 72.2,
+            "endTime": 72.3
+          },
+          {
+            "word": "help",
+            "startTime": 72.3,
+            "endTime": 72.5
+          },
+          {
+            "word": "me",
+            "startTime": 72.5,
+            "endTime": 72.6
+          },
+          {
+            "word": "to",
+            "startTime": 72.6,
+            "endTime": 72.7
+          },
+          {
+            "word": "win",
+            "startTime": 72.7,
+            "endTime": 72.9
+          },
+          {
+            "word": "her",
+            "startTime": 72.9,
+            "endTime": 73
+          },
+          {
+            "word": "heart,",
+            "startTime": 73.1,
+            "endTime": 73.4
+          },
+          {
+            "word": "and",
+            "startTime": 73.4,
+            "endTime": 73.6
+          },
+          {
+            "word": "you'll",
+            "startTime": 73.6,
+            "endTime": 73.8
+          },
+          {
+            "word": "never",
+            "startTime": 73.9,
+            "endTime": 74
+          },
+          {
+            "word": "go",
+            "startTime": 74,
+            "endTime": 74.3
+          },
+          {
+            "word": "hungry",
+            "startTime": 74.3,
+            "endTime": 74.5
+          },
+          {
+            "word": "again.",
+            "startTime": 74.3,
+            "endTime": 74.5
+          }
+        ],
+        "confidence": 0.85,
+        "source": "whisperx",
+        "originalStartTime": 70.2,
+        "originalEndTime": 82.3
+      },
+      {
+        "speaker": "Viktor",
+        "text": "We headed for home. I am delayed a long time.",
+        "lineStartTime": 93.6,
+        "lineEndTime": 106.3,
+        "wordTimestamps": [
+          {
+            "word": "We",
+            "startTime": 93.6,
+            "endTime": 93.7
+          },
+          {
+            "word": "headed",
+            "startTime": 93.7,
+            "endTime": 93.9
+          },
+          {
+            "word": "for",
+            "startTime": 93.9,
+            "endTime": 94
+          },
+          {
+            "word": "home.",
+            "startTime": 94.1,
+            "endTime": 94.3
+          },
+          {
+            "word": "I",
+            "startTime": 96.1,
+            "endTime": 96.2
+          },
+          {
+            "word": "am",
+            "startTime": 96.3,
+            "endTime": 96.4
+          },
+          {
+            "word": "delayed",
+            "startTime": 96.6,
+            "endTime": 98.8
+          },
+          {
+            "word": "a",
+            "startTime": 101.9,
+            "endTime": 102.1
+          },
+          {
+            "word": "long",
+            "startTime": 102.3,
+            "endTime": 104.4
+          },
+          {
+            "word": "time.",
+            "startTime": 105.1,
+            "endTime": 106.3
+          }
+        ],
+        "confidence": 0.91,
+        "source": "whisperx",
+        "originalStartTime": 92.7,
+        "originalEndTime": 103.8
+      },
+      {
+        "speaker": "Amelia",
+        "text": "You are the kind of woman who can get any guy she wants.",
+        "lineStartTime": 106.6,
+        "lineEndTime": 109.2,
+        "wordTimestamps": [
+          {
+            "word": "You",
+            "startTime": 106.6,
+            "endTime": 106.7
+          },
+          {
+            "word": "are",
+            "startTime": 106.7,
+            "endTime": 106.9
+          },
+          {
+            "word": "the",
+            "startTime": 106.9,
+            "endTime": 107
+          },
+          {
+            "word": "kind",
+            "startTime": 107,
+            "endTime": 107.2
+          },
+          {
+            "word": "of",
+            "startTime": 107.2,
+            "endTime": 107.3
+          },
+          {
+            "word": "woman",
+            "startTime": 107.4,
+            "endTime": 107.6
+          },
+          {
+            "word": "who",
+            "startTime": 107.8,
+            "endTime": 107.9
+          },
+          {
+            "word": "can",
+            "startTime": 108,
+            "endTime": 108.1
+          },
+          {
+            "word": "get",
+            "startTime": 108.1,
+            "endTime": 108.2
+          },
+          {
+            "word": "any",
+            "startTime": 108.3,
+            "endTime": 108.4
+          },
+          {
+            "word": "guy",
+            "startTime": 108.5,
+            "endTime": 108.7
+          },
+          {
+            "word": "she",
+            "startTime": 108.7,
+            "endTime": 108.8
+          },
+          {
+            "word": "wants.",
+            "startTime": 108.9,
+            "endTime": 109.2
+          }
+        ],
+        "confidence": 0.92,
+        "source": "whisperx",
+        "originalStartTime": 105.7,
+        "originalEndTime": 112.2
+      },
+      {
+        "speaker": "Viktor",
+        "text": "Why, Viktor Navorski, that's something a guy like you could never understand.",
+        "lineStartTime": 111,
+        "lineEndTime": 114,
+        "wordTimestamps": [
+          {
+            "word": "Why,",
+            "startTime": 111,
+            "endTime": 111.3
+          },
+          {
+            "word": "Viktor",
+            "startTime": 111.3,
+            "endTime": 111.6
+          },
+          {
+            "word": "Navorski,",
+            "startTime": 111.7,
+            "endTime": 111.8
+          },
+          {
+            "word": "that's",
+            "startTime": 111.8,
+            "endTime": 112
+          },
+          {
+            "word": "something",
+            "startTime": 112,
+            "endTime": 112.2
+          },
+          {
+            "word": "a",
+            "startTime": 112.2,
+            "endTime": 112.6
+          },
+          {
+            "word": "guy",
+            "startTime": 113,
+            "endTime": 113.1
+          },
+          {
+            "word": "like",
+            "startTime": 113.2,
+            "endTime": 113.4
+          },
+          {
+            "word": "you",
+            "startTime": 113.5,
+            "endTime": 114
+          },
+          {
+            "word": "could",
+            "startTime": 113.5,
+            "endTime": 114
+          },
+          {
+            "word": "never",
+            "startTime": 113.5,
+            "endTime": 114
+          },
+          {
+            "word": "understand.",
+            "startTime": 113.5,
+            "endTime": 114
+          }
+        ],
+        "confidence": 0.86,
+        "source": "whisperx",
+        "originalStartTime": 109.4,
+        "originalEndTime": 117.5
+      },
+      {
+        "speaker": "Amelia",
+        "text": "Do you ever feel like you're just living in an airport?",
+        "lineStartTime": 116.8,
+        "lineEndTime": 121.5,
+        "wordTimestamps": [
+          {
+            "word": "Do",
+            "startTime": 116.8,
+            "endTime": 116.9
+          },
+          {
+            "word": "you",
+            "startTime": 117.1,
+            "endTime": 117.3
+          },
+          {
+            "word": "ever",
+            "startTime": 117.4,
+            "endTime": 117.5
+          },
+          {
+            "word": "feel",
+            "startTime": 117.5,
+            "endTime": 118.2
+          },
+          {
+            "word": "like",
+            "startTime": 118.2,
+            "endTime": 118.5
+          },
+          {
+            "word": "you're",
+            "startTime": 118.5,
+            "endTime": 118.9
+          },
+          {
+            "word": "just",
+            "startTime": 119,
+            "endTime": 119.9
+          },
+          {
+            "word": "living",
+            "startTime": 120.3,
+            "endTime": 120.4
+          },
+          {
+            "word": "in",
+            "startTime": 120.6,
+            "endTime": 120.7
+          },
+          {
+            "word": "an",
+            "startTime": 120.9,
+            "endTime": 121.5
+          },
+          {
+            "word": "airport?",
+            "startTime": 120.9,
+            "endTime": 121.5
+          }
+        ],
+        "confidence": 0.95,
+        "source": "whisperx",
+        "originalStartTime": 130.5,
+        "originalEndTime": 134.3
+      }
+    ],
+    "avgConfidence": 0.9,
+    "alignedAt": "2026-03-19T00:55:01.662Z"
+  },
+  {
+    "sceneId": "finding-nemo-trailer",
+    "movieTitle": "Finding Nemo",
+    "videoId": "2zLkasScy7A",
+    "lines": [
+      {
+        "speaker": "Marlin",
+        "text": "Dory, do you see anything?",
+        "lineStartTime": 8.1,
+        "lineEndTime": 8.9,
+        "wordTimestamps": [
+          {
+            "word": "Dory,",
+            "startTime": 8.1,
+            "endTime": 8.3
+          },
+          {
+            "word": "do",
+            "startTime": 8.3,
+            "endTime": 8.4
+          },
+          {
+            "word": "you",
+            "startTime": 8.4,
+            "endTime": 8.5
+          },
+          {
+            "word": "see",
+            "startTime": 8.5,
+            "endTime": 8.7
+          },
+          {
+            "word": "anything?",
+            "startTime": 8.7,
+            "endTime": 8.9
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 8,
+        "originalEndTime": 12.8
+      },
+      {
+        "speaker": "Dory",
+        "text": "Something's got me! That was me. I'm sorry.",
+        "lineStartTime": 9.5,
+        "lineEndTime": 11.1,
+        "wordTimestamps": [
+          {
+            "word": "Something's",
+            "startTime": 9.5,
+            "endTime": 9.8
+          },
+          {
+            "word": "got",
+            "startTime": 9.8,
+            "endTime": 10
+          },
+          {
+            "word": "me!",
+            "startTime": 10,
+            "endTime": 10.1
+          },
+          {
+            "word": "That",
+            "startTime": 10.1,
+            "endTime": 10.2
+          },
+          {
+            "word": "was",
+            "startTime": 10.2,
+            "endTime": 10.3
+          },
+          {
+            "word": "me.",
+            "startTime": 10.4,
+            "endTime": 10.5
+          },
+          {
+            "word": "I'm",
+            "startTime": 10.6,
+            "endTime": 10.7
+          },
+          {
+            "word": "sorry.",
+            "startTime": 10.7,
+            "endTime": 11.1
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 9.5,
+        "originalEndTime": 18
+      },
+      {
+        "speaker": "Dory",
+        "text": "I see a light! What is it? It's so pretty. I'm feeling happy, which is a big deal for me.",
+        "lineStartTime": 11.7,
+        "lineEndTime": 21.2,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 11.7,
+            "endTime": 11.8
+          },
+          {
+            "word": "see",
+            "startTime": 11.9,
+            "endTime": 12.1
+          },
+          {
+            "word": "a",
+            "startTime": 12.1,
+            "endTime": 12.1
+          },
+          {
+            "word": "light!",
+            "startTime": 12.2,
+            "endTime": 12.5
+          },
+          {
+            "word": "What",
+            "startTime": 13,
+            "endTime": 13.2
+          },
+          {
+            "word": "is",
+            "startTime": 13.3,
+            "endTime": 13.4
+          },
+          {
+            "word": "it?",
+            "startTime": 13.5,
+            "endTime": 13.6
+          },
+          {
+            "word": "It's",
+            "startTime": 14.3,
+            "endTime": 14.5
+          },
+          {
+            "word": "so",
+            "startTime": 14.7,
+            "endTime": 15.1
+          },
+          {
+            "word": "pretty.",
+            "startTime": 15.6,
+            "endTime": 16.3
+          },
+          {
+            "word": "I'm",
+            "startTime": 16.9,
+            "endTime": 17.1
+          },
+          {
+            "word": "feeling",
+            "startTime": 17.1,
+            "endTime": 17.5
+          },
+          {
+            "word": "happy,",
+            "startTime": 18.1,
+            "endTime": 18.6
+          },
+          {
+            "word": "which",
+            "startTime": 19,
+            "endTime": 19.1
+          },
+          {
+            "word": "is",
+            "startTime": 19.2,
+            "endTime": 19.4
+          },
+          {
+            "word": "a",
+            "startTime": 19.4,
+            "endTime": 19.5
+          },
+          {
+            "word": "big",
+            "startTime": 19.5,
+            "endTime": 19.7
+          },
+          {
+            "word": "deal",
+            "startTime": 19.8,
+            "endTime": 20.2
+          },
+          {
+            "word": "for",
+            "startTime": 20.8,
+            "endTime": 21
+          },
+          {
+            "word": "me.",
+            "startTime": 21,
+            "endTime": 21.2
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 11.6,
+        "originalEndTime": 27.6
+      },
+      {
+        "speaker": "Dory",
+        "text": "I want to touch it! Hey, come back!",
+        "lineStartTime": 21.8,
+        "lineEndTime": 25.4,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 21.8,
+            "endTime": 21.9
+          },
+          {
+            "word": "want",
+            "startTime": 22,
+            "endTime": 22.2
+          },
+          {
+            "word": "to",
+            "startTime": 22.2,
+            "endTime": 22.3
+          },
+          {
+            "word": "touch",
+            "startTime": 22.5,
+            "endTime": 22.8
+          },
+          {
+            "word": "it!",
+            "startTime": 22.8,
+            "endTime": 22.9
+          },
+          {
+            "word": "Hey,",
+            "startTime": 24.7,
+            "endTime": 24.9
+          },
+          {
+            "word": "come",
+            "startTime": 25,
+            "endTime": 25.1
+          },
+          {
+            "word": "back!",
+            "startTime": 25.2,
+            "endTime": 25.4
+          }
+        ],
+        "confidence": 0.94,
+        "source": "whisperx",
+        "originalStartTime": 21.8,
+        "originalEndTime": 31.5
+      },
+      {
+        "speaker": "Dory",
+        "text": "I'm going to get you! I'm going to swim with you! I'm going to be your best friend!",
+        "lineStartTime": 30.6,
+        "lineEndTime": 35.8,
+        "wordTimestamps": [
+          {
+            "word": "I'm",
+            "startTime": 30.8,
+            "endTime": 31
+          },
+          {
+            "word": "going",
+            "startTime": 31.1,
+            "endTime": 31.4
+          },
+          {
+            "word": "to",
+            "startTime": 31.4,
+            "endTime": 31.7
+          },
+          {
+            "word": "get",
+            "startTime": 32.4,
+            "endTime": 32.5
+          },
+          {
+            "word": "you!",
+            "startTime": 32.5,
+            "endTime": 32.7
+          },
+          {
+            "word": "I'm",
+            "startTime": 33,
+            "endTime": 33.2
+          },
+          {
+            "word": "going",
+            "startTime": 33.3,
+            "endTime": 33.6
+          },
+          {
+            "word": "to",
+            "startTime": 33.6,
+            "endTime": 33.9
+          },
+          {
+            "word": "swim",
+            "startTime": 33.9,
+            "endTime": 34.1
+          },
+          {
+            "word": "with",
+            "startTime": 34.3,
+            "endTime": 34.8
+          },
+          {
+            "word": "you!",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "I'm",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "going",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "to",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "be",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "your",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "best",
+            "startTime": 34.9,
+            "endTime": 35.8
+          },
+          {
+            "word": "friend!",
+            "startTime": 34.9,
+            "endTime": 35.8
+          }
+        ],
+        "confidence": 0.61,
+        "source": "whisperx",
+        "originalStartTime": 30,
+        "originalEndTime": 40.5
+      },
+      {
+        "speaker": "Marlin",
+        "text": "I got to find my son. Nemo!",
+        "lineStartTime": 45.3,
+        "lineEndTime": 46.5,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 45.3,
+            "endTime": 45.4
+          },
+          {
+            "word": "got",
+            "startTime": 45.4,
+            "endTime": 45.6
+          },
+          {
+            "word": "to",
+            "startTime": 45.6,
+            "endTime": 45.8
+          },
+          {
+            "word": "find",
+            "startTime": 45.8,
+            "endTime": 46
+          },
+          {
+            "word": "my",
+            "startTime": 46.1,
+            "endTime": 46.3
+          },
+          {
+            "word": "son.",
+            "startTime": 46.3,
+            "endTime": 46.5
+          },
+          {
+            "word": "Nemo!",
+            "startTime": 46.3,
+            "endTime": 46.5
+          }
+        ],
+        "confidence": 0.77,
+        "source": "whisperx",
+        "originalStartTime": 45.2,
+        "originalEndTime": 50.4
+      },
+      {
+        "speaker": "Bruce",
+        "text": "Hello! Fish are friends, not food.",
+        "lineStartTime": 50.7,
+        "lineEndTime": 61.7,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 50.7,
+        "originalEndTime": 61.7
+      },
+      {
+        "speaker": "Crush",
+        "text": "Grab shell, dude!",
+        "lineStartTime": 56.2,
+        "lineEndTime": 63.2,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 56.2,
+        "originalEndTime": 63.2
+      },
+      {
+        "speaker": "Crush",
+        "text": "No hurling on the shell, dude. Okay? Just waxed it.",
+        "lineStartTime": 60.1,
+        "lineEndTime": 68.3,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 60.1,
+        "originalEndTime": 68.3
+      },
+      {
+        "speaker": "Dory",
+        "text": "How's it going, Bob? You know, I speak whale.",
+        "lineStartTime": 81.3,
+        "lineEndTime": 82.6,
+        "wordTimestamps": [
+          {
+            "word": "How's",
+            "startTime": 81.3,
+            "endTime": 81.4
+          },
+          {
+            "word": "it",
+            "startTime": 81.4,
+            "endTime": 81.6
+          },
+          {
+            "word": "going,",
+            "startTime": 81.8,
+            "endTime": 81.9
+          },
+          {
+            "word": "Bob?",
+            "startTime": 81.9,
+            "endTime": 82.1
+          },
+          {
+            "word": "You",
+            "startTime": 82.2,
+            "endTime": 82.2
+          },
+          {
+            "word": "know,",
+            "startTime": 82.3,
+            "endTime": 82.6
+          },
+          {
+            "word": "I",
+            "startTime": 82.3,
+            "endTime": 82.6
+          },
+          {
+            "word": "speak",
+            "startTime": 82.3,
+            "endTime": 82.6
+          },
+          {
+            "word": "whale.",
+            "startTime": 82.3,
+            "endTime": 82.6
+          }
+        ],
+        "confidence": 0.53,
+        "source": "whisperx",
+        "originalStartTime": 81,
+        "originalEndTime": 87
+      },
+      {
+        "speaker": "Dory",
+        "text": "Don't worry. Whales don't eat clownfish. They eat krill.",
+        "lineStartTime": 86.7,
+        "lineEndTime": 89.3,
+        "wordTimestamps": [
+          {
+            "word": "Don't",
+            "startTime": 86.7,
+            "endTime": 86.9
+          },
+          {
+            "word": "worry.",
+            "startTime": 87,
+            "endTime": 87.4
+          },
+          {
+            "word": "Whales",
+            "startTime": 87.5,
+            "endTime": 87.8
+          },
+          {
+            "word": "don't",
+            "startTime": 87.8,
+            "endTime": 88
+          },
+          {
+            "word": "eat",
+            "startTime": 88,
+            "endTime": 88.1
+          },
+          {
+            "word": "clownfish.",
+            "startTime": 88.1,
+            "endTime": 88.4
+          },
+          {
+            "word": "They",
+            "startTime": 88.7,
+            "endTime": 88.8
+          },
+          {
+            "word": "eat",
+            "startTime": 88.8,
+            "endTime": 88.9
+          },
+          {
+            "word": "krill.",
+            "startTime": 89,
+            "endTime": 89.3
+          }
+        ],
+        "confidence": 0.84,
+        "source": "whisperx",
+        "originalStartTime": 86.7,
+        "originalEndTime": 98.9
+      }
+    ],
+    "avgConfidence": 0.61,
+    "alignedAt": "2026-03-19T00:55:35.758Z"
+  },
+  {
+    "sceneId": "home-alone-trailer",
+    "movieTitle": "Home Alone",
+    "videoId": "jEDaVHmw7r4",
+    "lines": [
+      {
+        "speaker": "Narrator",
+        "text": "When the McCallister family left on their Christmas vacation, they forgot one small thing.",
+        "lineStartTime": 8.5,
+        "lineEndTime": 16.3,
+        "wordTimestamps": [
+          {
+            "word": "When",
+            "startTime": 8.5,
+            "endTime": 8.9
+          },
+          {
+            "word": "the",
+            "startTime": 9.1,
+            "endTime": 9.3
+          },
+          {
+            "word": "McCallister",
+            "startTime": 9.4,
+            "endTime": 9.5
+          },
+          {
+            "word": "family",
+            "startTime": 9.5,
+            "endTime": 9.7
+          },
+          {
+            "word": "left",
+            "startTime": 9.7,
+            "endTime": 10.1
+          },
+          {
+            "word": "on",
+            "startTime": 10.2,
+            "endTime": 10.7
+          },
+          {
+            "word": "their",
+            "startTime": 10.9,
+            "endTime": 11
+          },
+          {
+            "word": "Christmas",
+            "startTime": 11.1,
+            "endTime": 11.2
+          },
+          {
+            "word": "vacation,",
+            "startTime": 11.2,
+            "endTime": 11.7
+          },
+          {
+            "word": "they",
+            "startTime": 14,
+            "endTime": 14.2
+          },
+          {
+            "word": "forgot",
+            "startTime": 14.2,
+            "endTime": 14.7
+          },
+          {
+            "word": "one",
+            "startTime": 15,
+            "endTime": 15.2
+          },
+          {
+            "word": "small",
+            "startTime": 15.4,
+            "endTime": 15.8
+          },
+          {
+            "word": "thing.",
+            "startTime": 16,
+            "endTime": 16.3
+          }
+        ],
+        "confidence": 0.67,
+        "source": "whisperx",
+        "originalStartTime": 6.7,
+        "originalEndTime": 37.6
+      },
+      {
+        "speaker": "Mom",
+        "text": "Did you lock up? Did we set the timers on the lights?",
+        "lineStartTime": 21.6,
+        "lineEndTime": 25.7,
+        "wordTimestamps": [
+          {
+            "word": "Did",
+            "startTime": 21.6,
+            "endTime": 21.7
+          },
+          {
+            "word": "you",
+            "startTime": 21.7,
+            "endTime": 21.8
+          },
+          {
+            "word": "lock",
+            "startTime": 21.8,
+            "endTime": 22
+          },
+          {
+            "word": "up?",
+            "startTime": 22.1,
+            "endTime": 22.1
+          },
+          {
+            "word": "Did",
+            "startTime": 22.7,
+            "endTime": 23.9
+          },
+          {
+            "word": "we",
+            "startTime": 24.7,
+            "endTime": 24.8
+          },
+          {
+            "word": "set",
+            "startTime": 24.8,
+            "endTime": 24.9
+          },
+          {
+            "word": "the",
+            "startTime": 24.9,
+            "endTime": 25
+          },
+          {
+            "word": "timers",
+            "startTime": 25.1,
+            "endTime": 25.3
+          },
+          {
+            "word": "on",
+            "startTime": 25.3,
+            "endTime": 25.4
+          },
+          {
+            "word": "the",
+            "startTime": 25.4,
+            "endTime": 25.5
+          },
+          {
+            "word": "lights?",
+            "startTime": 25.5,
+            "endTime": 25.7
+          }
+        ],
+        "confidence": 0.88,
+        "source": "whisperx",
+        "originalStartTime": 20.7,
+        "originalEndTime": 39
+      },
+      {
+        "speaker": "Narrator",
+        "text": "In the northern suburbs, police are on the lookout for a pair of burglars who are calling themselves the Wet Bandits.",
+        "lineStartTime": 36.8,
+        "lineEndTime": 41.3,
+        "wordTimestamps": [
+          {
+            "word": "In",
+            "startTime": 36.8,
+            "endTime": 36.9
+          },
+          {
+            "word": "the",
+            "startTime": 36.9,
+            "endTime": 37
+          },
+          {
+            "word": "northern",
+            "startTime": 37,
+            "endTime": 37.3
+          },
+          {
+            "word": "suburbs,",
+            "startTime": 37.4,
+            "endTime": 37.8
+          },
+          {
+            "word": "police",
+            "startTime": 37.8,
+            "endTime": 38
+          },
+          {
+            "word": "are",
+            "startTime": 39.5,
+            "endTime": 39.6
+          },
+          {
+            "word": "on",
+            "startTime": 39.6,
+            "endTime": 39.9
+          },
+          {
+            "word": "the",
+            "startTime": 40.3,
+            "endTime": 40.6
+          },
+          {
+            "word": "lookout",
+            "startTime": 40.6,
+            "endTime": 40.8
+          },
+          {
+            "word": "for",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "a",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "pair",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "of",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "burglars",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "who",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "are",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "calling",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "themselves",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "the",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "Wet",
+            "startTime": 40.9,
+            "endTime": 41.3
+          },
+          {
+            "word": "Bandits.",
+            "startTime": 40.9,
+            "endTime": 41.3
+          }
+        ],
+        "confidence": 0.93,
+        "source": "whisperx",
+        "originalStartTime": 36.7,
+        "originalEndTime": 46.1
+      },
+      {
+        "speaker": "Harry",
+        "text": "You know that you're in there! It's Santa Claus and his elf! Get off my property!",
+        "lineStartTime": 42,
+        "lineEndTime": 47.5,
+        "wordTimestamps": [
+          {
+            "word": "You",
+            "startTime": 42,
+            "endTime": 42.2
+          },
+          {
+            "word": "know",
+            "startTime": 42.2,
+            "endTime": 42.4
+          },
+          {
+            "word": "that",
+            "startTime": 42.4,
+            "endTime": 42.6
+          },
+          {
+            "word": "you're",
+            "startTime": 42.6,
+            "endTime": 42.8
+          },
+          {
+            "word": "in",
+            "startTime": 42.8,
+            "endTime": 43.4
+          },
+          {
+            "word": "there!",
+            "startTime": 43.5,
+            "endTime": 43.7
+          },
+          {
+            "word": "It's",
+            "startTime": 45.1,
+            "endTime": 45.2
+          },
+          {
+            "word": "Santa",
+            "startTime": 45.3,
+            "endTime": 45.4
+          },
+          {
+            "word": "Claus",
+            "startTime": 46.4,
+            "endTime": 46.6
+          },
+          {
+            "word": "and",
+            "startTime": 46.7,
+            "endTime": 46.8
+          },
+          {
+            "word": "his",
+            "startTime": 46.9,
+            "endTime": 47
+          },
+          {
+            "word": "elf!",
+            "startTime": 47.1,
+            "endTime": 47.5
+          },
+          {
+            "word": "Get",
+            "startTime": 47.1,
+            "endTime": 47.5
+          },
+          {
+            "word": "off",
+            "startTime": 47.1,
+            "endTime": 47.5
+          },
+          {
+            "word": "my",
+            "startTime": 47.1,
+            "endTime": 47.5
+          },
+          {
+            "word": "property!",
+            "startTime": 47.1,
+            "endTime": 47.5
+          }
+        ],
+        "confidence": 0.77,
+        "source": "whisperx",
+        "originalStartTime": 41.3,
+        "originalEndTime": 51.4
+      },
+      {
+        "speaker": "Kevin",
+        "text": "This is my house. I have to defend it.",
+        "lineStartTime": 50.5,
+        "lineEndTime": 53.3,
+        "wordTimestamps": [
+          {
+            "word": "This",
+            "startTime": 50.5,
+            "endTime": 50.6
+          },
+          {
+            "word": "is",
+            "startTime": 50.7,
+            "endTime": 50.8
+          },
+          {
+            "word": "my",
+            "startTime": 50.9,
+            "endTime": 51.2
+          },
+          {
+            "word": "house.",
+            "startTime": 51.3,
+            "endTime": 51.5
+          },
+          {
+            "word": "I",
+            "startTime": 52,
+            "endTime": 52.1
+          },
+          {
+            "word": "have",
+            "startTime": 52.2,
+            "endTime": 52.4
+          },
+          {
+            "word": "to",
+            "startTime": 52.4,
+            "endTime": 52.6
+          },
+          {
+            "word": "defend",
+            "startTime": 52.6,
+            "endTime": 53
+          },
+          {
+            "word": "it.",
+            "startTime": 53.1,
+            "endTime": 53.3
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 49.9,
+        "originalEndTime": 56.6
+      },
+      {
+        "speaker": "Harry",
+        "text": "Where's your mother?",
+        "lineStartTime": 53.3,
+        "lineEndTime": 53.9,
+        "wordTimestamps": [
+          {
+            "word": "Where's",
+            "startTime": 53.3,
+            "endTime": 53.5
+          },
+          {
+            "word": "your",
+            "startTime": 53.6,
+            "endTime": 53.7
+          },
+          {
+            "word": "mother?",
+            "startTime": 53.7,
+            "endTime": 53.9
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 52.9,
+        "originalEndTime": 56.4
+      },
+      {
+        "speaker": "Kevin",
+        "text": "My mom's in the car.",
+        "lineStartTime": 54,
+        "lineEndTime": 54.9,
+        "wordTimestamps": [
+          {
+            "word": "My",
+            "startTime": 54,
+            "endTime": 54.2
+          },
+          {
+            "word": "mom's",
+            "startTime": 54.2,
+            "endTime": 54.4
+          },
+          {
+            "word": "in",
+            "startTime": 54.4,
+            "endTime": 54.5
+          },
+          {
+            "word": "the",
+            "startTime": 54.5,
+            "endTime": 54.6
+          },
+          {
+            "word": "car.",
+            "startTime": 54.6,
+            "endTime": 54.9
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 54.1,
+        "originalEndTime": 57.8
+      },
+      {
+        "speaker": "Harry",
+        "text": "Where's your father?",
+        "lineStartTime": 55,
+        "lineEndTime": 55.6,
+        "wordTimestamps": [
+          {
+            "word": "Where's",
+            "startTime": 55,
+            "endTime": 55.1
+          },
+          {
+            "word": "your",
+            "startTime": 55.2,
+            "endTime": 55.3
+          },
+          {
+            "word": "father?",
+            "startTime": 55.3,
+            "endTime": 55.6
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 54.7,
+        "originalEndTime": 58.5
+      },
+      {
+        "speaker": "Kevin",
+        "text": "He's at work.",
+        "lineStartTime": 55.8,
+        "lineEndTime": 56.3,
+        "wordTimestamps": [
+          {
+            "word": "He's",
+            "startTime": 55.8,
+            "endTime": 55.9
+          },
+          {
+            "word": "at",
+            "startTime": 56,
+            "endTime": 56.1
+          },
+          {
+            "word": "work.",
+            "startTime": 56.1,
+            "endTime": 56.3
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 55.9,
+        "originalEndTime": 59.2
+      },
+      {
+        "speaker": "Harry",
+        "text": "He's a kid. What can a kid do to us?",
+        "lineStartTime": 61.6,
+        "lineEndTime": 64.5,
+        "wordTimestamps": [
+          {
+            "word": "He's",
+            "startTime": 61.6,
+            "endTime": 62.1
+          },
+          {
+            "word": "a",
+            "startTime": 62.2,
+            "endTime": 62.2
+          },
+          {
+            "word": "kid.",
+            "startTime": 62.3,
+            "endTime": 62.6
+          },
+          {
+            "word": "What",
+            "startTime": 63.3,
+            "endTime": 63.4
+          },
+          {
+            "word": "can",
+            "startTime": 63.4,
+            "endTime": 63.6
+          },
+          {
+            "word": "a",
+            "startTime": 63.6,
+            "endTime": 63.7
+          },
+          {
+            "word": "kid",
+            "startTime": 63.7,
+            "endTime": 63.9
+          },
+          {
+            "word": "do",
+            "startTime": 64,
+            "endTime": 64.1
+          },
+          {
+            "word": "to",
+            "startTime": 64.2,
+            "endTime": 64.3
+          },
+          {
+            "word": "us?",
+            "startTime": 64.4,
+            "endTime": 64.5
+          }
+        ],
+        "confidence": 0.91,
+        "source": "whisperx",
+        "originalStartTime": 61.9,
+        "originalEndTime": 70.7
+      },
+      {
+        "speaker": "Marv",
+        "text": "Kids are stupid.",
+        "lineStartTime": 65.2,
+        "lineEndTime": 65.9,
+        "wordTimestamps": [
+          {
+            "word": "Kids",
+            "startTime": 65.2,
+            "endTime": 65.3
+          },
+          {
+            "word": "are",
+            "startTime": 65.4,
+            "endTime": 65.5
+          },
+          {
+            "word": "stupid.",
+            "startTime": 65.5,
+            "endTime": 65.9
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 65.1,
+        "originalEndTime": 71.9
+      },
+      {
+        "speaker": "Mom",
+        "text": "I don't care if I have to get out on your runway and hitchhike. I am going to get home to my son.",
+        "lineStartTime": 73.3,
+        "lineEndTime": 77.2,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 73.5,
+            "endTime": 73.5
+          },
+          {
+            "word": "don't",
+            "startTime": 73.5,
+            "endTime": 73.6
+          },
+          {
+            "word": "care",
+            "startTime": 73.6,
+            "endTime": 73.7
+          },
+          {
+            "word": "if",
+            "startTime": 73.7,
+            "endTime": 73.8
+          },
+          {
+            "word": "I",
+            "startTime": 75.1,
+            "endTime": 75.2
+          },
+          {
+            "word": "have",
+            "startTime": 75.3,
+            "endTime": 75.4
+          },
+          {
+            "word": "to",
+            "startTime": 75.7,
+            "endTime": 75.8
+          },
+          {
+            "word": "get",
+            "startTime": 75.8,
+            "endTime": 76
+          },
+          {
+            "word": "out",
+            "startTime": 76.1,
+            "endTime": 76.3
+          },
+          {
+            "word": "on",
+            "startTime": 76.5,
+            "endTime": 76.7
+          },
+          {
+            "word": "your",
+            "startTime": 76.7,
+            "endTime": 76.8
+          },
+          {
+            "word": "runway",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "and",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "hitchhike.",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "I",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "am",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "going",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "to",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "get",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "home",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "to",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "my",
+            "startTime": 76.9,
+            "endTime": 77.2
+          },
+          {
+            "word": "son.",
+            "startTime": 76.9,
+            "endTime": 77.2
+          }
+        ],
+        "confidence": 0.95,
+        "source": "whisperx",
+        "originalStartTime": 73.2,
+        "originalEndTime": 81.9
+      },
+      {
+        "speaker": "Narrator",
+        "text": "Yesterday he was just a kid, but tonight he's a home security system.",
+        "lineStartTime": 100.8,
+        "lineEndTime": 107,
+        "wordTimestamps": [
+          {
+            "word": "Yesterday",
+            "startTime": 100.8,
+            "endTime": 101.4
+          },
+          {
+            "word": "he",
+            "startTime": 101.5,
+            "endTime": 101.5
+          },
+          {
+            "word": "was",
+            "startTime": 101.8,
+            "endTime": 102
+          },
+          {
+            "word": "just",
+            "startTime": 102,
+            "endTime": 102.3
+          },
+          {
+            "word": "a",
+            "startTime": 102.4,
+            "endTime": 102.4
+          },
+          {
+            "word": "kid,",
+            "startTime": 102.5,
+            "endTime": 102.7
+          },
+          {
+            "word": "but",
+            "startTime": 103.7,
+            "endTime": 103.8
+          },
+          {
+            "word": "tonight",
+            "startTime": 103.9,
+            "endTime": 104.4
+          },
+          {
+            "word": "he's",
+            "startTime": 105,
+            "endTime": 105.2
+          },
+          {
+            "word": "a",
+            "startTime": 105.3,
+            "endTime": 105.3
+          },
+          {
+            "word": "home",
+            "startTime": 105.4,
+            "endTime": 105.8
+          },
+          {
+            "word": "security",
+            "startTime": 105.8,
+            "endTime": 106.5
+          },
+          {
+            "word": "system.",
+            "startTime": 106.5,
+            "endTime": 107
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 100.3,
+        "originalEndTime": 116.2
+      },
+      {
+        "speaker": "Narrator",
+        "text": "A family comedy without the family. Home Alone. Coming November 16th.",
+        "lineStartTime": 115,
+        "lineEndTime": 120.5,
+        "wordTimestamps": [
+          {
+            "word": "A",
+            "startTime": 115,
+            "endTime": 115.1
+          },
+          {
+            "word": "family",
+            "startTime": 115.2,
+            "endTime": 115.6
+          },
+          {
+            "word": "comedy",
+            "startTime": 115.6,
+            "endTime": 116.1
+          },
+          {
+            "word": "without",
+            "startTime": 116.4,
+            "endTime": 116.8
+          },
+          {
+            "word": "the",
+            "startTime": 117.2,
+            "endTime": 117.3
+          },
+          {
+            "word": "family.",
+            "startTime": 117.3,
+            "endTime": 117.7
+          },
+          {
+            "word": "Home",
+            "startTime": 119.5,
+            "endTime": 119.8
+          },
+          {
+            "word": "Alone.",
+            "startTime": 120.1,
+            "endTime": 120.5
+          },
+          {
+            "word": "Coming",
+            "startTime": 120.1,
+            "endTime": 120.5
+          },
+          {
+            "word": "November",
+            "startTime": 120.1,
+            "endTime": 120.5
+          },
+          {
+            "word": "16th.",
+            "startTime": 120.1,
+            "endTime": 120.5
+          }
+        ],
+        "confidence": 0.84,
+        "source": "whisperx",
+        "originalStartTime": 114.7,
+        "originalEndTime": 126.2
+      },
+      {
+        "speaker": "Kevin",
+        "text": "I'm eight years old. You think I'd be here all alone? I don't think so.",
+        "lineStartTime": 121.8,
+        "lineEndTime": 126.6,
+        "wordTimestamps": [
+          {
+            "word": "I'm",
+            "startTime": 121.8,
+            "endTime": 122.2
+          },
+          {
+            "word": "eight",
+            "startTime": 122.3,
+            "endTime": 122.4
+          },
+          {
+            "word": "years",
+            "startTime": 122.4,
+            "endTime": 122.5
+          },
+          {
+            "word": "old.",
+            "startTime": 122.5,
+            "endTime": 122.8
+          },
+          {
+            "word": "You",
+            "startTime": 123.2,
+            "endTime": 123.3
+          },
+          {
+            "word": "think",
+            "startTime": 126.1,
+            "endTime": 126.3
+          },
+          {
+            "word": "I'd",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "be",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "here",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "all",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "alone?",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "I",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "don't",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "think",
+            "startTime": 126.4,
+            "endTime": 126.6
+          },
+          {
+            "word": "so.",
+            "startTime": 126.4,
+            "endTime": 126.6
+          }
+        ],
+        "confidence": 0.55,
+        "source": "whisperx",
+        "originalStartTime": 121.4,
+        "originalEndTime": 129.1
+      }
+    ],
+    "avgConfidence": 0.9,
+    "alignedAt": "2026-03-19T00:56:06.750Z"
+  },
+  {
+    "sceneId": "frozen-trailer",
+    "movieTitle": "Frozen",
+    "videoId": "TbQm5doF_Uc",
+    "lines": [
+      {
+        "speaker": "Narrator",
+        "text": "Summer in the city of Arendelle. It couldn't be warmer. It couldn't be sunnier. But that's about to change forever.",
+        "lineStartTime": 7.5,
+        "lineEndTime": 16.7,
+        "wordTimestamps": [
+          {
+            "word": "Summer",
+            "startTime": 7.5,
+            "endTime": 7.8
+          },
+          {
+            "word": "in",
+            "startTime": 8.1,
+            "endTime": 8.2
+          },
+          {
+            "word": "the",
+            "startTime": 8.2,
+            "endTime": 8.3
+          },
+          {
+            "word": "city",
+            "startTime": 8.3,
+            "endTime": 8.6
+          },
+          {
+            "word": "of",
+            "startTime": 8.6,
+            "endTime": 8.7
+          },
+          {
+            "word": "Arendelle.",
+            "startTime": 8.8,
+            "endTime": 9.3
+          },
+          {
+            "word": "It",
+            "startTime": 10.6,
+            "endTime": 10.7
+          },
+          {
+            "word": "couldn't",
+            "startTime": 10.7,
+            "endTime": 11
+          },
+          {
+            "word": "be",
+            "startTime": 11.1,
+            "endTime": 11.2
+          },
+          {
+            "word": "warmer.",
+            "startTime": 11.3,
+            "endTime": 11.7
+          },
+          {
+            "word": "It",
+            "startTime": 12.2,
+            "endTime": 12.3
+          },
+          {
+            "word": "couldn't",
+            "startTime": 12.4,
+            "endTime": 12.7
+          },
+          {
+            "word": "be",
+            "startTime": 12.8,
+            "endTime": 12.9
+          },
+          {
+            "word": "sunnier.",
+            "startTime": 13,
+            "endTime": 13.4
+          },
+          {
+            "word": "But",
+            "startTime": 13.9,
+            "endTime": 14
+          },
+          {
+            "word": "that's",
+            "startTime": 14.1,
+            "endTime": 14.3
+          },
+          {
+            "word": "about",
+            "startTime": 14.4,
+            "endTime": 14.6
+          },
+          {
+            "word": "to",
+            "startTime": 14.7,
+            "endTime": 14.8
+          },
+          {
+            "word": "change",
+            "startTime": 14.8,
+            "endTime": 15.3
+          },
+          {
+            "word": "forever.",
+            "startTime": 16.2,
+            "endTime": 16.7
+          }
+        ],
+        "confidence": 0.95,
+        "source": "whisperx",
+        "originalStartTime": 6.7,
+        "originalEndTime": 28.2
+      },
+      {
+        "speaker": "Kristoff",
+        "text": "Arendelle — it's completely frozen!",
+        "lineStartTime": 19.8,
+        "lineEndTime": 21.1,
+        "wordTimestamps": [
+          {
+            "word": "Arendelle",
+            "startTime": 19.8,
+            "endTime": 20
+          },
+          {
+            "word": "—",
+            "startTime": 20,
+            "endTime": 20.6
+          },
+          {
+            "word": "it's",
+            "startTime": 20.7,
+            "endTime": 21.1
+          },
+          {
+            "word": "completely",
+            "startTime": 20.7,
+            "endTime": 21.1
+          },
+          {
+            "word": "frozen!",
+            "startTime": 20.7,
+            "endTime": 21.1
+          }
+        ],
+        "confidence": 0.86,
+        "source": "whisperx",
+        "originalStartTime": 18.4,
+        "originalEndTime": 33.6
+      },
+      {
+        "speaker": "Kristoff",
+        "text": "A real howler in July. The land is covered in eternal snow.",
+        "lineStartTime": 25.1,
+        "lineEndTime": 30,
+        "wordTimestamps": [
+          {
+            "word": "A",
+            "startTime": 25.1,
+            "endTime": 25.3
+          },
+          {
+            "word": "real",
+            "startTime": 25.4,
+            "endTime": 25.7
+          },
+          {
+            "word": "howler",
+            "startTime": 25.8,
+            "endTime": 25.9
+          },
+          {
+            "word": "in",
+            "startTime": 28.8,
+            "endTime": 28.9
+          },
+          {
+            "word": "July.",
+            "startTime": 28.9,
+            "endTime": 29.6
+          },
+          {
+            "word": "The",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "land",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "is",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "covered",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "in",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "eternal",
+            "startTime": 29.7,
+            "endTime": 30
+          },
+          {
+            "word": "snow.",
+            "startTime": 29.7,
+            "endTime": 30
+          }
+        ],
+        "confidence": 0.78,
+        "source": "whisperx",
+        "originalStartTime": 21.7,
+        "originalEndTime": 38.3
+      },
+      {
+        "speaker": "Anna",
+        "text": "If we don't do something soon, we'll all freeze to death.",
+        "lineStartTime": 34.9,
+        "lineEndTime": 37.2,
+        "wordTimestamps": [
+          {
+            "word": "If",
+            "startTime": 34.9,
+            "endTime": 34.9
+          },
+          {
+            "word": "we",
+            "startTime": 35,
+            "endTime": 35.1
+          },
+          {
+            "word": "don't",
+            "startTime": 35.1,
+            "endTime": 35.3
+          },
+          {
+            "word": "do",
+            "startTime": 35.3,
+            "endTime": 35.4
+          },
+          {
+            "word": "something",
+            "startTime": 35.5,
+            "endTime": 35.8
+          },
+          {
+            "word": "soon,",
+            "startTime": 35.8,
+            "endTime": 36.1
+          },
+          {
+            "word": "we'll",
+            "startTime": 36.1,
+            "endTime": 36.2
+          },
+          {
+            "word": "all",
+            "startTime": 36.3,
+            "endTime": 36.4
+          },
+          {
+            "word": "freeze",
+            "startTime": 36.5,
+            "endTime": 36.8
+          },
+          {
+            "word": "to",
+            "startTime": 36.9,
+            "endTime": 37
+          },
+          {
+            "word": "death.",
+            "startTime": 37,
+            "endTime": 37.2
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 33.9,
+        "originalEndTime": 41.3
+      },
+      {
+        "speaker": "Kristoff",
+        "text": "You want to talk about a problem? I sell ice for a living. That's a rough business to be in right now.",
+        "lineStartTime": 38.2,
+        "lineEndTime": 42.6,
+        "wordTimestamps": [
+          {
+            "word": "You",
+            "startTime": 38.2,
+            "endTime": 38.2
+          },
+          {
+            "word": "want",
+            "startTime": 38.3,
+            "endTime": 38.4
+          },
+          {
+            "word": "to",
+            "startTime": 38.4,
+            "endTime": 38.5
+          },
+          {
+            "word": "talk",
+            "startTime": 38.5,
+            "endTime": 38.7
+          },
+          {
+            "word": "about",
+            "startTime": 38.7,
+            "endTime": 38.8
+          },
+          {
+            "word": "a",
+            "startTime": 38.9,
+            "endTime": 38.9
+          },
+          {
+            "word": "problem?",
+            "startTime": 38.9,
+            "endTime": 39.3
+          },
+          {
+            "word": "I",
+            "startTime": 39.3,
+            "endTime": 39.3
+          },
+          {
+            "word": "sell",
+            "startTime": 39.6,
+            "endTime": 39.8
+          },
+          {
+            "word": "ice",
+            "startTime": 39.9,
+            "endTime": 40
+          },
+          {
+            "word": "for",
+            "startTime": 40.1,
+            "endTime": 40.2
+          },
+          {
+            "word": "a",
+            "startTime": 40.3,
+            "endTime": 40.3
+          },
+          {
+            "word": "living.",
+            "startTime": 40.3,
+            "endTime": 40.6
+          },
+          {
+            "word": "That's",
+            "startTime": 40.9,
+            "endTime": 41.1
+          },
+          {
+            "word": "a",
+            "startTime": 41.1,
+            "endTime": 41.1
+          },
+          {
+            "word": "rough",
+            "startTime": 41.2,
+            "endTime": 41.4
+          },
+          {
+            "word": "business",
+            "startTime": 41.5,
+            "endTime": 41.8
+          },
+          {
+            "word": "to",
+            "startTime": 41.8,
+            "endTime": 41.9
+          },
+          {
+            "word": "be",
+            "startTime": 41.9,
+            "endTime": 42.1
+          },
+          {
+            "word": "in",
+            "startTime": 42.1,
+            "endTime": 42.2
+          },
+          {
+            "word": "right",
+            "startTime": 42.2,
+            "endTime": 42.4
+          },
+          {
+            "word": "now.",
+            "startTime": 42.4,
+            "endTime": 42.6
+          }
+        ],
+        "confidence": 0.98,
+        "source": "whisperx",
+        "originalStartTime": 37,
+        "originalEndTime": 51
+      },
+      {
+        "speaker": "Olaf",
+        "text": "Hi, everyone! I'm Olaf.",
+        "lineStartTime": 55.3,
+        "lineEndTime": 56.8,
+        "wordTimestamps": [
+          {
+            "word": "Hi,",
+            "startTime": 55.3,
+            "endTime": 55.6
+          },
+          {
+            "word": "everyone!",
+            "startTime": 55.6,
+            "endTime": 56.1
+          },
+          {
+            "word": "I'm",
+            "startTime": 56.3,
+            "endTime": 56.4
+          },
+          {
+            "word": "Olaf.",
+            "startTime": 56.4,
+            "endTime": 56.8
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 54.4,
+        "originalEndTime": 65.5
+      },
+      {
+        "speaker": "Anna",
+        "text": "You're creepy.",
+        "lineStartTime": 58.9,
+        "lineEndTime": 59.4,
+        "wordTimestamps": [
+          {
+            "word": "You're",
+            "startTime": 58.9,
+            "endTime": 59
+          },
+          {
+            "word": "creepy.",
+            "startTime": 59.1,
+            "endTime": 59.4
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 58.6,
+        "originalEndTime": 68.2
+      },
+      {
+        "speaker": "Olaf",
+        "text": "Well, we got off to a bad start.",
+        "lineStartTime": 61.6,
+        "lineEndTime": 62.8,
+        "wordTimestamps": [
+          {
+            "word": "Well,",
+            "startTime": 61.6,
+            "endTime": 61.7
+          },
+          {
+            "word": "we",
+            "startTime": 61.7,
+            "endTime": 61.8
+          },
+          {
+            "word": "got",
+            "startTime": 61.9,
+            "endTime": 62
+          },
+          {
+            "word": "off",
+            "startTime": 62,
+            "endTime": 62.1
+          },
+          {
+            "word": "to",
+            "startTime": 62.1,
+            "endTime": 62.2
+          },
+          {
+            "word": "a",
+            "startTime": 62.2,
+            "endTime": 62.4
+          },
+          {
+            "word": "bad",
+            "startTime": 62.5,
+            "endTime": 62.8
+          },
+          {
+            "word": "start.",
+            "startTime": 62.5,
+            "endTime": 62.8
+          }
+        ],
+        "confidence": 0.93,
+        "source": "whisperx",
+        "originalStartTime": 59.4,
+        "originalEndTime": 71.4
+      },
+      {
+        "speaker": "Anna",
+        "text": "I know how to stop this winter.",
+        "lineStartTime": 63.9,
+        "lineEndTime": 65.8,
+        "wordTimestamps": [
+          {
+            "word": "I",
+            "startTime": 63.9,
+            "endTime": 63.9
+          },
+          {
+            "word": "know",
+            "startTime": 64,
+            "endTime": 64.1
+          },
+          {
+            "word": "how",
+            "startTime": 64.2,
+            "endTime": 64.2
+          },
+          {
+            "word": "to",
+            "startTime": 64.3,
+            "endTime": 64.3
+          },
+          {
+            "word": "stop",
+            "startTime": 64.4,
+            "endTime": 64.6
+          },
+          {
+            "word": "this",
+            "startTime": 64.6,
+            "endTime": 64.7
+          },
+          {
+            "word": "winter.",
+            "startTime": 64.8,
+            "endTime": 65.8
+          }
+        ],
+        "confidence": 1,
+        "source": "whisperx",
+        "originalStartTime": 62.4,
+        "originalEndTime": 71.7
+      },
+      {
+        "speaker": "Kristoff",
+        "text": "Get your feet down! This is fresh lacquer. Seriously, were you raised in a barn?",
+        "lineStartTime": 69,
+        "lineEndTime": 72.2,
+        "wordTimestamps": [
+          {
+            "word": "Get",
+            "startTime": 69,
+            "endTime": 69.1
+          },
+          {
+            "word": "your",
+            "startTime": 69.1,
+            "endTime": 69.2
+          },
+          {
+            "word": "feet",
+            "startTime": 69.2,
+            "endTime": 69.4
+          },
+          {
+            "word": "down!",
+            "startTime": 69.4,
+            "endTime": 69.6
+          },
+          {
+            "word": "This",
+            "startTime": 69.9,
+            "endTime": 70
+          },
+          {
+            "word": "is",
+            "startTime": 70.1,
+            "endTime": 70.2
+          },
+          {
+            "word": "fresh",
+            "startTime": 70.2,
+            "endTime": 70.4
+          },
+          {
+            "word": "lacquer.",
+            "startTime": 70.5,
+            "endTime": 70.8
+          },
+          {
+            "word": "Seriously,",
+            "startTime": 70.9,
+            "endTime": 71.3
+          },
+          {
+            "word": "were",
+            "startTime": 71.3,
+            "endTime": 71.4
+          },
+          {
+            "word": "you",
+            "startTime": 71.5,
+            "endTime": 71.5
+          },
+          {
+            "word": "raised",
+            "startTime": 71.6,
+            "endTime": 71.8
+          },
+          {
+            "word": "in",
+            "startTime": 71.8,
+            "endTime": 71.9
+          },
+          {
+            "word": "a",
+            "startTime": 71.9,
+            "endTime": 72.2
+          },
+          {
+            "word": "barn?",
+            "startTime": 71.9,
+            "endTime": 72.2
+          }
+        ],
+        "confidence": 0.9,
+        "source": "whisperx",
+        "originalStartTime": 68.7,
+        "originalEndTime": 74.3
+      },
+      {
+        "speaker": "Olaf",
+        "text": "Some people are worth melting for. Just maybe not right this second.",
+        "lineStartTime": 119.3,
+        "lineEndTime": 122.7,
+        "wordTimestamps": [
+          {
+            "word": "Some",
+            "startTime": 119.3,
+            "endTime": 119.5
+          },
+          {
+            "word": "people",
+            "startTime": 119.5,
+            "endTime": 119.8
+          },
+          {
+            "word": "are",
+            "startTime": 119.9,
+            "endTime": 120
+          },
+          {
+            "word": "worth",
+            "startTime": 120.1,
+            "endTime": 120.3
+          },
+          {
+            "word": "melting",
+            "startTime": 120.3,
+            "endTime": 120.7
+          },
+          {
+            "word": "for.",
+            "startTime": 120.8,
+            "endTime": 121.1
+          },
+          {
+            "word": "Just",
+            "startTime": 122,
+            "endTime": 122.1
+          },
+          {
+            "word": "maybe",
+            "startTime": 122.2,
+            "endTime": 122.4
+          },
+          {
+            "word": "not",
+            "startTime": 122.5,
+            "endTime": 122.5
+          },
+          {
+            "word": "right",
+            "startTime": 122.5,
+            "endTime": 122.7
+          },
+          {
+            "word": "this",
+            "startTime": 122.5,
+            "endTime": 122.7
+          },
+          {
+            "word": "second.",
+            "startTime": 122.5,
+            "endTime": 122.7
+          }
+        ],
+        "confidence": 0.7,
+        "source": "whisperx",
+        "originalStartTime": 119,
+        "originalEndTime": 125.5
+      },
+      {
+        "speaker": "Olaf",
+        "text": "My legs! I can't get my legs! Those are my legs!",
+        "lineStartTime": 137.5,
+        "lineEndTime": 142.3,
+        "wordTimestamps": [
+          {
+            "word": "My",
+            "startTime": 137.5,
+            "endTime": 137.6
+          },
+          {
+            "word": "legs!",
+            "startTime": 137.6,
+            "endTime": 137.9
+          },
+          {
+            "word": "I",
+            "startTime": 138.2,
+            "endTime": 138.3
+          },
+          {
+            "word": "can't",
+            "startTime": 138.4,
+            "endTime": 138.7
+          },
+          {
+            "word": "get",
+            "startTime": 138.8,
+            "endTime": 138.9
+          },
+          {
+            "word": "my",
+            "startTime": 139,
+            "endTime": 139.1
+          },
+          {
+            "word": "legs!",
+            "startTime": 139.2,
+            "endTime": 139.5
+          },
+          {
+            "word": "Those",
+            "startTime": 141.3,
+            "endTime": 141.6
+          },
+          {
+            "word": "are",
+            "startTime": 141.6,
+            "endTime": 141.7
+          },
+          {
+            "word": "my",
+            "startTime": 141.7,
+            "endTime": 141.9
+          },
+          {
+            "word": "legs!",
+            "startTime": 142,
+            "endTime": 142.3
+          }
+        ],
+        "confidence": 0.82,
+        "source": "whisperx",
+        "originalStartTime": 136.7,
+        "originalEndTime": 144.8
+      },
+      {
+        "speaker": "Olaf",
+        "text": "Oh hey, do me a favor, grab my butt. Oh, that feels better.",
+        "lineStartTime": 142.8,
+        "lineEndTime": 146.3,
+        "wordTimestamps": [
+          {
+            "word": "Oh",
+            "startTime": 145.4,
+            "endTime": 145.6
+          },
+          {
+            "word": "hey,",
+            "startTime": 145.6,
+            "endTime": 145.8
+          },
+          {
+            "word": "do",
+            "startTime": 145.8,
+            "endTime": 146
+          },
+          {
+            "word": "me",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "a",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "favor,",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "grab",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "my",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "butt.",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "Oh,",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "that",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "feels",
+            "startTime": 146.1,
+            "endTime": 146.3
+          },
+          {
+            "word": "better.",
+            "startTime": 146.1,
+            "endTime": 146.3
+          }
+        ],
+        "confidence": 0.96,
+        "source": "whisperx",
+        "originalStartTime": 142.4,
+        "originalEndTime": 149.3
+      }
+    ],
+    "avgConfidence": 0.91,
+    "alignedAt": "2026-03-19T00:56:40.422Z"
+  },
+  {
+    "sceneId": "harry-potter-trailer",
+    "movieTitle": "Harry Potter and the Sorcerer's Stone",
+    "videoId": "VyHV0BRtdxo",
+    "lines": [
+      {
+        "speaker": "Hagrid",
+        "text": "You're a wizard, Harry. You'll be the finest student Hogwarts has ever seen.",
+        "lineStartTime": 5,
+        "lineEndTime": 20,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 5,
+        "originalEndTime": 20
+      },
+      {
+        "speaker": "McGonagall",
+        "text": "Welcome, student. This is your classroom.",
+        "lineStartTime": 46.5,
+        "lineEndTime": 47.1,
+        "wordTimestamps": [
+          {
+            "word": "Welcome,",
+            "startTime": 46.5,
+            "endTime": 46.8
+          },
+          {
+            "word": "student.",
+            "startTime": 46.8,
+            "endTime": 46.9
+          },
+          {
+            "word": "This",
+            "startTime": 46.9,
+            "endTime": 47.1
+          },
+          {
+            "word": "is",
+            "startTime": 46.9,
+            "endTime": 47.1
+          },
+          {
+            "word": "your",
+            "startTime": 46.9,
+            "endTime": 47.1
+          },
+          {
+            "word": "classroom.",
+            "startTime": 46.9,
+            "endTime": 47.1
+          }
+        ],
+        "confidence": 0.44,
+        "source": "whisperx",
+        "originalStartTime": 20,
+        "originalEndTime": 30
+      },
+      {
+        "speaker": "Hermione",
+        "text": "I'm going to the library to study. I've read about it in a book.",
+        "lineStartTime": 30,
+        "lineEndTime": 45,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 30,
+        "originalEndTime": 45
+      },
+      {
+        "speaker": "Ron",
+        "text": "She needs to sort out her priorities. Homework and study all the time!",
+        "lineStartTime": 106.1,
+        "lineEndTime": 111.8,
+        "wordTimestamps": [
+          {
+            "word": "She",
+            "startTime": 109.4,
+            "endTime": 109.9
+          },
+          {
+            "word": "needs",
+            "startTime": 110,
+            "endTime": 110.3
+          },
+          {
+            "word": "to",
+            "startTime": 110.4,
+            "endTime": 110.4
+          },
+          {
+            "word": "sort",
+            "startTime": 110.5,
+            "endTime": 110.8
+          },
+          {
+            "word": "out",
+            "startTime": 110.9,
+            "endTime": 111.1
+          },
+          {
+            "word": "her",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "priorities.",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "Homework",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "and",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "study",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "all",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "the",
+            "startTime": 111.1,
+            "endTime": 111.8
+          },
+          {
+            "word": "time!",
+            "startTime": 111.1,
+            "endTime": 111.8
+          }
+        ],
+        "confidence": 0.43,
+        "source": "whisperx",
+        "originalStartTime": 45,
+        "originalEndTime": 55
+      },
+      {
+        "speaker": "Harry",
+        "text": "My teacher says I have a special gift.",
+        "lineStartTime": 55,
+        "lineEndTime": 65,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 55,
+        "originalEndTime": 65
+      },
+      {
+        "speaker": "Dumbledore",
+        "text": "It does not do to dwell on dreams and forget to live. Every student must learn this.",
+        "lineStartTime": 65,
+        "lineEndTime": 80,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 65,
+        "originalEndTime": 80
+      },
+      {
+        "speaker": "Hermione",
+        "text": "Now, if you two don't mind, I'm going to the classroom before either of you come up with another clever idea to get us killed.",
+        "lineStartTime": 80,
+        "lineEndTime": 95,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 80,
+        "originalEndTime": 95
+      },
+      {
+        "speaker": "Ron",
+        "text": "She's a nightmare, honestly. No wonder she's got no friends. Always doing homework!",
+        "lineStartTime": 95,
+        "lineEndTime": 110,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 95,
+        "originalEndTime": 110
+      },
+      {
+        "speaker": "Harry",
+        "text": "I'm not going home. Hogwarts is my home. Best classroom and teacher I've ever had.",
+        "lineStartTime": 110,
+        "lineEndTime": 130,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 110,
+        "originalEndTime": 130
+      },
+      {
+        "speaker": "Dumbledore",
+        "text": "The truth. It is a beautiful and terrible thing, and should therefore be treated with great caution. Your exam of character matters most.",
+        "lineStartTime": 130,
+        "lineEndTime": 150,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 130,
+        "originalEndTime": 150
+      }
+    ],
+    "avgConfidence": 0.09,
+    "alignedAt": "2026-03-19T00:57:13.820Z"
+  },
+  {
+    "sceneId": "devil-wears-prada-trailer",
+    "movieTitle": "The Devil Wears Prada",
+    "videoId": "6ZOZwUQKu3E",
+    "lines": [
+      {
+        "speaker": "Andy",
+        "text": "I have an interview with Miranda Priestly for a meeting at Runway magazine.",
+        "lineStartTime": 5,
+        "lineEndTime": 20,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 5,
+        "originalEndTime": 20
+      },
+      {
+        "speaker": "Emily",
+        "text": "She's not happy unless everyone is panicking. Send the email now!",
+        "lineStartTime": 20,
+        "lineEndTime": 35,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 20,
+        "originalEndTime": 35
+      },
+      {
+        "speaker": "Miranda",
+        "text": "By all means, move at a glacial pace. You know how that thrills me. The deadline was yesterday.",
+        "lineStartTime": 35,
+        "lineEndTime": 50,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 35,
+        "originalEndTime": 50
+      },
+      {
+        "speaker": "Andy",
+        "text": "I am smart. I work very hard on every project they give me.",
+        "lineStartTime": 50,
+        "lineEndTime": 65,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 50,
+        "originalEndTime": 65
+      },
+      {
+        "speaker": "Miranda",
+        "text": "That's all. Details of your incompetence do not interest me. Tell the manager.",
+        "lineStartTime": 65,
+        "lineEndTime": 80,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 65,
+        "originalEndTime": 80
+      },
+      {
+        "speaker": "Emily",
+        "text": "I love my job. I love my job. My colleague better not mess this up.",
+        "lineStartTime": 80,
+        "lineEndTime": 90,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 80,
+        "originalEndTime": 90
+      },
+      {
+        "speaker": "Andy",
+        "text": "My personal life is hanging by a thread. Every project has a crazy deadline.",
+        "lineStartTime": 90,
+        "lineEndTime": 105,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 90,
+        "originalEndTime": 105
+      },
+      {
+        "speaker": "Miranda",
+        "text": "Every meeting must start on time. No excuses.",
+        "lineStartTime": 105,
+        "lineEndTime": 115,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 105,
+        "originalEndTime": 115
+      },
+      {
+        "speaker": "Nigel",
+        "text": "Let me know when your whole life goes up in smoke. That means it's time for a meeting with Nigel.",
+        "lineStartTime": 90.3,
+        "lineEndTime": 93.4,
+        "wordTimestamps": [
+          {
+            "word": "Let",
+            "startTime": 90.3,
+            "endTime": 90.4
+          },
+          {
+            "word": "me",
+            "startTime": 90.4,
+            "endTime": 90.5
+          },
+          {
+            "word": "know",
+            "startTime": 90.5,
+            "endTime": 90.6
+          },
+          {
+            "word": "when",
+            "startTime": 90.6,
+            "endTime": 90.7
+          },
+          {
+            "word": "your",
+            "startTime": 90.7,
+            "endTime": 90.8
+          },
+          {
+            "word": "whole",
+            "startTime": 90.8,
+            "endTime": 90.9
+          },
+          {
+            "word": "life",
+            "startTime": 91,
+            "endTime": 91.2
+          },
+          {
+            "word": "goes",
+            "startTime": 91.2,
+            "endTime": 91.4
+          },
+          {
+            "word": "up",
+            "startTime": 91.5,
+            "endTime": 91.5
+          },
+          {
+            "word": "in",
+            "startTime": 91.6,
+            "endTime": 91.7
+          },
+          {
+            "word": "smoke.",
+            "startTime": 91.7,
+            "endTime": 92
+          },
+          {
+            "word": "That",
+            "startTime": 92.6,
+            "endTime": 92.8
+          },
+          {
+            "word": "means",
+            "startTime": 92.8,
+            "endTime": 92.9
+          },
+          {
+            "word": "it's",
+            "startTime": 92.9,
+            "endTime": 93
+          },
+          {
+            "word": "time",
+            "startTime": 93,
+            "endTime": 93.2
+          },
+          {
+            "word": "for",
+            "startTime": 93.2,
+            "endTime": 93.3
+          },
+          {
+            "word": "a",
+            "startTime": 93.4,
+            "endTime": 93.4
+          },
+          {
+            "word": "meeting",
+            "startTime": 93.4,
+            "endTime": 93.4
+          },
+          {
+            "word": "with",
+            "startTime": 93.4,
+            "endTime": 93.4
+          },
+          {
+            "word": "Nigel.",
+            "startTime": 93.4,
+            "endTime": 93.4
+          }
+        ],
+        "confidence": 0.76,
+        "source": "whisperx",
+        "originalStartTime": 115,
+        "originalEndTime": 135
+      },
+      {
+        "speaker": "Andy",
+        "text": "I learned so much from this job. Miranda is the most demanding manager in fashion.",
+        "lineStartTime": 135,
+        "lineEndTime": 150,
+        "wordTimestamps": [],
+        "confidence": 0,
+        "source": "manual",
+        "originalStartTime": 135,
+        "originalEndTime": 150
+      }
+    ],
+    "avgConfidence": 0.08,
+    "alignedAt": "2026-03-19T00:57:43.031Z"
+  }
+]

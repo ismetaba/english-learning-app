@@ -10,7 +10,8 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "types": ["node"]
   },
   "include": ["./*.ts", "../data/**/*.ts"]
 }

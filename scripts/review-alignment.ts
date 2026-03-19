@@ -36,7 +36,7 @@ interface AlignedLine {
   lineEndTime: number;
   wordTimestamps: WordTimestamp[];
   confidence: number;
-  source: 'youtube-auto' | 'manual';
+  source: 'youtube-auto' | 'whisperx' | 'manual';
   originalStartTime?: number;
   originalEndTime?: number;
 }

@@ -1,0 +1,69 @@
+{
+  "scenes": [
+    {
+      "sceneId": "ratatouille-trailer",
+      "movieTitle": "Ratatouille",
+      "decision": "approved",
+      "avgConfidence": 0.98,
+      "reviewedAt": "2026-03-19T00:57:53.080Z",
+      "reviewedBy": "auto"
+    },
+    {
+      "sceneId": "forrest-gump-trailer",
+      "movieTitle": "Forrest Gump",
+      "decision": "pending",
+      "avgConfidence": 0,
+      "reviewedAt": "",
+      "reviewedBy": "human"
+    },
+    {
+      "sceneId": "terminal-trailer",
+      "movieTitle": "The Terminal",
+      "decision": "approved",
+      "avgConfidence": 0.9,
+      "reviewedAt": "2026-03-19T00:57:53.081Z",
+      "reviewedBy": "auto"
+    },
+    {
+      "sceneId": "finding-nemo-trailer",
+      "movieTitle": "Finding Nemo",
+      "decision": "approved",
+      "avgConfidence": 0.96,
+      "reviewedAt": "2026-03-19T00:10:10.785Z",
+      "reviewedBy": "auto"
+    },
+    {
+      "sceneId": "home-alone-trailer",
+      "movieTitle": "Home Alone",
+      "decision": "approved",
+      "avgConfidence": 0.9,
+      "reviewedAt": "2026-03-19T00:57:53.081Z",
+      "reviewedBy": "auto"
+    },
+    {
+      "sceneId": "frozen-trailer",
+      "movieTitle": "Frozen",
+      "decision": "approved",
+      "avgConfidence": 0.91,
+      "reviewedAt": "2026-03-19T00:57:53.081Z",
+      "reviewedBy": "auto"
+    },
+    {
+      "sceneId": "harry-potter-trailer",
+      "movieTitle": "Harry Potter and the Sorcerer's Stone",
+      "decision": "pending",
+      "avgConfidence": 0.09,
+      "reviewedAt": "",
+      "reviewedBy": "human"
+    },
+    {
+      "sceneId": "devil-wears-prada-trailer",
+      "movieTitle": "The Devil Wears Prada",
+      "decision": "pending",
+      "avgConfidence": 0.08,
+      "reviewedAt": "",
+      "reviewedBy": "human"
+    }
+  ],
+  "reviewedAt": "2026-03-19T00:57:53.081Z"
+}
