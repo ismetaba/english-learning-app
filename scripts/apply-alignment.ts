@@ -30,7 +30,7 @@ interface AlignedLine {
   lineEndTime: number;
   wordTimestamps: WordTimestamp[];
   confidence: number;
-  source: 'youtube-auto' | 'manual';
+  source: 'youtube-auto' | 'whisperx' | 'manual';
   originalStartTime?: number;
   originalEndTime?: number;
 }
@@ -124,7 +124,7 @@ function main() {
 
     let sceneUpdated = false;
     for (const line of scene.lines) {
-      if (line.source !== 'youtube-auto' || line.confidence < minConfidence) {
+      if ((line.source !== 'youtube-auto' && line.source !== 'whisperx') || line.confidence < minConfidence) {
         console.log(`   ⏭ Skipped: "${line.text.substring(0, 40)}..." (${line.source}, ${(line.confidence * 100).toFixed(0)}%)`);
         totalSkipped++;
         continue;

@@ -11,7 +11,8 @@
     "subtitles:fetch": "npx ts-node --project scripts/tsconfig.json scripts/fetch-youtube-transcripts.ts",
     "subtitles:align": "npx ts-node --project scripts/tsconfig.json scripts/align-subtitles.ts",
     "subtitles:review": "npx ts-node --project scripts/tsconfig.json scripts/review-alignment.ts",
-    "subtitles:apply": "npx ts-node --project scripts/tsconfig.json scripts/apply-alignment.ts"
+    "subtitles:apply": "npx ts-node --project scripts/tsconfig.json scripts/apply-alignment.ts",
+    "subtitles:whisperx": "npx ts-node --project scripts/tsconfig.json scripts/whisperx-align.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.0",
     "@types/react": "~19.2.2",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.6",
