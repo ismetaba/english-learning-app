@@ -49,3 +49,23 @@ CREATE TABLE IF NOT EXISTS clip_tags (
   tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
   PRIMARY KEY (clip_id, tag_id)
 );
+
+-- ── Lessons ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS lessons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  title_tr TEXT,
+  description TEXT,
+  level TEXT DEFAULT 'elementary',
+  grammar_focus TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS lesson_sentences (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  line_id INTEGER NOT NULL REFERENCES subtitle_lines(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  grammar_annotations TEXT,
+  translations TEXT
+);

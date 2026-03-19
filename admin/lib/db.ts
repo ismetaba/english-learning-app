@@ -255,6 +255,119 @@ export function getTagsForClip(clipId: number): Tag[] {
   `).all(clipId) as Tag[];
 }
 
+// ── Lesson helpers ───────────────────────────────────────────────
+
+export interface Lesson {
+  id: number;
+  title: string;
+  title_tr: string | null;
+  description: string | null;
+  level: string;
+  grammar_focus: string | null;
+  created_at: string;
+  sentence_count?: number;
+}
+
+export interface LessonSentence {
+  id: number;
+  lesson_id: number;
+  line_id: number;
+  sort_order: number;
+  grammar_annotations: string | null; // JSON: [{word_index, role: 'subject'|'auxiliary'|'predicate'}]
+  translations: string | null;         // JSON: [{word, tr}]
+  // Joined fields
+  text?: string;
+  speaker?: string;
+  start_time?: number;
+  end_time?: number;
+  youtube_video_id?: string;
+  movie_title?: string;
+  words?: WordTimestamp[];
+}
+
+export function getAllLessons(): Lesson[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT l.*, COUNT(ls.id) as sentence_count
+    FROM lessons l
+    LEFT JOIN lesson_sentences ls ON ls.lesson_id = l.id
+    GROUP BY l.id
+    ORDER BY l.created_at DESC
+  `).all() as Lesson[];
+}
+
+export function getLesson(id: number): Lesson | undefined {
+  const db = getDb();
+  return db.prepare('SELECT * FROM lessons WHERE id = ?').get(id) as Lesson | undefined;
+}
+
+export function createLesson(title: string, titleTr: string | null, description: string | null, level: string, grammarFocus: string | null): number {
+  const db = getDb();
+  const result = db.prepare(
+    'INSERT INTO lessons (title, title_tr, description, level, grammar_focus) VALUES (?, ?, ?, ?, ?)'
+  ).run(title, titleTr, description, level, grammarFocus);
+  return result.lastInsertRowid as number;
+}
+
+export function deleteLesson(id: number): void {
+  const db = getDb();
+  db.prepare('DELETE FROM lessons WHERE id = ?').run(id);
+}
+
+export function getLessonSentences(lessonId: number): LessonSentence[] {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT ls.*, sl.text, sl.speaker, sl.start_time, sl.end_time,
+           v.youtube_video_id, v.movie_title
+    FROM lesson_sentences ls
+    JOIN subtitle_lines sl ON sl.id = ls.line_id
+    JOIN clips c ON c.id = sl.clip_id
+    JOIN videos v ON v.id = c.video_id
+    WHERE ls.lesson_id = ?
+    ORDER BY ls.sort_order
+  `).all(lessonId) as LessonSentence[];
+
+  for (const row of rows) {
+    row.words = getWordsForLine(row.line_id);
+  }
+  return rows;
+}
+
+export function addSentenceToLesson(lessonId: number, lineId: number, sortOrder: number, grammarAnnotations: string | null, translations: string | null): number {
+  const db = getDb();
+  const result = db.prepare(
+    'INSERT INTO lesson_sentences (lesson_id, line_id, sort_order, grammar_annotations, translations) VALUES (?, ?, ?, ?, ?)'
+  ).run(lessonId, lineId, sortOrder, grammarAnnotations, translations);
+  return result.lastInsertRowid as number;
+}
+
+export function updateSentenceAnnotations(id: number, grammarAnnotations: string, translations: string): void {
+  const db = getDb();
+  db.prepare('UPDATE lesson_sentences SET grammar_annotations = ?, translations = ? WHERE id = ?').run(grammarAnnotations, translations, id);
+}
+
+export function removeSentenceFromLesson(id: number): void {
+  const db = getDb();
+  db.prepare('DELETE FROM lesson_sentences WHERE id = ?').run(id);
+}
+
+export function searchSubtitleLines(query: string, limit: number = 20): (SubtitleLine & { youtube_video_id: string; movie_title: string })[] {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT sl.*, v.youtube_video_id, v.movie_title
+    FROM subtitle_lines sl
+    JOIN clips c ON c.id = sl.clip_id
+    JOIN videos v ON v.id = c.video_id
+    WHERE sl.text LIKE ?
+    ORDER BY LENGTH(sl.text) ASC
+    LIMIT ?
+  `).all(`%${query}%`, limit) as any[];
+  for (const row of rows) {
+    row.words = getWordsForLine(row.id);
+  }
+  return rows;
+}
+
 // ── Stats ────────────────────────────────────────────────────────
 
 export function getStats(): { videos: number; clips: number; approved: number; tags: number } {
