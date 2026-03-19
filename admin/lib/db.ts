@@ -368,6 +368,26 @@ export function searchSubtitleLines(query: string, limit: number = 20): (Subtitl
   return rows;
 }
 
+export function deleteVideo(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM videos WHERE id = ?').run(id);
+}
+
+export function deleteClip(id: number): void {
+  const db = getDb();
+  db.prepare('DELETE FROM clips WHERE id = ?').run(id);
+}
+
+export function deleteTag(id: number): void {
+  const db = getDb();
+  db.prepare('DELETE FROM tags WHERE id = ?').run(id);
+}
+
+export function removeTagFromClip(clipId: number, tagId: number): void {
+  const db = getDb();
+  db.prepare('DELETE FROM clip_tags WHERE clip_id = ? AND tag_id = ?').run(clipId, tagId);
+}
+
 // ── Stats ────────────────────────────────────────────────────────
 
 export function getStats(): { videos: number; clips: number; approved: number; tags: number } {

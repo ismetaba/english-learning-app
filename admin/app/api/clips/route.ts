@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllApprovedClips, getClipsByTag } from '@/lib/db';
+import { getAllApprovedClips, getClipsByTag, deleteClip } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const tag = request.nextUrl.searchParams.get('tag');
@@ -29,4 +29,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(result, {
     headers: { 'Access-Control-Allow-Origin': '*' },
   });
+}
+
+export async function DELETE(request: NextRequest) {
+  const { id } = await request.json();
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  deleteClip(id);
+  return NextResponse.json({ message: 'Clip deleted' });
 }

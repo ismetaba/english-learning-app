@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getAllLessons } from '@/lib/db';
 import CreateLessonButton from '@/components/CreateLessonButton';
+import DeleteButton from '@/components/DeleteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,10 @@ export default function LessonsPage() {
             {lesson.description && <p className="text-xs text-zinc-500 mb-3 line-clamp-2">{lesson.description}</p>}
             <div className="flex items-center justify-between text-[10px] text-zinc-600">
               <span>{lesson.sentence_count || 0} sentences</span>
-              <span className="group-hover:text-violet-400 transition-colors">Edit &#8594;</span>
+              <div className="flex items-center gap-2">
+                <DeleteButton endpoint={`/api/lessons/${lesson.id}`} id={lesson.id} />
+                <span className="group-hover:text-violet-400 transition-colors">Edit &#8594;</span>
+              </div>
             </div>
           </Link>
         ))}

@@ -73,6 +73,16 @@ export default function SubtitleEditor({ video, clips: initialClips }: Props) {
   const lineRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
   const containerId = `yt-editor-${video.id}`;
 
+  const deleteClipHandler = async (clipId: number) => {
+    if (!confirm('Delete this clip and all its subtitle lines?')) return;
+    await fetch('/api/clips', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: clipId }),
+    });
+    setClips(prev => prev.filter(c => c.id !== clipId));
+  };
+
   const allLines = clips.flatMap(c => c.lines).sort((a, b) => a.start_time - b.start_time);
   const activeLine = allLines.find(l => currentTime >= l.start_time && currentTime < l.end_time);
   const maxTime = Math.max(...clips.map(c => c.end_time), 60);
@@ -313,6 +323,28 @@ export default function SubtitleEditor({ video, clips: initialClips }: Props) {
           <span>← → seek</span>
         </div>
       </div>
+
+      {/* ── Clips Bar ─────────────────────────────────────── */}
+      {clips.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 shrink-0 overflow-x-auto pb-1">
+          <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mr-1 shrink-0">Clips</span>
+          {clips.map(c => (
+            <div key={c.id} className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 text-[11px] rounded-lg bg-zinc-800/50 border border-zinc-800/50 group/clip">
+              <span className="font-mono text-zinc-500">#{c.id}</span>
+              <span className="text-zinc-400">{fmtShort(c.start_time)} - {fmtShort(c.end_time)}</span>
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${c.status === 'approved' ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'}`}>{c.status}</span>
+              <span className="text-zinc-600 font-mono">{c.lines.length} lines</span>
+              <button
+                onClick={() => deleteClipHandler(c.id)}
+                className="opacity-0 group-hover/clip:opacity-100 w-4 h-4 flex items-center justify-center rounded hover:bg-red-500/20 hover:text-red-400 text-zinc-700 transition-all text-[10px]"
+                title="Delete clip"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Subtitle Table + Word Editor ────────────────────── */}
       <div className="flex-1 flex gap-4 min-h-0">

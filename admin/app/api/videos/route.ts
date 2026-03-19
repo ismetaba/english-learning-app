@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllVideos, createVideo, getVideo, getClipsForVideo, getLinesForClip } from '@/lib/db';
+import { getAllVideos, createVideo, deleteVideo, getVideo, getClipsForVideo, getLinesForClip } from '@/lib/db';
 
 export async function GET() {
   const videos = getAllVideos();
@@ -27,6 +27,17 @@ export async function POST(request: NextRequest) {
       duration_seconds: null,
     });
     return NextResponse.json({ id, message: 'Video created' }, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const { id } = await request.json();
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  try {
+    deleteVideo(id);
+    return NextResponse.json({ message: 'Video deleted' });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
