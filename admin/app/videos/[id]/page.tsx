@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getVideo, getClipsForVideo, getLinesForClip } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import SubtitleEditor from '@/components/SubtitleEditor';
+import AutoSubtitleButton from '@/components/AutoSubtitleButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,12 +17,13 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
     lines: getLinesForClip(clip.id),
   }));
 
+  const hasClips = clipsWithLines.length > 0;
   const difficultyBadge = (d: string) => <span className={`badge badge-${d}`}>{d}</span>;
 
   return (
     <div className="p-6">
       {/* Breadcrumb + Header */}
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/videos" className="text-zinc-600 hover:text-zinc-400 transition-colors">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -39,6 +41,10 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <AutoSubtitleButton videoId={id} hasClips={hasClips} />
       </div>
 
       <SubtitleEditor video={video} clips={clipsWithLines} />
