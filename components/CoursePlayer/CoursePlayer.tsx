@@ -247,8 +247,8 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
     // Remove from triggered so it can trigger again when the sentence ends
     triggeredTargets.current.delete(target.id);
     currentTargetRef.current = null;
-    // Seek 10 seconds before the target sentence for context
-    const seekPos = Math.max(clip?.start_time ?? 0, target.start_time - 10);
+    // Seek 3 seconds before the target sentence start
+    const seekPos = Math.max(clip?.start_time ?? 0, target.start_time - 3);
     // Update currentTime immediately so auto-pause doesn't re-trigger on stale value
     setCurrentTime(seekPos);
     setTappedWordIdx(null);
@@ -325,16 +325,20 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
     // ── TARGET PAUSED: show grammar breakdown inline ──
     if (phase === 'target-popup' && currentTargetRef.current) {
       const target = currentTargetRef.current;
-      const words = target.text.split(' ');
       const annots = target.grammar_annotations || [];
-      const translations = target.translations || [];
+      const translations: Translation[] = Array.isArray(target.translations) ? target.translations : [];
+
+      // Use translations array for word list (supports contraction splitting)
+      // Fall back to text.split(' ') if no translations
+      const words = translations.length > 0
+        ? translations.map(t => t.word)
+        : target.text.split(' ');
 
       // Build Turkish sentence from translations
-      const trSentence = words.map((word, i) => {
-        const clean = word.toLowerCase().replace(/[.,!?;:'"]/g, '');
-        const tr = translations.find(t => t.word.toLowerCase().replace(/[.,!?;:'"]/g, '') === clean);
-        return tr ? tr.tr : '';
-      }).filter(Boolean).join(' ');
+      const trSentence = translations
+        .map(t => t.tr)
+        .filter(Boolean)
+        .join(' ');
 
       return (
         <View style={styles.targetArea}>
@@ -347,8 +351,7 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
               const annot = annots.find(a => a.word_index === i);
               const role = annot?.role;
               const c = role ? GRAMMAR_COLORS[role] : null;
-              const cleanWord = word.toLowerCase().replace(/[.,!?;:'"]/g, '');
-              const tr = translations.find(t => t.word.toLowerCase().replace(/[.,!?;:'"]/g, '') === cleanWord);
+              const tr = translations[i];
               const isTapped = tappedWordIdx === i;
 
               return (
@@ -362,7 +365,7 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
                       : { borderWidth: 1.5, borderColor: 'transparent' },
                   ]}
                 >
-                  {isTapped && tr ? (
+                  {isTapped && tr?.tr ? (
                     <Text style={styles.targetWordTr}>{tr.tr}</Text>
                   ) : null}
                   <Text style={[
