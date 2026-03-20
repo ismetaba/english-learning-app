@@ -1,15 +1,7 @@
 import Link from 'next/link';
-import { getStats, getAllVideos } from '@/lib/db';
-import Database from 'better-sqlite3';
-import path from 'path';
+import { getStats, getAllVideos, getDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
-
-function getDb() {
-  const db = new Database(path.join(process.cwd(), 'data.db'));
-  db.pragma('journal_mode = WAL');
-  return db;
-}
 
 function getShowBreakdown() {
   const db = getDb();

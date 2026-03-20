@@ -16,5 +16,5 @@ export default async function LessonPreviewPage({ params }: { params: Promise<{ 
     translations: s.translations ? JSON.parse(s.translations) : [],
   }));
 
-  return <LessonPreview lesson={{ ...lesson, sentences: parsed }} />;
+  return <LessonPreview lesson={{ ...lesson, sentences: parsed as any }} />;
 }

@@ -1,17 +1,9 @@
 import Link from 'next/link';
-import { getAllVideos } from '@/lib/db';
+import { getAllVideos, getDb } from '@/lib/db';
 import AddVideoButton from '@/components/AddVideoButton';
 import DeleteButton from '@/components/DeleteButton';
-import Database from 'better-sqlite3';
-import path from 'path';
 
 export const dynamic = 'force-dynamic';
-
-function getDb() {
-  const db = new Database(path.join(process.cwd(), 'data.db'));
-  db.pragma('journal_mode = WAL');
-  return db;
-}
 
 function getVideoStats() {
   const db = getDb();
