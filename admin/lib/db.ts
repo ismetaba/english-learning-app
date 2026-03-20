@@ -2,20 +2,82 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = path.join(process.cwd(), 'data.db');
+const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'data.db');
 
 let _db: Database.Database | null = null;
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS videos (
+  id TEXT PRIMARY KEY,
+  youtube_video_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  movie_title TEXT NOT NULL,
+  genre TEXT,
+  difficulty TEXT DEFAULT 'intermediate',
+  duration_seconds INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS clips (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  video_id TEXT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+  start_time REAL NOT NULL,
+  end_time REAL NOT NULL,
+  status TEXT DEFAULT 'draft',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS subtitle_lines (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  clip_id INTEGER NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
+  line_index INTEGER NOT NULL,
+  speaker TEXT DEFAULT 'Speaker',
+  text TEXT NOT NULL,
+  start_time REAL NOT NULL,
+  end_time REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS word_timestamps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  line_id INTEGER NOT NULL REFERENCES subtitle_lines(id) ON DELETE CASCADE,
+  word_index INTEGER NOT NULL,
+  word TEXT NOT NULL,
+  start_time REAL NOT NULL,
+  end_time REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  category TEXT DEFAULT 'vocab'
+);
+CREATE TABLE IF NOT EXISTS clip_tags (
+  clip_id INTEGER NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
+  tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (clip_id, tag_id)
+);
+CREATE TABLE IF NOT EXISTS lessons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  title_tr TEXT,
+  description TEXT,
+  level TEXT DEFAULT 'elementary',
+  grammar_focus TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS lesson_sentences (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  line_id INTEGER NOT NULL REFERENCES subtitle_lines(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  grammar_annotations TEXT,
+  translations TEXT
+);
+`;
 
 export function getDb(): Database.Database {
   if (!_db) {
     _db = new Database(DB_PATH);
     _db.pragma('journal_mode = WAL');
     _db.pragma('foreign_keys = ON');
-
-    // Run schema
-    const schemaPath = path.join(process.cwd(), 'lib', 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf-8');
-    _db.exec(schema);
+    _db.exec(SCHEMA);
   }
   return _db;
 }
