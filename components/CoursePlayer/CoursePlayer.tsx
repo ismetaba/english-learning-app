@@ -5,6 +5,14 @@ import {
 } from 'react-native';
 import { palette, Radius, Shadows } from '../../constants/Colors';
 
+// Lazy-load YoutubeIframe only on native (requires react-native-webview, unavailable on web)
+let YoutubeIframe: any = null;
+try {
+  if (Platform.OS !== 'web') {
+    YoutubeIframe = require('react-native-youtube-iframe').default;
+  }
+} catch {}
+
 // ── Types ──────────────────────────────────────────────────────
 
 interface WordTimestamp {
@@ -87,7 +95,7 @@ function fmtTime(sec: number): string {
 export default function CoursePlayer({ course, onComplete, onBack }: Props) {
   const [clipIdx, setClipIdx] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [phase, setPhase] = useState<'playing' | 'target-popup' | 'clip-done' | 'course-done'>('playing');
+  const [phase, setPhase] = useState<'playing' | 'replaying' | 'target-popup' | 'clip-done' | 'course-done'>('playing');
   const [playerReady, setPlayerReady] = useState(false);
   const [loadingVideo, setLoadingVideo] = useState(true);
   const [completedTargets, setCompletedTargets] = useState(0);
@@ -100,6 +108,9 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
   const hasStartedPlaying = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const linePositionsRef = useRef<Record<number, number>>({});
+  // Phase ref so callbacks can read latest phase without re-creating
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   const clip = course.clips[clipIdx];
   const totalClips = course.clips.length;
@@ -121,7 +132,12 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
     }
   }, [activeLine?.id]);
 
-  // ── YouTube Player ────────────────────────────────────────────
+  // ── Native YouTube player state ──────────────────────────────
+  const [nativePlaying, setNativePlaying] = useState(false);
+  const nativePlayerRef = useRef<any>(null);
+  const nativeSeekOnReady = useRef<number | null>(null);
+
+  // ── YouTube Player (Web) ────────────────────────────────────
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined' || !clip) return;
@@ -211,58 +227,177 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
     return () => { destroyed = true; clearInterval(intervalRef.current); };
   }, [clip?.youtube_video_id, clipIdx]);
 
-  // ── Auto-pause on target sentences ────────────────────────────
+  // ── YouTube Player (Native) ─────────────────────────────────
 
   useEffect(() => {
-    if (!clip || phase !== 'playing' || !hasStartedPlaying.current) return;
+    if (Platform.OS === 'web' || !clip) return;
+    setLoadingVideo(true);
+    hasStartedPlaying.current = false;
+    nativeSeekOnReady.current = clip.start_time;
+    setNativePlaying(true);
+  }, [clip?.youtube_video_id, clipIdx]);
 
-    // Check if a target sentence just ended
+  // Native time polling — simple and reliable
+  const nativeIntervalRef = useRef<any>(null);
+  const lastNativeTime = useRef(0);
+  const lastNativeFetch = useRef(0);
+  const nativePlayingRef = useRef(false);
+  nativePlayingRef.current = nativePlaying;
+  // After a seek, ignore stale getCurrentTime() results for 1.5s
+  const ignoreTimeUntil = useRef(0);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !playerReady) return;
+
+    const fetchTime = async () => {
+      // Skip fetching during seek cooldown — getCurrentTime() returns stale data
+      if (Date.now() < ignoreTimeUntil.current) return;
+      try {
+        const fetchStart = Date.now();
+        const t = await nativePlayerRef.current?.getCurrentTime();
+        if (t != null) {
+          const bridgeDelay = (Date.now() - fetchStart) / 2000;
+          lastNativeTime.current = t + bridgeDelay;
+          lastNativeFetch.current = Date.now();
+          if (!hasStartedPlaying.current && t >= (clip?.start_time ?? 0)) {
+            hasStartedPlaying.current = true;
+          }
+        }
+      } catch {}
+    };
+
+    const fetchInterval = setInterval(fetchTime, 100);
+    fetchTime();
+
+    nativeIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - lastNativeFetch.current) / 1000;
+      const estimated = lastNativeTime.current + (nativePlayingRef.current ? elapsed : 0);
+      setCurrentTime(estimated);
+    }, 16);
+
+    return () => {
+      clearInterval(fetchInterval);
+      clearInterval(nativeIntervalRef.current);
+    };
+  }, [playerReady, clipIdx]);
+
+  // v2.3.0 uses injectJavaScript for play/pause (v2.4.x postMessage was broken)
+
+  const onNativeReady = useCallback(() => {
+    setPlayerReady(true);
+    setLoadingVideo(false);
+    if (nativeSeekOnReady.current != null && nativePlayerRef.current) {
+      nativePlayerRef.current.seekTo(nativeSeekOnReady.current, true);
+      nativeSeekOnReady.current = null;
+    }
+  }, []);
+
+  const onNativeStateChange = useCallback((state: string) => {
+    // CRITICAL: During replay or target-popup, WE control pause/play.
+    // Ignore YouTube's async state events — they fire late after seeks
+    // and would override our intentional pause, causing play-pause loops.
+    if (phaseRef.current === 'replaying' || phaseRef.current === 'target-popup') return;
+    if (state === 'playing') {
+      setNativePlaying(true);
+    } else if (state === 'paused') {
+      setNativePlaying(false);
+    }
+  }, []);
+
+  // ── Auto-pause on target sentences ────────────────────────────
+
+  const pauseVideo = useCallback(() => {
+    if (Platform.OS === 'web') {
+      playerRef.current?.pauseVideo?.();
+    } else {
+      setNativePlaying(false);
+    }
+  }, []);
+
+  const playVideo = useCallback(() => {
+    if (Platform.OS === 'web') {
+      playerRef.current?.playVideo?.();
+    } else {
+      setNativePlaying(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!clip || !hasStartedPlaying.current) return;
+
+    if (phase === 'replaying') {
+      // During replay: pause ONLY when we've played through the sentence
+      // Both conditions required to prevent stale-time false triggers:
+      // 1. Must have passed the sentence start (proves we actually played through it)
+      // 2. Must have reached the sentence end
+      const target = currentTargetRef.current;
+      if (target && currentTime > target.start_time && currentTime >= target.end_time - 0.1) {
+        pauseVideo();
+        setPhase('target-popup');
+      }
+      return;
+    }
+
+    if (phase !== 'playing') return;
+
+    // Normal: check all untriggered targets
     for (const line of clip.lines) {
-      if (!line.is_target) continue;
-      if (triggeredTargets.current.has(line.id)) continue;
-
-      // Target sentence just finished
-      if (currentTime >= line.end_time - 0.05 && currentTime > line.start_time) {
+      if (!line.is_target || triggeredTargets.current.has(line.id)) continue;
+      if (currentTime >= line.end_time - 0.1 && currentTime > line.start_time) {
         triggeredTargets.current.add(line.id);
         currentTargetRef.current = line;
-        playerRef.current?.pauseVideo?.();
+        pauseVideo();
         setPhase('target-popup');
         return;
       }
     }
 
-    // Check if clip ended (all lines finished)
+    // Check if clip ended
     const lastLine = clip.lines[clip.lines.length - 1];
     if (lastLine && currentTime >= lastLine.end_time + 0.5 && currentTime > clip.start_time + 2) {
-      playerRef.current?.pauseVideo?.();
+      pauseVideo();
       setPhase('clip-done');
     }
-  }, [currentTime, clip, phase]);
+  }, [currentTime, clip, phase, pauseVideo]);
 
   // ── Controls ──────────────────────────────────────────────────
 
   const replay = useCallback(() => {
+    if (phase === 'replaying') return;
     const target = currentTargetRef.current;
-    if (!target) return;
-    // Remove from triggered so it can trigger again when the sentence ends
-    triggeredTargets.current.delete(target.id);
-    currentTargetRef.current = null;
-    // Seek 3 seconds before the target sentence start
-    const seekPos = Math.max(clip?.start_time ?? 0, target.start_time - 3);
-    // Update currentTime immediately so auto-pause doesn't re-trigger on stale value
+    if (!target || !clip) return;
+    const seekPos = Math.max(clip.start_time, target.start_time - 3);
+
+    // Reset time tracking to the seek position so auto-pause
+    // doesn't see the old (past-end) time and immediately re-trigger
+    lastNativeTime.current = seekPos;
+    lastNativeFetch.current = Date.now();
+    ignoreTimeUntil.current = Date.now() + 2000;
     setCurrentTime(seekPos);
     setTappedWordIdx(null);
-    setPhase('playing');
-    playerRef.current?.seekTo?.(seekPos, true);
-    playerRef.current?.playVideo?.();
-  }, [clip?.start_time]);
+    // Set phase AFTER resetting time — the auto-pause effect
+    // will see phase='replaying' with currentTime=seekPos (safe)
+    setPhase('replaying');
+
+    if (Platform.OS === 'web') {
+      playerRef.current?.seekTo?.(seekPos, true);
+      playerRef.current?.playVideo?.();
+    } else {
+      nativePlayerRef.current?.seekTo(seekPos, true);
+      setNativePlaying(true);
+    }
+  }, [clip, phase]);
 
   const continueFromPopup = useCallback(() => {
     currentTargetRef.current = null;
     setCompletedTargets(prev => prev + 1);
     setTappedWordIdx(null);
     setPhase('playing');
-    playerRef.current?.playVideo?.();
+    if (Platform.OS === 'web') {
+      playerRef.current?.playVideo?.();
+    } else {
+      setNativePlaying(true);
+    }
   }, []);
 
   const goNextClip = useCallback(() => {
@@ -323,7 +458,7 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
 
   const renderSubtitleArea = () => {
     // ── TARGET PAUSED: show grammar breakdown inline ──
-    if (phase === 'target-popup' && currentTargetRef.current) {
+    if ((phase === 'target-popup' || phase === 'replaying') && currentTargetRef.current) {
       const target = currentTargetRef.current;
       const annots = target.grammar_annotations || [];
       const translations: Translation[] = Array.isArray(target.translations) ? target.translations : [];
@@ -398,13 +533,23 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
             </View>
           </View>
 
-          {/* Inline buttons */}
+          {/* Inline buttons — disabled during replay */}
           <View style={styles.inlineButtons}>
-            <TouchableOpacity style={styles.replayBtn} onPress={replay} activeOpacity={0.7}>
-              <Text style={styles.replayIcon}>🔄</Text>
-              <Text style={styles.replayText}>Tekrar Dinle</Text>
+            <TouchableOpacity
+              style={[styles.replayBtn, phase === 'replaying' && { opacity: 0.4 }]}
+              onPress={replay}
+              activeOpacity={0.7}
+              disabled={phase === 'replaying'}
+            >
+              <Text style={styles.replayIcon}>{phase === 'replaying' ? '...' : '🔄'}</Text>
+              <Text style={styles.replayText}>{phase === 'replaying' ? 'Dinleniyor...' : 'Tekrar Dinle'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.continueBtn} onPress={continueFromPopup} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[styles.continueBtn, phase === 'replaying' && { opacity: 0.4 }]}
+              onPress={continueFromPopup}
+              activeOpacity={0.7}
+              disabled={phase === 'replaying'}
+            >
               <Text style={styles.continueText}>Devam Et</Text>
               <Text style={styles.continueArrow}>→</Text>
             </TouchableOpacity>
@@ -473,7 +618,23 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
       <View style={styles.videoContainer}>
         {Platform.OS === 'web' ? (
           <div id="course-yt" style={{ width: '100%', height: '100%' }} />
-        ) : null}
+        ) : (
+          <YoutubeIframe
+            ref={nativePlayerRef}
+            height={screenW * 9 / 16}
+            width={screenW}
+            videoId={clip.youtube_video_id}
+            play={nativePlaying}
+            initialPlayerParams={{
+              controls: false,
+              modestbranding: true,
+              rel: false,
+              iv_load_policy: 3,
+            }}
+            onReady={onNativeReady}
+            onChangeState={onNativeStateChange}
+          />
+        )}
         {loadingVideo && (
           <View style={styles.videoLoading}>
             <ActivityIndicator size="large" color={palette.primary} />

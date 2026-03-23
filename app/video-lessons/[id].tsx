@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import CoursePlayer from '../../components/CoursePlayer/CoursePlayer';
 import { palette } from '../../constants/Colors';
 
-const ADMIN_API = 'http://localhost:3000';
+const ADMIN_API = 'https://english-learning-admin.fly.dev';
 
 export default function VideoLessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
