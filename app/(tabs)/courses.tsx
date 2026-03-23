@@ -7,7 +7,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { palette, Radius, Shadows } from '@/constants/Colors';
 
-const ADMIN_API = 'http://localhost:3000';
+const ADMIN_API = 'https://english-learning-admin.fly.dev';
 
 interface LessonSummary {
   id: number;
