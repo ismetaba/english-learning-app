@@ -5,12 +5,14 @@ import Animated, { ZoomIn, FadeInUp } from 'react-native-reanimated';
 import ClipPlayer from '@/components/ClipPlayer/ClipPlayer';
 import { playlists } from '@/data/clips';
 import { palette, Radius } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ClipPlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const playlist = playlists.find(p => p.id === id);
 
@@ -64,20 +66,37 @@ export default function ClipPlayerScreen() {
   };
 
   return (
-    <ClipPlayer
-      key={clip.id}
-      clip={clip}
-      clipIndex={currentClipIndex}
-      totalClips={playlist.clips.length}
-      vocabFocus={playlist.vocabFocus}
-      onClipEnd={handleClipEnd}
-    />
+    <View style={styles.container}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={styles.backText}>{'←'} Geri</Text>
+        </Pressable>
+        <Text style={styles.topTitle} numberOfLines={1}>{playlist.title}</Text>
+        <View style={styles.topBadge}>
+          <Text style={styles.topBadgeText}>Clip {currentClipIndex + 1}/{playlist.clips.length}</Text>
+        </View>
+      </View>
+      <ClipPlayer
+        key={clip.id}
+        clip={clip}
+        clipIndex={currentClipIndex}
+        totalClips={playlist.clips.length}
+        vocabFocus={playlist.vocabFocus}
+        onClipEnd={handleClipEnd}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.bg },
   centered: { justifyContent: 'center', alignItems: 'center', padding: 32 },
+
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: palette.bgCard, gap: 12 },
+  backText: { color: palette.textMuted, fontSize: 14, fontWeight: '600' },
+  topTitle: { flex: 1, color: palette.textPrimary, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  topBadge: { backgroundColor: palette.accentSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.xs },
+  topBadgeText: { color: palette.accent, fontSize: 11, fontWeight: '600' },
 
   errorEmoji: { fontSize: 48, marginBottom: 12 },
   errorText: { color: palette.textMuted, fontSize: 16 },

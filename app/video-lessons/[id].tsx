@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import CoursePlayer from '../../components/CoursePlayer/CoursePlayer';
 import { palette } from '../../constants/Colors';
 
-const ADMIN_API = 'https://english-learning-admin.fly.dev';
+const DEV_HOST = Platform.OS === 'web' ? 'localhost' : '10.40.16.20';
+const ADMIN_API = __DEV__ ? `http://${DEV_HOST}:3000` : 'https://english-learning-admin.fly.dev';
 
 export default function VideoLessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
