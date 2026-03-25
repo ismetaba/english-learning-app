@@ -7,7 +7,10 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { palette, Radius, Shadows } from '@/constants/Colors';
 
-const ADMIN_API = 'https://english-learning-admin.fly.dev';
+// On physical devices, localhost doesn't work — use the Mac's LAN IP.
+// On web/simulator, localhost is fine.
+const DEV_HOST = Platform.OS === 'web' ? 'localhost' : '10.40.16.20';
+const ADMIN_API = __DEV__ ? `http://${DEV_HOST}:3000` : 'https://english-learning-admin.fly.dev';
 
 interface LessonSummary {
   id: number;

@@ -8,6 +8,7 @@ import { vocabSets } from '@/data/vocab';
 import { useAppContext } from '@/contexts/AppStateContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { palette, Shadows, Radius } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SceneDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function SceneDetailScreen() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const { nativeLanguage, markSceneWatched, addXP, XP_PER_SCENE, XP_PER_QUIZ_CORRECT } = useAppContext();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const scene = scenes.find((s) => s.id === id);
 
@@ -151,6 +153,15 @@ export default function SceneDetailScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={styles.backText}>{'←'} Geri</Text>
+        </Pressable>
+        <Text style={styles.topTitle} numberOfLines={1}>{scene.movieTitle}</Text>
+        <View style={styles.topBadge}>
+          <Text style={styles.topBadgeText}>{scene.difficulty}</Text>
+        </View>
+      </View>
       <ScenePlayer
         scene={scene}
         onComplete={() => {
@@ -186,6 +197,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+
+  // Top bar
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: palette.bgCard,
+    gap: 12,
+  },
+  backText: {
+    color: palette.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  topTitle: {
+    flex: 1,
+    color: palette.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  topBadge: {
+    backgroundColor: palette.primarySoft,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.xs,
+  },
+  topBadgeText: {
+    color: palette.primaryLight,
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
 
   // Skip to quiz

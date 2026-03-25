@@ -1,5 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Linking, Dimensions } from 'react-native';
+
+const { width: screenW } = Dimensions.get('window');
 import { Scene } from '@/data/scenes';
 import { getWordTimestamps } from '@/data/scenes/word-timing';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -10,10 +12,11 @@ interface ScenePlayerProps {
   onComplete?: () => void;
 }
 
-function YouTubePlayerWeb({ scene, onStateChange, onTimeUpdate }: {
+function YouTubePlayerWeb({ scene, onStateChange, onTimeUpdate, onError }: {
   scene: Scene;
   onStateChange: (state: 'playing' | 'paused' | 'ended') => void;
   onTimeUpdate?: (time: number) => void;
+  onError?: (code: number) => void;
 }) {
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
@@ -81,94 +84,60 @@ function YouTubePlayerWeb({ scene, onStateChange, onTimeUpdate }: {
   );
 }
 
-function YouTubePlayerNative({ scene, onStateChange, onTimeUpdate }: {
+function YouTubePlayerNative({ scene, onStateChange, onTimeUpdate, onError }: {
   scene: Scene;
   onStateChange: (state: 'playing' | 'paused' | 'ended') => void;
   onTimeUpdate?: (time: number) => void;
+  onError?: (code: number) => void;
 }) {
-  const WebView = require('react-native-webview').default;
-  const webViewRef = useRef<any>(null);
+  const YoutubePlayer = require('react-native-youtube-iframe').default;
+  const [playing, setPlaying] = useState(false);
+  const playerRef = useRef<any>(null);
+  const intervalRef = useRef<any>(null);
 
-  const youtubeHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; overflow: hidden; }
-        #player { width: 100vw; height: 100vh; }
-      </style>
-    </head>
-    <body>
-      <div id="player"></div>
-      <script>
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(tag);
-        var player;
-        var timeInterval;
-        function onYouTubeIframeAPIReady() {
-          player = new YT.Player('player', {
-            videoId: '${scene.youtubeVideoId}',
-            playerVars: {
-              start: ${scene.startTime},
-              end: ${scene.endTime},
-              controls: 1,
-              modestbranding: 1,
-              rel: 0,
-              playsinline: 1,
-              cc_load_policy: 1,
-              cc_lang_pref: 'en',
-            },
-            events: {
-              onStateChange: function(e) {
-                if (e.data === YT.PlayerState.PLAYING) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'playing' }));
-                  clearInterval(timeInterval);
-                  timeInterval = setInterval(function() {
-                    var t = player.getCurrentTime();
-                    if (t != null) {
-                      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'timeUpdate', time: t }));
-                    }
-                  }, 250);
-                } else if (e.data === YT.PlayerState.PAUSED) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paused' }));
-                  clearInterval(timeInterval);
-                } else if (e.data === YT.PlayerState.ENDED) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ended' }));
-                  clearInterval(timeInterval);
-                }
-              }
-            }
-          });
-        }
-      </script>
-    </body>
-    </html>
-  `;
+  useEffect(() => {
+    return () => clearInterval(intervalRef.current);
+  }, []);
 
-  const handleMessage = useCallback((event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'timeUpdate' && onTimeUpdate) {
-        onTimeUpdate(data.time);
-      } else if (data.type === 'playing' || data.type === 'paused' || data.type === 'ended') {
-        onStateChange(data.type);
-      }
-    } catch {}
+  const onReady = useCallback(() => {
+    setPlaying(true);
+  }, []);
+
+  const onChangeState = useCallback((state: string) => {
+    if (state === 'playing') {
+      onStateChange('playing');
+      clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(async () => {
+        const t = await playerRef.current?.getCurrentTime();
+        if (t != null) onTimeUpdate?.(t);
+      }, 250);
+    } else if (state === 'paused') {
+      onStateChange('paused');
+      clearInterval(intervalRef.current);
+    } else if (state === 'ended') {
+      onStateChange('ended');
+      clearInterval(intervalRef.current);
+    }
   }, [onStateChange, onTimeUpdate]);
 
   return (
     <View style={styles.videoContainer}>
-      <WebView
-        ref={webViewRef}
-        source={{ html: youtubeHtml }}
-        style={styles.video}
-        javaScriptEnabled
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        onMessage={handleMessage}
+      <YoutubePlayer
+        ref={playerRef}
+        height={screenW * 9 / 16}
+        width={screenW}
+        videoId={scene.youtubeVideoId}
+        play={playing}
+        onReady={onReady}
+        onChangeState={onChangeState}
+        onError={(e: string) => onError?.(parseInt(e) || 0)}
+        initialPlayerParams={{
+          start: scene.startTime,
+          end: scene.endTime,
+          modestbranding: true,
+          rel: false,
+          cc_lang_pref: 'en',
+        }}
       />
     </View>
   );
@@ -224,6 +193,7 @@ function formatTime(seconds: number): string {
 export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [error, setError] = useState<number | null>(null); // useState for YouTube error code
   const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   const linePositionsRef = useRef<Record<number, number>>({});
@@ -265,7 +235,20 @@ export default function ScenePlayer({ scene, onComplete }: ScenePlayerProps) {
         scene={scene}
         onStateChange={handleStateChange}
         onTimeUpdate={handleTimeUpdate}
+        onError={(code) => setError(code)}
       />
+
+      {/* Error overlay - video unavailable (error 150/153 = not embeddable) */}
+      {error != null && (
+        <View style={styles.errorOverlay}>
+          <Pressable
+            style={({ pressed }) => [styles.errorButton, pressed && { opacity: 0.8 }]}
+            onPress={() => Linking.openURL('https://youtube.com/watch?v=' + scene.youtubeVideoId)}
+          >
+            <Text style={styles.errorButtonText}>Open on YouTube</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Info bar with title, genre, and progress */}
       <View style={styles.infoBar}>
@@ -599,5 +582,42 @@ const styles = StyleSheet.create({
 
   scrollPadding: {
     height: 40,
+  },
+
+  // Error overlay
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    aspectRatio: 16 / 9,
+    backgroundColor: 'rgba(11, 13, 23, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 10,
+  },
+  errorTitle: {
+    color: palette.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorCode: {
+    color: palette.textMuted,
+    fontSize: 12,
+    marginBottom: 16,
+  },
+  errorButton: {
+    backgroundColor: palette.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: Radius.md,
+  },
+  errorButtonText: {
+    color: palette.bg,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
