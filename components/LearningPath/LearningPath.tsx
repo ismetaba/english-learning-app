@@ -1,34 +1,41 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Platform, ActivityIndicator, Pressable } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { learningPath, LessonNode } from '@/data/learningPath';
+import { Ionicons } from '@expo/vector-icons';
+import { fetchCurriculum, CurriculumUnit, CurriculumLesson } from '@/services/curriculumService';
 import { useAppContext } from '@/contexts/AppStateContext';
+import { LessonStage } from '@/contexts/AppStateContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { palette, Shadows, Radius } from '@/constants/Colors';
 import PathNode, { NodeState } from './PathNode';
+import DailyTaskCard from '@/components/DailyTaskCard/DailyTaskCard';
 
 function getNodeState(
-  lesson: LessonNode,
+  lesson: CurriculumLesson,
   completedLessons: string[],
-  learnedWords: string[],
-  watchedScenes: string[],
-  allLessons: LessonNode[],
+  getLessonStage: (id: string) => LessonStage | null,
+  lessonIndex: number,
+  allLessons: CurriculumLesson[],
 ): NodeState {
-  if (lesson.type === 'structure' && completedLessons.includes(lesson.contentId)) return 'completed';
-  if (lesson.type === 'vocab' && completedLessons.includes(lesson.id)) return 'completed';
-  if (lesson.type === 'scene' && watchedScenes.includes(lesson.contentId)) return 'completed';
-  if (lesson.type === 'review' && completedLessons.includes(lesson.contentId)) return 'completed';
+  // Check mastery stage first
+  const stage = getLessonStage(lesson.id);
+  if (stage === 'mastered') return 'completed';
   if (completedLessons.includes(lesson.id)) return 'completed';
 
-  const prereqsMet = lesson.requiredLessonIds.every((reqId) => {
-    const reqLesson = allLessons.find(l => l.id === reqId);
-    if (!reqLesson) return true;
-    return getNodeState(reqLesson, completedLessons, learnedWords, watchedScenes, allLessons) === 'completed';
-  });
+  // First lesson in unit is always available
+  if (lessonIndex === 0) return 'available';
 
-  if (lesson.requiredLessonIds.length === 0) return 'available';
-  return prereqsMet ? 'available' : 'locked';
+  // Check if all preceding lessons in the unit are completed
+  const prevLesson = allLessons[lessonIndex - 1];
+  if (prevLesson) {
+    const prevStage = getLessonStage(prevLesson.id);
+    if (prevStage === 'mastered' || completedLessons.includes(prevLesson.id)) {
+      return 'available';
+    }
+  }
+
+  return 'locked';
 }
 
 // Greeting based on time
@@ -41,27 +48,61 @@ function getGreeting(): string {
 
 export default function LearningPath() {
   const router = useRouter();
-  const { progress } = useAppContext();
+  const { progress, getLessonStage } = useAppContext();
   const { t } = useTranslation();
 
-  const allLessons = learningPath.flatMap(u => u.lessons);
+  const [curriculum, setCurriculum] = useState<CurriculumUnit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadCurriculum = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchCurriculum();
+      setCurriculum(data);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load curriculum');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCurriculum();
+  }, []);
+
+  const allLessons = curriculum.flatMap(u => u.lessons);
   const totalLessons = allLessons.length;
-  const completedCount = allLessons.filter(l =>
-    getNodeState(l, progress.completedLessons, progress.learnedWords, progress.watchedScenes, allLessons) === 'completed'
+  const completedCount = allLessons.filter((l, idx) =>
+    getNodeState(l, progress.completedLessons, getLessonStage, idx, allLessons) === 'completed'
   ).length;
   const progressPercent = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
-  const handleNodePress = (lesson: LessonNode) => {
-    if (lesson.type === 'structure') {
-      router.push(`/lessons/${lesson.contentId}` as any);
-    } else if (lesson.type === 'vocab') {
-      router.push('/(tabs)/vocab' as any);
-    } else if (lesson.type === 'scene') {
-      router.push(`/scenes/${lesson.contentId}` as any);
-    } else if (lesson.type === 'review') {
-      router.push(`/lessons/${lesson.contentId}` as any);
-    }
+  const handleNodePress = (lesson: CurriculumLesson) => {
+    router.push(`/learn/${lesson.id}` as any);
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={palette.primary} />
+        <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorEmoji}>{'!'}</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable style={styles.retryButton} onPress={loadCurriculum}>
+          <Text style={styles.retryButtonText}>{t('retry') || 'Retry'}</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -76,12 +117,12 @@ export default function LearningPath() {
             <View style={styles.heroStats}>
               {progress.streak > 0 && (
                 <View style={styles.streakPill}>
-                  <Text style={styles.streakEmoji}>{'🔥'}</Text>
+                  <Ionicons name="flame" size={16} color={palette.streak} />
                   <Text style={styles.streakCount}>{progress.streak}</Text>
                 </View>
               )}
               <View style={styles.xpPill}>
-                <Text style={styles.xpIcon}>{'⚡'}</Text>
+                <Ionicons name="flash" size={15} color={palette.xp} />
                 <Text style={styles.xpCount}>{progress.xp}</Text>
               </View>
             </View>
@@ -99,10 +140,16 @@ export default function LearningPath() {
         </View>
       </Animated.View>
 
+      {/* ─── Daily Task Card ─────────────── */}
+      <View style={{ marginHorizontal: 16, marginBottom: 8 }}>
+        <DailyTaskCard />
+      </View>
+
       {/* ─── Units ─────────────── */}
-      {learningPath.map((unit, unitIdx) => {
-        const unitCompleted = unit.lessons.filter(l =>
-          getNodeState(l, progress.completedLessons, progress.learnedWords, progress.watchedScenes, allLessons) === 'completed'
+      {curriculum.map((unit, unitIdx) => {
+        const unitLessonsStartIdx = curriculum.slice(0, unitIdx).reduce((sum, u) => sum + u.lessons.length, 0);
+        const unitCompleted = unit.lessons.filter((l, idx) =>
+          getNodeState(l, progress.completedLessons, getLessonStage, unitLessonsStartIdx + idx, allLessons) === 'completed'
         ).length;
         const unitTotal = unit.lessons.length;
 
@@ -113,13 +160,13 @@ export default function LearningPath() {
             style={styles.unitContainer}
           >
             {/* Unit header card */}
-            <View style={[styles.unitHeader, { borderLeftColor: unit.color }]}>
+            <View style={[styles.unitHeader, { borderLeftColor: unit.color || palette.primary }]}>
               <View style={styles.unitHeaderInner}>
-                <View style={[styles.unitBadge, { backgroundColor: unit.color + '20' }]}>
-                  <Text style={[styles.unitBadgeText, { color: unit.color }]}>{t('unit')} {unitIdx + 1}</Text>
+                <View style={[styles.unitBadge, { backgroundColor: (unit.color || palette.primary) + '20' }]}>
+                  <Text style={[styles.unitBadgeText, { color: unit.color || palette.primary }]}>{t('unit')} {unitIdx + 1}</Text>
                 </View>
                 <Text style={styles.unitTitle}>{unit.title}</Text>
-                <Text style={styles.unitDescription}>{unit.description}</Text>
+                <Text style={styles.unitDescription}>{unit.description || ''}</Text>
                 <View style={styles.unitProgressRow}>
                   <View style={styles.unitProgressBar}>
                     <View
@@ -127,8 +174,8 @@ export default function LearningPath() {
                         styles.unitProgressFill,
                         {
                           width: `${unitTotal > 0 ? (unitCompleted / unitTotal) * 100 : 0}%`,
-                          backgroundColor: unit.color,
-                          shadowColor: unit.color,
+                          backgroundColor: unit.color || palette.primary,
+                          shadowColor: unit.color || palette.primary,
                           shadowOffset: { width: 0, height: 0 },
                           shadowOpacity: 0.6,
                           shadowRadius: 6,
@@ -144,7 +191,9 @@ export default function LearningPath() {
             {/* Lesson nodes */}
             <View style={styles.pathContainer}>
               {unit.lessons.map((lesson, lessonIdx) => {
-                const state = getNodeState(lesson, progress.completedLessons, progress.learnedWords, progress.watchedScenes, allLessons);
+                const globalIdx = unitLessonsStartIdx + lessonIdx;
+                const state = getNodeState(lesson, progress.completedLessons, getLessonStage, globalIdx, allLessons);
+                const stage = getLessonStage(lesson.id);
                 const isLeft = lessonIdx % 2 === 0;
                 const isLast = lessonIdx === unit.lessons.length - 1;
 
@@ -159,12 +208,13 @@ export default function LearningPath() {
                     >
                       <PathNode
                         title={lesson.title}
-                        icon={lesson.icon}
-                        type={lesson.type}
+                        icon={''}
+                        type={lesson.lesson_type as any}
                         state={state}
-                        color={unit.color}
+                        color={unit.color || palette.primary}
                         onPress={() => handleNodePress(lesson)}
                         delay={lessonIdx * 80}
+                        masteryStage={stage}
                       />
                     </Animated.View>
                     {/* Connector */}
@@ -175,7 +225,7 @@ export default function LearningPath() {
                             styles.connectorLine,
                             {
                               backgroundColor: state === 'completed'
-                                ? unit.color + '4D'
+                                ? (unit.color || palette.primary) + '4D'
                                 : palette.border,
                             },
                           ]}
@@ -185,7 +235,7 @@ export default function LearningPath() {
                             styles.connectorDot,
                             {
                               backgroundColor: state === 'completed'
-                                ? unit.color
+                                ? (unit.color || palette.primary)
                                 : palette.textDisabled,
                             },
                           ]}
@@ -203,7 +253,7 @@ export default function LearningPath() {
       {/* Footer */}
       <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.footer}>
         <View style={styles.footerCard}>
-          <Text style={styles.footerEmoji}>{'🚀'}</Text>
+          <Ionicons name="rocket" size={20} color={palette.textSecondary} />
           <Text style={styles.footerText}>{t('moreLessonsComing')}</Text>
         </View>
       </Animated.View>
@@ -218,6 +268,41 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 32,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: palette.textSecondary,
+    fontWeight: '600',
+  },
+  errorEmoji: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: palette.error || '#EF4444',
+    marginBottom: 12,
+  },
+  errorText: {
+    fontSize: 15,
+    color: palette.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  retryButton: {
+    backgroundColor: palette.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 
   // ─── Hero Header ───
@@ -266,9 +351,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     gap: 4,
   },
-  streakEmoji: {
-    fontSize: 14,
-  },
+  streakEmoji: {},
   streakCount: {
     fontSize: 14,
     fontWeight: '800',
@@ -283,9 +366,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     gap: 4,
   },
-  xpIcon: {
-    fontSize: 13,
-  },
+  xpIcon: {},
   xpCount: {
     fontSize: 14,
     fontWeight: '800',
@@ -297,15 +378,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroProgressBar: {
-    height: 8,
+    height: 10,
     backgroundColor: palette.bgSurface,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
   },
   heroProgressFill: {
     height: '100%',
     backgroundColor: palette.success,
-    borderRadius: 4,
+    borderRadius: 5,
     shadowColor: palette.success,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
@@ -437,9 +518,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.border,
   },
-  footerEmoji: {
-    fontSize: 18,
-  },
+  footerEmoji: {},
   footerText: {
     fontSize: 14,
     color: palette.textSecondary,
