@@ -70,6 +70,83 @@ CREATE TABLE IF NOT EXISTS lesson_sentences (
   grammar_annotations TEXT,
   translations TEXT
 );
+
+-- ── Curriculum (API-driven lesson tree) ─────────────────────────
+CREATE TABLE IF NOT EXISTS curriculum_units (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  title_tr TEXT,
+  description TEXT,
+  cefr_level TEXT NOT NULL,
+  sort_order INTEGER NOT NULL,
+  color TEXT
+);
+
+CREATE TABLE IF NOT EXISTS curriculum_lessons (
+  id TEXT PRIMARY KEY,
+  unit_id TEXT NOT NULL REFERENCES curriculum_units(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  title_tr TEXT,
+  description TEXT,
+  sort_order INTEGER NOT NULL,
+  lesson_type TEXT NOT NULL DEFAULT 'grammar',
+  grammar_pattern TEXT,
+  grammar_explanation TEXT,
+  grammar_explanation_tr TEXT,
+  examples TEXT,
+  exercises TEXT,
+  sections TEXT,
+  status TEXT DEFAULT 'draft'
+);
+
+CREATE TABLE IF NOT EXISTS lesson_prerequisites (
+  lesson_id TEXT NOT NULL REFERENCES curriculum_lessons(id) ON DELETE CASCADE,
+  required_lesson_id TEXT NOT NULL REFERENCES curriculum_lessons(id),
+  PRIMARY KEY (lesson_id, required_lesson_id)
+);
+
+-- ── Vocabulary ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS vocab_words (
+  id TEXT PRIMARY KEY,
+  word TEXT NOT NULL,
+  ipa TEXT,
+  part_of_speech TEXT,
+  translation_tr TEXT,
+  example_sentence TEXT,
+  example_translation_tr TEXT,
+  frequency_rank INTEGER,
+  cefr_level TEXT
+);
+
+CREATE TABLE IF NOT EXISTS vocab_sets (
+  id TEXT PRIMARY KEY,
+  lesson_id TEXT REFERENCES curriculum_lessons(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  title_tr TEXT
+);
+
+CREATE TABLE IF NOT EXISTS vocab_set_words (
+  set_id TEXT NOT NULL REFERENCES vocab_sets(id) ON DELETE CASCADE,
+  word_id TEXT NOT NULL REFERENCES vocab_words(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (set_id, word_id)
+);
+
+-- ── Clip-to-content mappings ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS clip_structures (
+  clip_id INTEGER NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
+  lesson_id TEXT NOT NULL REFERENCES curriculum_lessons(id) ON DELETE CASCADE,
+  line_id INTEGER REFERENCES subtitle_lines(id) ON DELETE SET NULL,
+  PRIMARY KEY (clip_id, lesson_id)
+);
+
+CREATE TABLE IF NOT EXISTS clip_vocab (
+  clip_id INTEGER NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
+  word_id TEXT NOT NULL REFERENCES vocab_words(id) ON DELETE CASCADE,
+  line_id INTEGER REFERENCES subtitle_lines(id) ON DELETE SET NULL,
+  occurrence_count INTEGER DEFAULT 1,
+  PRIMARY KEY (clip_id, word_id)
+);
 `;
 
 export function getDb(): Database.Database {
@@ -78,6 +155,13 @@ export function getDb(): Database.Database {
     _db.pragma('journal_mode = WAL');
     _db.pragma('foreign_keys = ON');
     _db.exec(SCHEMA);
+
+    // Migrations for existing databases
+    try {
+      _db.exec('ALTER TABLE curriculum_lessons ADD COLUMN sections TEXT');
+    } catch {
+      // Column already exists — ignore
+    }
   }
   return _db;
 }
@@ -448,6 +532,248 @@ export function deleteTag(id: number): void {
 export function removeTagFromClip(clipId: number, tagId: number): void {
   const db = getDb();
   db.prepare('DELETE FROM clip_tags WHERE clip_id = ? AND tag_id = ?').run(clipId, tagId);
+}
+
+// ── Curriculum helpers ───────────────────────────────────────────
+
+export interface CurriculumUnit {
+  id: string;
+  title: string;
+  title_tr: string | null;
+  description: string | null;
+  cefr_level: string;
+  sort_order: number;
+  color: string | null;
+  lesson_count?: number;
+}
+
+export interface CurriculumLesson {
+  id: string;
+  unit_id: string;
+  title: string;
+  title_tr: string | null;
+  description: string | null;
+  sort_order: number;
+  lesson_type: string;
+  grammar_pattern: string | null;
+  grammar_explanation: string | null;
+  grammar_explanation_tr: string | null;
+  examples: string | null;       // JSON array
+  exercises: string | null;      // JSON array
+  sections: string | null;       // JSON array of LessonSection
+  status: string;
+}
+
+export function getAllCurriculumUnits(): CurriculumUnit[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT u.*, COUNT(cl.id) as lesson_count
+    FROM curriculum_units u
+    LEFT JOIN curriculum_lessons cl ON cl.unit_id = u.id
+    GROUP BY u.id
+    ORDER BY u.sort_order
+  `).all() as CurriculumUnit[];
+}
+
+export function getCurriculumUnit(id: string): CurriculumUnit | undefined {
+  const db = getDb();
+  return db.prepare('SELECT * FROM curriculum_units WHERE id = ?').get(id) as CurriculumUnit | undefined;
+}
+
+export function createCurriculumUnit(unit: Omit<CurriculumUnit, 'lesson_count'>): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT OR REPLACE INTO curriculum_units (id, title, title_tr, description, cefr_level, sort_order, color)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(unit.id, unit.title, unit.title_tr, unit.description, unit.cefr_level, unit.sort_order, unit.color);
+}
+
+export function deleteCurriculumUnit(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM curriculum_units WHERE id = ?').run(id);
+}
+
+export function getLessonsForUnit(unitId: string): CurriculumLesson[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM curriculum_lessons WHERE unit_id = ? ORDER BY sort_order').all(unitId) as CurriculumLesson[];
+}
+
+export function getCurriculumLesson(id: string): CurriculumLesson | undefined {
+  const db = getDb();
+  return db.prepare('SELECT * FROM curriculum_lessons WHERE id = ?').get(id) as CurriculumLesson | undefined;
+}
+
+export function createCurriculumLesson(lesson: CurriculumLesson): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT OR REPLACE INTO curriculum_lessons (id, unit_id, title, title_tr, description, sort_order, lesson_type, grammar_pattern, grammar_explanation, grammar_explanation_tr, examples, exercises, sections, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    lesson.id, lesson.unit_id, lesson.title, lesson.title_tr, lesson.description,
+    lesson.sort_order, lesson.lesson_type, lesson.grammar_pattern,
+    lesson.grammar_explanation, lesson.grammar_explanation_tr,
+    lesson.examples, lesson.exercises, lesson.sections, lesson.status
+  );
+}
+
+export function updateCurriculumLesson(id: string, updates: Partial<CurriculumLesson>): void {
+  const db = getDb();
+  const sets: string[] = [];
+  const vals: any[] = [];
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'id') continue;
+    sets.push(`${key} = ?`);
+    vals.push(value);
+  }
+  if (sets.length === 0) return;
+  vals.push(id);
+  db.prepare(`UPDATE curriculum_lessons SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+export function deleteCurriculumLesson(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM curriculum_lessons WHERE id = ?').run(id);
+}
+
+export function getPrerequisites(lessonId: string): string[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT required_lesson_id FROM lesson_prerequisites WHERE lesson_id = ?').all(lessonId) as { required_lesson_id: string }[];
+  return rows.map(r => r.required_lesson_id);
+}
+
+export function setPrerequisites(lessonId: string, requiredLessonIds: string[]): void {
+  const db = getDb();
+  db.prepare('DELETE FROM lesson_prerequisites WHERE lesson_id = ?').run(lessonId);
+  const insert = db.prepare('INSERT INTO lesson_prerequisites (lesson_id, required_lesson_id) VALUES (?, ?)');
+  for (const reqId of requiredLessonIds) {
+    insert.run(lessonId, reqId);
+  }
+}
+
+export function getFullCurriculum(): (CurriculumUnit & { lessons: CurriculumLesson[] })[] {
+  const units = getAllCurriculumUnits();
+  return units.map(unit => ({
+    ...unit,
+    lessons: getLessonsForUnit(unit.id),
+  }));
+}
+
+// ── Vocab word helpers ──────────────────────────────────────────
+
+export interface VocabWord {
+  id: string;
+  word: string;
+  ipa: string | null;
+  part_of_speech: string | null;
+  translation_tr: string | null;
+  example_sentence: string | null;
+  example_translation_tr: string | null;
+  frequency_rank: number | null;
+  cefr_level: string | null;
+}
+
+export interface VocabSet {
+  id: string;
+  lesson_id: string | null;
+  title: string;
+  title_tr: string | null;
+  word_count?: number;
+}
+
+export function createVocabWord(word: VocabWord): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT OR REPLACE INTO vocab_words (id, word, ipa, part_of_speech, translation_tr, example_sentence, example_translation_tr, frequency_rank, cefr_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(word.id, word.word, word.ipa, word.part_of_speech, word.translation_tr, word.example_sentence, word.example_translation_tr, word.frequency_rank, word.cefr_level);
+}
+
+export function getVocabWord(id: string): VocabWord | undefined {
+  const db = getDb();
+  return db.prepare('SELECT * FROM vocab_words WHERE id = ?').get(id) as VocabWord | undefined;
+}
+
+export function getAllVocabWords(): VocabWord[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM vocab_words ORDER BY frequency_rank, word').all() as VocabWord[];
+}
+
+export function createVocabSet(set: Omit<VocabSet, 'word_count'>): void {
+  const db = getDb();
+  db.prepare('INSERT OR REPLACE INTO vocab_sets (id, lesson_id, title, title_tr) VALUES (?, ?, ?, ?)').run(set.id, set.lesson_id, set.title, set.title_tr);
+}
+
+export function getVocabSet(id: string): (VocabSet & { words: VocabWord[] }) | undefined {
+  const db = getDb();
+  const set = db.prepare('SELECT * FROM vocab_sets WHERE id = ?').get(id) as VocabSet | undefined;
+  if (!set) return undefined;
+  const words = db.prepare(`
+    SELECT vw.* FROM vocab_words vw
+    JOIN vocab_set_words vsw ON vsw.word_id = vw.id
+    WHERE vsw.set_id = ?
+    ORDER BY vsw.sort_order
+  `).all(id) as VocabWord[];
+  return { ...set, words };
+}
+
+export function getAllVocabSets(): VocabSet[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT vs.*, COUNT(vsw.word_id) as word_count
+    FROM vocab_sets vs
+    LEFT JOIN vocab_set_words vsw ON vsw.set_id = vs.id
+    GROUP BY vs.id
+    ORDER BY vs.title
+  `).all() as VocabSet[];
+}
+
+export function addWordToVocabSet(setId: string, wordId: string, sortOrder: number): void {
+  const db = getDb();
+  db.prepare('INSERT OR IGNORE INTO vocab_set_words (set_id, word_id, sort_order) VALUES (?, ?, ?)').run(setId, wordId, sortOrder);
+}
+
+// ── Clip structure/vocab mapping helpers ─────────────────────────
+
+export function addStructureToClip(clipId: number, lessonId: string, lineId?: number): void {
+  const db = getDb();
+  db.prepare('INSERT OR IGNORE INTO clip_structures (clip_id, lesson_id, line_id) VALUES (?, ?, ?)').run(clipId, lessonId, lineId ?? null);
+}
+
+export function getClipsByStructure(lessonId: string): ClipWithDetails[] {
+  const db = getDb();
+  const clips = db.prepare(`
+    SELECT c.*, v.youtube_video_id, v.movie_title, v.title as video_title
+    FROM clips c
+    JOIN videos v ON v.id = c.video_id
+    JOIN clip_structures cs ON cs.clip_id = c.id
+    WHERE cs.lesson_id = ? AND c.status = 'approved'
+    ORDER BY c.created_at DESC
+  `).all(lessonId) as ClipWithDetails[];
+  for (const clip of clips) {
+    clip.lines = getLinesForClip(clip.id);
+  }
+  return clips;
+}
+
+export function addVocabToClip(clipId: number, wordId: string, lineId?: number, count: number = 1): void {
+  const db = getDb();
+  db.prepare('INSERT OR REPLACE INTO clip_vocab (clip_id, word_id, line_id, occurrence_count) VALUES (?, ?, ?, ?)').run(clipId, wordId, lineId ?? null, count);
+}
+
+export function getClipsByVocabWord(wordId: string): ClipWithDetails[] {
+  const db = getDb();
+  const clips = db.prepare(`
+    SELECT c.*, v.youtube_video_id, v.movie_title, v.title as video_title
+    FROM clips c
+    JOIN videos v ON v.id = c.video_id
+    JOIN clip_vocab cv ON cv.clip_id = c.id
+    WHERE cv.word_id = ? AND c.status = 'approved'
+    ORDER BY c.created_at DESC
+  `).all(wordId) as ClipWithDetails[];
+  for (const clip of clips) {
+    clip.lines = getLinesForClip(clip.id);
+  }
+  return clips;
 }
 
 // ── Stats ────────────────────────────────────────────────────────

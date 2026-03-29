@@ -113,6 +113,8 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="lessons/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="scenes/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="vocab-review" options={{ headerShown: false }} />
+        <Stack.Screen name="daily-tasks" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
     </ThemeProvider>
   );

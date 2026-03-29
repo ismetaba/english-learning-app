@@ -1,37 +1,37 @@
 // ─── Dark Professional Design System ───────────────────────────
-// A premium dark theme with neon accents and depth
+// A premium dark theme with refined accents and clear depth
 
 const palette = {
-  // Primary — Electric violet
-  primary: '#7C6AFF',
-  primaryLight: '#A594FF',
-  primaryDark: '#5B4AE0',
-  primarySoft: 'rgba(124, 106, 255, 0.12)',
-  primaryGlow: 'rgba(124, 106, 255, 0.30)',
+  // Primary — Soft violet
+  primary: '#8577FF',
+  primaryLight: '#A99CFF',
+  primaryDark: '#6A5CE0',
+  primarySoft: 'rgba(133, 119, 255, 0.12)',
+  primaryGlow: 'rgba(133, 119, 255, 0.25)',
 
-  // Accent — Neon cyan
-  accent: '#00D4AA',
+  // Accent — Refined cyan
+  accent: '#06D6B0',
   accentLight: '#5DFFC8',
-  accentSoft: 'rgba(0, 212, 170, 0.12)',
+  accentSoft: 'rgba(6, 214, 176, 0.12)',
 
-  // Success — Bright emerald
-  success: '#00E59B',
-  successLight: '#5DFFC8',
-  successSoft: 'rgba(0, 229, 155, 0.12)',
-  successGlow: 'rgba(0, 229, 155, 0.30)',
+  // Success — Muted emerald
+  success: '#10B981',
+  successLight: '#6EE7B7',
+  successSoft: 'rgba(16, 185, 129, 0.12)',
+  successGlow: 'rgba(16, 185, 129, 0.25)',
 
   // Warning — Warm amber
-  warning: '#FFB84D',
-  warningDark: '#E69A2E',
-  warningSoft: 'rgba(255, 184, 77, 0.12)',
+  warning: '#F59E0B',
+  warningDark: '#D97706',
+  warningSoft: 'rgba(245, 158, 11, 0.12)',
 
-  // Error — Soft coral
-  error: '#FF6B6B',
-  errorSoft: 'rgba(255, 107, 107, 0.12)',
+  // Error — Coral
+  error: '#EF4444',
+  errorSoft: 'rgba(239, 68, 68, 0.12)',
 
   // XP — Vivid orange-gold
   xp: '#FFB347',
-  xpGlow: 'rgba(255, 179, 71, 0.20)',
+  xpGlow: 'rgba(255, 179, 71, 0.18)',
 
   // Streak — Hot orange
   streak: '#FF6348',
@@ -39,38 +39,38 @@ const palette = {
   // ─── Dark Neutrals ───
   white: '#FFFFFF',
 
-  // Background layers (darkest → lightest)
-  bg: '#0B0D17',
-  bgCard: '#141726',
-  bgElevated: '#1A1E35',
-  bgSurface: '#1F2440',
-  bgInput: '#252A4A',
+  // Background layers (darkest → lightest, ~10-12% steps)
+  bg: '#080A14',
+  bgCard: '#111827',
+  bgElevated: '#1A2238',
+  bgSurface: '#222D47',
+  bgInput: '#2C3756',
 
-  // Text hierarchy
-  textPrimary: '#ECEEF8',
-  textSecondary: '#8B90B0',
-  textMuted: '#5C6088',
-  textDisabled: '#3D4168',
+  // Text hierarchy (clear contrast steps)
+  textPrimary: '#F1F3FF',
+  textSecondary: '#94A0C4',
+  textMuted: '#5E6B8A',
+  textDisabled: '#3E4A6A',
 
   // Borders
-  border: '#252A4A',
-  borderLight: '#1F2340',
-  borderAccent: 'rgba(124, 106, 255, 0.3)',
+  border: '#1E2A42',
+  borderLight: '#172035',
+  borderAccent: 'rgba(133, 119, 255, 0.3)',
 
   // Legacy aliases for compatibility
-  gray50: '#0B0D17',
-  gray100: '#141726',
-  gray200: '#1F2440',
-  gray300: '#252A4A',
-  gray400: '#5C6088',
-  gray500: '#8B90B0',
+  gray50: '#080A14',
+  gray100: '#111827',
+  gray200: '#222D47',
+  gray300: '#2C3756',
+  gray400: '#5E6B8A',
+  gray500: '#94A0C4',
   gray600: '#A8ADCC',
   gray700: '#C8CCE8',
   gray800: '#DDDFF0',
-  gray900: '#ECEEF8',
-  bgPrimary: '#0B0D17',
-  shadowColor: 'rgba(0, 0, 0, 0.4)',
-  shadowDark: 'rgba(0, 0, 0, 0.3)',
+  gray900: '#F1F3FF',
+  bgPrimary: '#080A14',
+  shadowColor: 'rgba(0, 0, 0, 0.5)',
+  shadowDark: 'rgba(0, 0, 0, 0.35)',
 };
 
 const unitColors = {
@@ -169,4 +169,14 @@ export const Radius = {
   xl: 24,
   xxl: 32,
   full: 999,
+};
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
 };

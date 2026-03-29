@@ -2,7 +2,46 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Language } from '@/i18n';
 
+export type LessonStage = 'learn' | 'watch' | 'practice' | 'reinforce' | 'mastered' | 'review_needed';
+
+export interface LessonMastery {
+  stage: LessonStage;
+  watchQuizScore: number;
+  watchClipsCompleted: number;
+  practiceScore: number;
+  practiceAttempts: number;
+  reinforceClipsWatched: number;
+  lastPracticeDate: string;
+  errorCount: number;
+  errorSessionCount: number;
+}
+
+export interface CheckpointResult {
+  score: number;
+  perLessonScores: Record<string, number>;
+  attemptCount: number;
+  passedAt: string | null;
+}
+
+export interface DailyTaskItem {
+  id: string;
+  type: 'grammar-clip' | 'vocab-review' | 'new-content' | 'listening';
+  clipId?: string;
+  lessonId?: string;
+  vocabWordId?: string;
+  estimatedSeconds: number;
+}
+
+export interface SessionEntry {
+  date: string;
+  minutesWatched: number;
+  xpEarned: number;
+  clipsWatched: number;
+  wordsReviewed: number;
+}
+
 export interface UserProgress {
+  // Existing
   completedLessons: string[];
   learnedWords: string[];
   watchedScenes: string[];
@@ -14,6 +53,28 @@ export interface UserProgress {
   onboardingLevel: 'beginner' | 'elementary' | 'intermediate' | '';
   learningGoal: 'travel' | 'work' | 'school' | 'personal' | '';
   dailyGoalMinutes: number;
+
+  // NEW: Per-lesson mastery (5-stage gate system)
+  lessonMastery: Record<string, LessonMastery>;
+
+  // NEW: Checkpoint quiz results per CEFR level
+  checkpointResults: Record<string, CheckpointResult>;
+
+  // NEW: Session history for analytics
+  sessionHistory: SessionEntry[];
+
+  // NEW: Daily tasks
+  dailyTasks: {
+    date: string;
+    items: DailyTaskItem[];
+    completedItemIds: string[];
+  } | null;
+
+  // NEW: Achievements
+  achievements: string[];
+
+  // NEW: Watched clips (for analytics & avoiding repeats)
+  watchedClips: string[];
 }
 
 const XP_PER_LESSON = 20;
@@ -54,6 +115,12 @@ const DEFAULT_PROGRESS: UserProgress = {
   onboardingLevel: '',
   learningGoal: '',
   dailyGoalMinutes: 10,
+  lessonMastery: {},
+  checkpointResults: {},
+  sessionHistory: [],
+  dailyTasks: null,
+  achievements: [],
+  watchedClips: [],
 };
 
 interface AppStateContextType {
@@ -69,6 +136,21 @@ interface AppStateContextType {
   completeOnboarding: (level: UserProgress['onboardingLevel'], goal: UserProgress['learningGoal'], minutes: number) => void;
   updateStreak: () => void;
   getLevelInfo: () => { current: number; next: number; percent: number; name: string; level: number };
+  // NEW: Lesson mastery
+  updateLessonMastery: (lessonId: string, updates: Partial<LessonMastery>) => void;
+  getLessonStage: (lessonId: string) => LessonStage | null;
+  // NEW: Checkpoint results
+  saveCheckpointResult: (cefrLevel: string, result: CheckpointResult) => void;
+  // NEW: Session tracking
+  logSession: (entry: SessionEntry) => void;
+  // NEW: Daily tasks
+  setDailyTasks: (tasks: { date: string; items: DailyTaskItem[]; completedItemIds: string[] }) => void;
+  completeDailyTaskItem: (itemId: string) => void;
+  // NEW: Clips
+  markClipWatched: (clipId: string) => void;
+  // NEW: Record lesson error
+  recordLessonError: (lessonId: string) => void;
+  // Constants
   XP_PER_LESSON: number;
   XP_PER_VOCAB: number;
   XP_PER_SCENE: number;
@@ -198,6 +280,111 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return { ...info, level: getLevelFromXP(progress.xp) };
   }, [progress.xp]);
 
+  const updateLessonMastery = useCallback((lessonId: string, updates: Partial<LessonMastery>) => {
+    setProgress(prev => {
+      const existing = prev.lessonMastery[lessonId] || {
+        stage: 'learn' as LessonStage,
+        watchQuizScore: 0,
+        watchClipsCompleted: 0,
+        practiceScore: 0,
+        practiceAttempts: 0,
+        reinforceClipsWatched: 0,
+        lastPracticeDate: '',
+        errorCount: 0,
+        errorSessionCount: 0,
+      };
+      const next = {
+        ...prev,
+        lessonMastery: {
+          ...prev.lessonMastery,
+          [lessonId]: { ...existing, ...updates },
+        },
+      };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const getLessonStage = useCallback((lessonId: string): LessonStage | null => {
+    return progress.lessonMastery[lessonId]?.stage ?? null;
+  }, [progress.lessonMastery]);
+
+  const saveCheckpointResult = useCallback((cefrLevel: string, result: CheckpointResult) => {
+    setProgress(prev => {
+      const next = {
+        ...prev,
+        checkpointResults: { ...prev.checkpointResults, [cefrLevel]: result },
+      };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const logSession = useCallback((entry: SessionEntry) => {
+    setProgress(prev => {
+      const history = [...prev.sessionHistory, entry].slice(-90); // Keep last 90 days
+      const next = { ...prev, sessionHistory: history };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const setDailyTasks = useCallback((tasks: { date: string; items: DailyTaskItem[]; completedItemIds: string[] }) => {
+    setProgress(prev => {
+      const next = { ...prev, dailyTasks: tasks };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const completeDailyTaskItem = useCallback((itemId: string) => {
+    setProgress(prev => {
+      if (!prev.dailyTasks) return prev;
+      if (prev.dailyTasks.completedItemIds.includes(itemId)) return prev;
+      const next = {
+        ...prev,
+        dailyTasks: {
+          ...prev.dailyTasks,
+          completedItemIds: [...prev.dailyTasks.completedItemIds, itemId],
+        },
+      };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const markClipWatched = useCallback((clipId: string) => {
+    setProgress(prev => {
+      if (prev.watchedClips.includes(clipId)) return prev;
+      const next = { ...prev, watchedClips: [...prev.watchedClips, clipId] };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const recordLessonError = useCallback((lessonId: string) => {
+    setProgress(prev => {
+      const existing = prev.lessonMastery[lessonId];
+      if (!existing) return prev;
+      const today = new Date().toISOString().split('T')[0];
+      const isNewSession = existing.lastPracticeDate !== today;
+      const next = {
+        ...prev,
+        lessonMastery: {
+          ...prev.lessonMastery,
+          [lessonId]: {
+            ...existing,
+            errorCount: existing.errorCount + 1,
+            errorSessionCount: isNewSession ? existing.errorSessionCount + 1 : existing.errorSessionCount,
+            lastPracticeDate: today,
+          },
+        },
+      };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   return (
     <AppStateContext.Provider value={{
       nativeLanguage,
@@ -212,6 +399,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       completeOnboarding,
       updateStreak,
       getLevelInfo,
+      updateLessonMastery,
+      getLessonStage,
+      saveCheckpointResult,
+      logSession,
+      setDailyTasks,
+      completeDailyTaskItem,
+      markClipWatched,
+      recordLessonError,
       XP_PER_LESSON,
       XP_PER_VOCAB,
       XP_PER_SCENE,

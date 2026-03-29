@@ -152,8 +152,9 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
 
       const seekTime = clip.start_time;
 
-      // If same video, just seek
-      if (prevVideoIdRef.current === clip.youtube_video_id && playerRef.current?.seekTo) {
+      // If same video AND player iframe still exists in DOM, just seek
+      const playerAlive = playerRef.current?.seekTo && container.tagName === 'IFRAME';
+      if (prevVideoIdRef.current === clip.youtube_video_id && playerAlive) {
         try {
           playerRef.current.seekTo(seekTime, true);
           playerRef.current.playVideo();
@@ -489,6 +490,7 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
               const tr = translations[i];
               const isTapped = tappedWordIdx === i;
 
+              const hasTr = !!tr?.tr;
               return (
                 <TouchableOpacity
                   key={i}
@@ -497,15 +499,18 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
                   style={[
                     styles.targetWordChip,
                     c ? { backgroundColor: c.bg, borderColor: c.border, borderWidth: 1.5 }
+                      : hasTr ? { borderWidth: 1.5, borderColor: palette.borderAccent, backgroundColor: palette.primarySoft }
                       : { borderWidth: 1.5, borderColor: 'transparent' },
                   ]}
                 >
-                  {isTapped && tr?.tr ? (
+                  {isTapped && hasTr ? (
                     <Text style={styles.targetWordTr}>{tr.tr}</Text>
                   ) : null}
                   <Text style={[
                     styles.targetWordText,
-                    c ? { color: c.text } : { color: palette.textSecondary },
+                    c ? { color: c.text }
+                      : hasTr ? { color: palette.textPrimary }
+                      : { color: palette.textSecondary },
                   ]}>
                     {word}
                   </Text>

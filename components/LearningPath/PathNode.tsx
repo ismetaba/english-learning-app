@@ -1,36 +1,61 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '@/hooks/useTranslation';
 import { palette, Radius } from '@/constants/Colors';
+import type { LessonStage } from '@/contexts/AppStateContext';
 
 export type NodeState = 'locked' | 'available' | 'completed';
 
 interface PathNodeProps {
   title: string;
   icon: string;
-  type: 'structure' | 'vocab' | 'scene' | 'review';
+  type: string;
   state: NodeState;
   color: string;
   onPress: () => void;
   delay?: number;
+  masteryStage?: LessonStage | null;
 }
 
-const TYPE_ICONS: Record<string, string> = {
-  structure: '📖',
-  vocab: '💬',
-  scene: '🎬',
-  review: '⭐',
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TYPE_ICONS: Record<string, IoniconsName> = {
+  structure: 'book-outline',
+  grammar: 'book-outline',
+  vocab: 'chatbubbles-outline',
+  scene: 'videocam-outline',
+  review: 'star-outline',
 };
 
 const TYPE_LABELS: Record<string, string> = {
   structure: 'grammar',
+  grammar: 'grammar',
   vocab: 'vocab',
   scene: 'scene',
   review: 'review',
 };
 
-export default function PathNode({ title, icon, type, state, color, onPress, delay = 0 }: PathNodeProps) {
+const STAGE_LABELS: Record<string, string> = {
+  learn: 'Learn',
+  watch: 'Watch',
+  practice: 'Practice',
+  reinforce: 'Reinforce',
+  mastered: 'Mastered',
+  review_needed: 'Review',
+};
+
+const STAGE_COLORS: Record<string, string> = {
+  learn: '#3B82F6',
+  watch: '#8B5CF6',
+  practice: '#F59E0B',
+  reinforce: '#EC4899',
+  mastered: '#10B981',
+  review_needed: '#EF4444',
+};
+
+export default function PathNode({ title, icon, type, state, color, onPress, delay = 0, masteryStage }: PathNodeProps) {
   const isLocked = state === 'locked';
   const isCompleted = state === 'completed';
   const { t } = useTranslation();
@@ -47,7 +72,7 @@ export default function PathNode({ title, icon, type, state, color, onPress, del
       <Animated.View entering={ZoomIn.delay(delay).duration(400)} style={styles.innerWrap}>
         {/* Outer ring for available state */}
         {!isLocked && !isCompleted && (
-          <View style={[styles.outerRing, { borderColor: color + '40' }]} />
+          <View style={[styles.outerRing, { borderColor: color }]} />
         )}
 
         <View
@@ -76,11 +101,11 @@ export default function PathNode({ title, icon, type, state, color, onPress, del
           ]}
         >
           {isLocked ? (
-            <Text style={styles.lockIcon}>{'🔒'}</Text>
+            <Ionicons name="lock-closed" size={20} color={palette.textDisabled} />
           ) : isCompleted ? (
-            <Text style={styles.checkIcon}>{'✓'}</Text>
+            <Ionicons name="checkmark" size={28} color="#fff" />
           ) : (
-            <Text style={styles.nodeIcon}>{TYPE_ICONS[type] || icon}</Text>
+            <Ionicons name={TYPE_ICONS[type] || 'help-circle-outline'} size={24} color={color} />
           )}
         </View>
 
@@ -96,22 +121,41 @@ export default function PathNode({ title, icon, type, state, color, onPress, del
         </Text>
 
         {!isLocked && (
-          <View
-            style={[
-              styles.typeBadge,
-              isCompleted
-                ? { backgroundColor: color + '18' }
-                : { backgroundColor: palette.bgSurface },
-            ]}
-          >
-            <Text
+          <View style={styles.badgeRow}>
+            <View
               style={[
-                styles.typeBadgeText,
-                isCompleted ? { color } : { color: palette.textMuted },
+                styles.typeBadge,
+                isCompleted
+                  ? { backgroundColor: color + '18' }
+                  : { backgroundColor: palette.bgSurface },
               ]}
             >
-              {t(TYPE_LABELS[type])}
-            </Text>
+              <Text
+                style={[
+                  styles.typeBadgeText,
+                  isCompleted ? { color } : { color: palette.textMuted },
+                ]}
+              >
+                {t(TYPE_LABELS[type] || type)}
+              </Text>
+            </View>
+            {masteryStage && masteryStage !== 'mastered' && (
+              <View
+                style={[
+                  styles.stageBadge,
+                  { backgroundColor: (STAGE_COLORS[masteryStage] || palette.primary) + '20' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.stageBadgeText,
+                    { color: STAGE_COLORS[masteryStage] || palette.primary },
+                  ]}
+                >
+                  {STAGE_LABELS[masteryStage] || masteryStage}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </Animated.View>
@@ -122,25 +166,26 @@ export default function PathNode({ title, icon, type, state, color, onPress, del
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    width: 100,
+    width: 120,
   },
   innerWrap: {
     alignItems: 'center',
-    width: 100,
+    width: 120,
   },
   outerRing: {
     position: 'absolute',
     top: -6,
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     borderWidth: 2,
-    borderStyle: 'dashed',
+    borderStyle: 'solid',
+    opacity: 0.15,
   },
   circle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -148,20 +193,8 @@ const styles = StyleSheet.create({
     backgroundColor: palette.bgSurface,
     borderWidth: 0,
   },
-  lockIcon: {
-    fontSize: 22,
-    opacity: 0.5,
-  },
-  checkIcon: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  nodeIcon: {
-    fontSize: 24,
-  },
   title: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: palette.textPrimary,
     textAlign: 'center',
@@ -176,16 +209,34 @@ const styles = StyleSheet.create({
   completedTitle: {
     color: palette.textSecondary,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 5,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
   typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: Radius.full,
-    marginTop: 5,
   },
   typeBadgeText: {
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  stageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  stageBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
 });
