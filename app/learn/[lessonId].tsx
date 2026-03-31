@@ -143,11 +143,15 @@ function shuffle<T>(arr: T[]): T[] {
 // ── Component ────────────────────────────────────────────────────
 
 export default function LearnLessonScreen() {
-  const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
+  const params = useLocalSearchParams<{ lessonId: string; mode?: string }>();
+  const lessonId = params.lessonId;
+  const modeParam = params.mode as 'learn' | 'vocab' | 'watch' | 'test' | 'bonus' | undefined;
   const router = useRouter();
   const {
     getLessonStage,
     updateLessonMastery,
+    getLessonProgress,
+    updateSubProgress,
     addXP,
     markLessonComplete,
     XP_PER_LESSON,
@@ -158,9 +162,16 @@ export default function LearnLessonScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Determine the current stage (default to 'learn' if none recorded)
-  const savedStage = getLessonStage(lessonId ?? '');
-  const [stage, setStage] = useState<LessonStage>(savedStage ?? 'learn');
+  // Determine the current stage from mode param or saved progress
+  const subProgress = getLessonProgress(lessonId ?? '');
+  const initialStage: LessonStage = modeParam === 'learn' ? 'learn'
+    : modeParam === 'vocab' ? 'learn'  // vocab uses learn stage renderer with vocab-only sections
+    : modeParam === 'watch' ? 'watch'
+    : modeParam === 'test' ? 'practice'
+    : modeParam === 'bonus' ? 'reinforce'
+    : (getLessonStage(lessonId ?? '') ?? 'learn');
+  const [stage, setStage] = useState<LessonStage>(initialStage);
+  const [activeMode, setActiveMode] = useState<string>(modeParam || 'auto');
 
   // Section-based learn state
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -176,12 +187,13 @@ export default function LearnLessonScreen() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [quizDone, setQuizDone] = useState(false);
 
-  // Sync saved stage when it changes externally
+  // Sync saved stage when it changes externally (only in auto mode)
+  const currentSavedStage = getLessonStage(lessonId ?? '');
   useEffect(() => {
-    if (savedStage && savedStage !== stage) {
-      setStage(savedStage);
+    if (activeMode === 'auto' && currentSavedStage && currentSavedStage !== stage) {
+      setStage(currentSavedStage);
     }
-  }, [savedStage]);
+  }, [currentSavedStage]);
 
   // Fetch data
   useEffect(() => {
@@ -228,8 +240,17 @@ export default function LearnLessonScreen() {
 
   const learnSections = useMemo(() => {
     if (!lesson?.sections?.length) return [];
+    if (activeMode === 'vocab') {
+      // Vocab mode: only show vocab sections
+      return lesson.sections.filter((s: LessonSection) => s.type === 'vocab');
+    }
+    if (activeMode === 'learn') {
+      // Learn mode: show everything except vocab and exercise
+      return lesson.sections.filter((s: LessonSection) => s.type !== 'exercise' && s.type !== 'vocab');
+    }
+    // Auto/default: show all non-exercise sections
     return lesson.sections.filter((s: LessonSection) => s.type !== 'exercise');
-  }, [lesson?.sections]);
+  }, [lesson?.sections, activeMode]);
 
   const hasSectionBasedLearn = learnSections.length > 0;
 
@@ -459,10 +480,33 @@ export default function LearnLessonScreen() {
 
   function advanceTo(nextStage: LessonStage) {
     if (!lessonId) return;
+
+    // Sub-task completion: mark the sub-task done and go back to learning path
+    if (activeMode === 'learn' && nextStage === 'watch') {
+      // Learn sub-task completed
+      updateSubProgress(lessonId, { learnCompleted: true });
+      router.back();
+      return;
+    }
+    if (activeMode === 'vocab' && nextStage === 'watch') {
+      // Vocab sub-task completed (uses same "advance to watch" trigger)
+      updateSubProgress(lessonId, { vocabCompleted: true });
+      router.back();
+      return;
+    }
+    if (activeMode === 'watch' && nextStage === 'practice') {
+      // Watch sub-task completed
+      updateSubProgress(lessonId, { watchCompleted: true });
+      router.back();
+      return;
+    }
+
+    // Auto mode: advance through stages normally
     setStage(nextStage);
     updateLessonMastery(lessonId, { stage: nextStage });
 
     if (nextStage === 'mastered') {
+      updateSubProgress(lessonId, { testPassed: true });
       addXP(XP_PER_LESSON);
       markLessonComplete(lessonId);
     }
@@ -1240,7 +1284,7 @@ export default function LearnLessonScreen() {
             <Text style={styles.backBtn}>{'←'}</Text>
           </Pressable>
           <View style={styles.modeBadge}>
-            <Text style={styles.modeBadgeText}>{STAGE_LABELS[stage]}</Text>
+            <Text style={styles.modeBadgeText}>{activeMode === 'vocab' ? 'VOCAB' : activeMode === 'learn' ? 'LEARN' : activeMode === 'watch' ? 'WATCH' : STAGE_LABELS[stage]}</Text>
           </View>
           <View style={{ width: 24 }} />
         </Animated.View>
@@ -1257,7 +1301,7 @@ export default function LearnLessonScreen() {
           <Text style={styles.backBtn}>{'←'}</Text>
         </Pressable>
         <View style={styles.modeBadge}>
-          <Text style={styles.modeBadgeText}>{STAGE_LABELS[stage]}</Text>
+          <Text style={styles.modeBadgeText}>{activeMode === 'vocab' ? 'VOCAB' : activeMode === 'learn' ? 'LEARN' : activeMode === 'watch' ? 'WATCH' : STAGE_LABELS[stage]}</Text>
         </View>
         <View style={{ width: 24 }} />
       </Animated.View>

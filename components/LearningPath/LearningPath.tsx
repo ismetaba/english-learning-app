@@ -5,10 +5,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchCurriculum, CurriculumUnit, CurriculumLesson } from '@/services/curriculumService';
 import { useAppContext } from '@/contexts/AppStateContext';
-import { LessonStage } from '@/contexts/AppStateContext';
+import { LessonStage, LessonProgress } from '@/contexts/AppStateContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { palette, Shadows, Radius } from '@/constants/Colors';
 import PathNode, { NodeState } from './PathNode';
+import RoadPath, { useRoadPositions, NODE_SPACING } from './RoadPath';
 import DailyTaskCard from '@/components/DailyTaskCard/DailyTaskCard';
 
 function getNodeState(
@@ -48,7 +49,7 @@ function getGreeting(): string {
 
 export default function LearningPath() {
   const router = useRouter();
-  const { progress, getLessonStage } = useAppContext();
+  const { progress, getLessonStage, getLessonProgress } = useAppContext();
   const { t } = useTranslation();
 
   const [curriculum, setCurriculum] = useState<CurriculumUnit[]>([]);
@@ -81,6 +82,14 @@ export default function LearningPath() {
 
   const handleNodePress = (lesson: CurriculumLesson) => {
     router.push(`/learn/${lesson.id}` as any);
+  };
+
+  // Road positions for A1 unit (first unit)
+  const a1Unit = curriculum.find(u => u.cefr_level === 'a1');
+  const { positions: roadPositions } = useRoadPositions(a1Unit?.lessons?.length || 0);
+
+  const handleSubTaskPress = (lessonId: string, task: 'learn' | 'vocab' | 'watch') => {
+    router.push(`/learn/${lessonId}?mode=${task}` as any);
   };
 
   if (loading) {
@@ -127,8 +136,6 @@ export default function LearningPath() {
               </View>
             </View>
           </View>
-
-          {/* Progress bar */}
           <View style={styles.heroProgressSection}>
             <View style={styles.heroProgressBar}>
               <View style={[styles.heroProgressFill, { width: `${progressPercent}%` }]} />
@@ -140,14 +147,9 @@ export default function LearningPath() {
         </View>
       </Animated.View>
 
-      {/* ─── Daily Task Card ─────────────── */}
-      <View style={{ marginHorizontal: 16, marginBottom: 8 }}>
-        <DailyTaskCard />
-      </View>
-
-      {/* ─── Units ─────────────── */}
-      {curriculum.map((unit, unitIdx) => {
-        const unitLessonsStartIdx = curriculum.slice(0, unitIdx).reduce((sum, u) => sum + u.lessons.length, 0);
+      {/* ─── Units (A1 only) ─────────────── */}
+      {curriculum.filter(u => u.cefr_level === 'a1').map((unit, unitIdx) => {
+        const unitLessonsStartIdx = curriculum.slice(0, curriculum.indexOf(unit)).reduce((sum, u) => sum + u.lessons.length, 0);
         const unitCompleted = unit.lessons.filter((l, idx) =>
           getNodeState(l, progress.completedLessons, getLessonStage, unitLessonsStartIdx + idx, allLessons) === 'completed'
         ).length;
@@ -159,7 +161,7 @@ export default function LearningPath() {
             entering={FadeInDown.delay(200 + unitIdx * 150).duration(500)}
             style={styles.unitContainer}
           >
-            {/* Unit header card */}
+            {/* Unit header */}
             <View style={[styles.unitHeader, { borderLeftColor: unit.color || palette.primary }]}>
               <View style={styles.unitHeaderInner}>
                 <View style={[styles.unitBadge, { backgroundColor: (unit.color || palette.primary) + '20' }]}>
@@ -169,86 +171,66 @@ export default function LearningPath() {
                 <Text style={styles.unitDescription}>{unit.description || ''}</Text>
                 <View style={styles.unitProgressRow}>
                   <View style={styles.unitProgressBar}>
-                    <View
-                      style={[
-                        styles.unitProgressFill,
-                        {
-                          width: `${unitTotal > 0 ? (unitCompleted / unitTotal) * 100 : 0}%`,
-                          backgroundColor: unit.color || palette.primary,
-                          shadowColor: unit.color || palette.primary,
-                          shadowOffset: { width: 0, height: 0 },
-                          shadowOpacity: 0.6,
-                          shadowRadius: 6,
-                        },
-                      ]}
-                    />
+                    <View style={[styles.unitProgressFill, { width: `${unitTotal > 0 ? (unitCompleted / unitTotal) * 100 : 0}%`, backgroundColor: unit.color || palette.primary }]} />
                   </View>
                   <Text style={styles.unitProgressText}>{unitCompleted}/{unitTotal}</Text>
                 </View>
               </View>
             </View>
 
-            {/* Lesson nodes */}
+            {/* Lesson nodes with simple connecting lines */}
             <View style={styles.pathContainer}>
               {unit.lessons.map((lesson, lessonIdx) => {
-                const globalIdx = unitLessonsStartIdx + lessonIdx;
-                const state = getNodeState(lesson, progress.completedLessons, getLessonStage, globalIdx, allLessons);
-                const stage = getLessonStage(lesson.id);
-                const isLeft = lessonIdx % 2 === 0;
-                const isLast = lessonIdx === unit.lessons.length - 1;
+                    const globalIdx = unitLessonsStartIdx + lessonIdx;
+                    const state = getNodeState(lesson, progress.completedLessons, getLessonStage, globalIdx, allLessons);
+                    const prevState = lessonIdx > 0 ? getNodeState(unit.lessons[lessonIdx - 1], progress.completedLessons, getLessonStage, globalIdx - 1, allLessons) : null;
+                    const isCurrent = state === 'available' && (lessonIdx === 0 || prevState === 'completed');
+                    const unitColor = unit.color || palette.primary;
+                    const isLast = lessonIdx === unit.lessons.length - 1;
+                    const isLeft = lessonIdx % 2 === 0;
+                    const done = state === 'completed';
 
-                return (
-                  <View key={lesson.id}>
-                    <Animated.View
-                      entering={FadeInUp.delay(lessonIdx * 80).duration(400)}
-                      style={[
-                        styles.nodeRow,
-                        isLeft ? styles.nodeLeft : styles.nodeRight,
-                      ]}
-                    >
-                      <PathNode
-                        title={lesson.title}
-                        icon={''}
-                        type={lesson.lesson_type as any}
-                        state={state}
-                        color={unit.color || palette.primary}
-                        onPress={() => handleNodePress(lesson)}
-                        delay={lessonIdx * 80}
-                        masteryStage={stage}
-                      />
-                    </Animated.View>
-                    {/* Connector */}
-                    {!isLast && (
-                      <View style={styles.connectorWrap}>
-                        <View
-                          style={[
-                            styles.connectorLine,
-                            {
-                              backgroundColor: state === 'completed'
-                                ? (unit.color || palette.primary) + '4D'
-                                : palette.border,
-                            },
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.connectorDot,
-                            {
-                              backgroundColor: state === 'completed'
-                                ? (unit.color || palette.primary)
-                                : palette.textDisabled,
-                            },
-                          ]}
-                        />
+                    return (
+                      <View key={lesson.id}>
+                        {/* Node */}
+                        <View style={[styles.nodeRow, isLeft ? styles.nodeLeft : styles.nodeRight]}>
+                          <PathNode
+                            title={lesson.title}
+                            type={lesson.lesson_type as any}
+                            state={state}
+                            color={unitColor}
+                            onPress={() => handleNodePress(lesson)}
+                            onSubTaskPress={(task) => handleSubTaskPress(lesson.id, task)}
+                            delay={lessonIdx * 50}
+                            lessonNumber={lessonIdx + 1}
+                            subProgress={state !== 'locked' ? getLessonProgress(lesson.id) : null}
+                            isCurrent={isCurrent}
+                          />
+                        </View>
+                        {/* Connecting line */}
+                        {!isLast && (
+                          <View style={styles.lineWrap}>
+                            <View style={[
+                              styles.lineBar,
+                              done ? { backgroundColor: unitColor + '40' } : { backgroundColor: palette.border + '30' },
+                              done ? {} : styles.lineDashed,
+                            ]} />
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </View>
-                );
-              })}
+                    );
+                  })}
             </View>
           </Animated.View>
         );
       })}
+
+      {/* ─── Coming Soon for A2+ ─────────────── */}
+      <View style={styles.comingSoonCard}>
+        <Ionicons name="lock-closed" size={24} color={palette.textMuted} />
+        <Text style={styles.comingSoonTitle}>A2 - C2 Coming Soon</Text>
+        <Text style={styles.comingSoonText}>Complete A1 to unlock more levels</Text>
+      </View>
 
       {/* Footer */}
       <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.footer}>
@@ -268,6 +250,73 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 32,
+  },
+
+  // Clean header (no box)
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'web' ? 16 : 56,
+    paddingBottom: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerPills: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: palette.bgSurface,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: palette.success,
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: palette.textMuted,
+  },
+
+  // Section label (replaces big unit card)
+  sectionLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 14,
+    gap: 8,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  sectionTitle: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: palette.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: palette.textMuted,
   },
   centerContent: {
     justifyContent: 'center',
@@ -469,36 +518,69 @@ const styles = StyleSheet.create({
 
   // ─── Path ───
   pathContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
-  nodeRow: {
+  lineWrap: {
+    alignItems: 'center',
     paddingVertical: 6,
+  },
+  lineBar: {
+    width: 2.5,
+    height: 30,
+    borderRadius: 2,
+  },
+  lineDashed: {
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: 'transparent',
+    width: 0,
+    height: 30,
+  },
+  nodeRow: {
+    paddingVertical: 4,
   },
   nodeLeft: {
     alignItems: 'flex-start',
-    paddingLeft: 32,
+    paddingLeft: 24,
   },
   nodeRight: {
     alignItems: 'flex-end',
-    paddingRight: 32,
+    paddingRight: 24,
   },
-  connectorWrap: {
+  roadWrap: {
     alignItems: 'center',
-    height: 28,
-    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 4,
   },
-  connectorLine: {
-    width: 3,
-    height: 20,
+  roadDash: {
+    width: 4,
+    height: 6,
     borderRadius: 2,
   },
-  connectorDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    position: 'absolute',
-    bottom: 0,
+
+  // ─── Coming Soon ───
+  comingSoonCard: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 32,
+    borderRadius: Radius.xl,
+    backgroundColor: palette.bgCard,
+    borderWidth: 1,
+    borderColor: palette.border,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  comingSoonTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: palette.textSecondary,
+  },
+  comingSoonText: {
+    fontSize: 14,
+    color: palette.textMuted,
+    textAlign: 'center' as const,
   },
 
   // ─── Footer ───
