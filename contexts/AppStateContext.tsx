@@ -4,8 +4,49 @@ import { Language } from '@/i18n';
 
 export type LessonStage = 'learn' | 'watch' | 'practice' | 'reinforce' | 'mastered' | 'review_needed';
 
+// NEW: Sub-task progress tracking (3 sub-tasks + test + bonus)
+export type SubTask = 'learn' | 'vocab' | 'watch';
+
+export interface LessonProgress {
+  learnCompleted: boolean;
+  vocabCompleted: boolean;
+  watchCompleted: boolean;
+  testScore: number | null;
+  testPassed: boolean;
+  bonusWatchCount: number;
+}
+
+export const DEFAULT_LESSON_PROGRESS: LessonProgress = {
+  learnCompleted: false,
+  vocabCompleted: false,
+  watchCompleted: false,
+  testScore: null,
+  testPassed: false,
+  bonusWatchCount: 0,
+};
+
+export function getNextSubTask(p: LessonProgress): SubTask | 'test' | 'bonus' | 'done' {
+  if (!p.learnCompleted) return 'learn';
+  if (!p.vocabCompleted) return 'vocab';
+  if (!p.watchCompleted) return 'watch';
+  if (!p.testPassed) return 'test';
+  return 'bonus';
+}
+
+export function getCompletedCount(p: LessonProgress): number {
+  return (p.learnCompleted ? 1 : 0) + (p.vocabCompleted ? 1 : 0) + (p.watchCompleted ? 1 : 0);
+}
+
+export function isSubTaskUnlocked(p: LessonProgress, task: SubTask): boolean {
+  if (task === 'learn') return true;
+  if (task === 'vocab') return p.learnCompleted;
+  if (task === 'watch') return p.vocabCompleted;
+  return false;
+}
+
 export interface LessonMastery {
   stage: LessonStage;
+  subProgress: LessonProgress;
   watchQuizScore: number;
   watchClipsCompleted: number;
   practiceScore: number;
@@ -139,6 +180,9 @@ interface AppStateContextType {
   // NEW: Lesson mastery
   updateLessonMastery: (lessonId: string, updates: Partial<LessonMastery>) => void;
   getLessonStage: (lessonId: string) => LessonStage | null;
+  // Sub-task progress
+  getLessonProgress: (lessonId: string) => LessonProgress;
+  updateSubProgress: (lessonId: string, updates: Partial<LessonProgress>) => void;
   // NEW: Checkpoint results
   saveCheckpointResult: (cefrLevel: string, result: CheckpointResult) => void;
   // NEW: Session tracking
@@ -284,6 +328,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setProgress(prev => {
       const existing = prev.lessonMastery[lessonId] || {
         stage: 'learn' as LessonStage,
+        subProgress: { ...DEFAULT_LESSON_PROGRESS },
         watchQuizScore: 0,
         watchClipsCompleted: 0,
         practiceScore: 0,
@@ -308,6 +353,41 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const getLessonStage = useCallback((lessonId: string): LessonStage | null => {
     return progress.lessonMastery[lessonId]?.stage ?? null;
   }, [progress.lessonMastery]);
+
+  const getLessonProgress = useCallback((lessonId: string): LessonProgress => {
+    return progress.lessonMastery[lessonId]?.subProgress ?? { ...DEFAULT_LESSON_PROGRESS };
+  }, [progress.lessonMastery]);
+
+  const updateSubProgress = useCallback((lessonId: string, updates: Partial<LessonProgress>) => {
+    setProgress(prev => {
+      const existing = prev.lessonMastery[lessonId] || {
+        stage: 'learn' as LessonStage,
+        subProgress: { ...DEFAULT_LESSON_PROGRESS },
+        watchQuizScore: 0, watchClipsCompleted: 0, practiceScore: 0,
+        practiceAttempts: 0, reinforceClipsWatched: 0, lastPracticeDate: '',
+        errorCount: 0, errorSessionCount: 0,
+      };
+      const newSub = { ...(existing.subProgress || DEFAULT_LESSON_PROGRESS), ...updates };
+
+      // Auto-derive stage from sub-progress
+      let stage: LessonStage = 'learn';
+      if (newSub.testPassed) stage = 'mastered';
+      else if (newSub.learnCompleted && newSub.vocabCompleted && newSub.watchCompleted) stage = 'practice';
+      else if (newSub.watchCompleted) stage = 'reinforce';
+      else if (newSub.vocabCompleted) stage = 'watch';
+      else if (newSub.learnCompleted) stage = 'watch';
+
+      const next = {
+        ...prev,
+        lessonMastery: {
+          ...prev.lessonMastery,
+          [lessonId]: { ...existing, subProgress: newSub, stage },
+        },
+      };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
 
   const saveCheckpointResult = useCallback((cefrLevel: string, result: CheckpointResult) => {
     setProgress(prev => {
@@ -401,6 +481,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       getLevelInfo,
       updateLessonMastery,
       getLessonStage,
+      getLessonProgress,
+      updateSubProgress,
       saveCheckpointResult,
       logSession,
       setDailyTasks,
