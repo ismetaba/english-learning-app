@@ -16,6 +16,9 @@ const CACHE_DIR = path.join(PROJECT_ROOT, '.cache', 'whisperx');
 const VENV_PYTHON = path.join(PROJECT_ROOT, '.venv', 'bin', 'python3');
 const WHISPERX_SCRIPT = path.join(PROJECT_ROOT, 'scripts', 'whisperx_transcribe.py');
 
+// Ensure ffmpeg/ffprobe are in PATH (Homebrew)
+process.env.PATH = `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}`;
+
 // Find yt-dlp
 function findYtDlp(): string {
   const candidates = [
