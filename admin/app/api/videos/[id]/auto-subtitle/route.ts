@@ -9,6 +9,12 @@ const CACHE_DIR = path.join(PROJECT_ROOT, '.cache', 'whisperx');
 const VENV_PYTHON = path.join(PROJECT_ROOT, '.venv', 'bin', 'python3');
 const WHISPERX_SCRIPT = path.join(PROJECT_ROOT, 'scripts', 'whisperx_transcribe.py');
 
+// Ensure ffmpeg/ffprobe are in PATH (Homebrew)
+const ENV_WITH_PATH = {
+  ...process.env,
+  PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}`,
+};
+
 function findYtDlp(): string {
   const candidates = [
     path.join(process.env.HOME || '', 'Library', 'Python', '3.14', 'bin', 'yt-dlp'),
@@ -56,7 +62,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         '--postprocessor-args', 'ffmpeg:-ar 16000 -ac 1',
         '-o', wavPath,
         `https://www.youtube.com/watch?v=${video.youtube_video_id}`,
-      ], { timeout: 120000, stdio: 'pipe' });
+      ], { timeout: 120000, stdio: 'pipe', env: ENV_WITH_PATH });
 
       if (dlResult.status !== 0) {
         const err = dlResult.stderr?.toString() || 'unknown error';
@@ -74,7 +80,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       const wxResult = spawnSync(VENV_PYTHON, [
         WHISPERX_SCRIPT, wavPath, jsonPath,
         '--model', 'base.en', '--language', 'en',
-      ], { timeout: 300000, stdio: ['pipe', 'pipe', 'pipe'] });
+      ], { timeout: 300000, stdio: ['pipe', 'pipe', 'pipe'], env: ENV_WITH_PATH });
 
       if (wxResult.status !== 0) {
         const err = wxResult.stderr?.toString() || 'unknown error';
