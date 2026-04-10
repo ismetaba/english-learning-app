@@ -520,14 +520,17 @@ const styles = StyleSheet.create({
   pathContainer: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    maxWidth: 480,
+    alignSelf: 'center',
+    width: '100%',
   },
   lineWrap: {
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   lineBar: {
     width: 2.5,
-    height: 30,
+    height: 40,
     borderRadius: 2,
   },
   lineDashed: {
@@ -536,18 +539,18 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     backgroundColor: 'transparent',
     width: 0,
-    height: 30,
+    height: 40,
   },
   nodeRow: {
-    paddingVertical: 4,
+    paddingVertical: 0,
   },
   nodeLeft: {
     alignItems: 'flex-start',
-    paddingLeft: 24,
+    paddingLeft: '8%',
   },
   nodeRight: {
     alignItems: 'flex-end',
-    paddingRight: 24,
+    paddingRight: '8%',
   },
   roadWrap: {
     alignItems: 'center',
