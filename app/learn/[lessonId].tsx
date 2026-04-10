@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppContext, LessonStage } from '@/contexts/AppStateContext';
 import { fetchLesson, fetchLessonClips, LessonDetail, LessonClip, LessonSection } from '@/services/curriculumService';
 import { palette, Shadows, Radius } from '@/constants/Colors';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, AudioPlayer, createAudioPlayer } from 'expo-audio';
 import CoursePlayer from '@/components/CoursePlayer/CoursePlayer';
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
   getBestVoice();
 }
 
-let _currentSound: Audio.Sound | null = null;
+let _currentPlayer: AudioPlayer | null = null;
 
 async function speak(text: string, lang: string = 'en') {
   // On web: use Web Speech API with best voice
@@ -62,21 +62,15 @@ async function speak(text: string, lang: string = 'en') {
 
   // On native: use Google TTS via audio (no CORS issues)
   try {
-    if (_currentSound) {
-      await _currentSound.unloadAsync().catch(() => {});
-      _currentSound = null;
+    if (_currentPlayer) {
+      _currentPlayer.release();
+      _currentPlayer = null;
     }
     const encoded = encodeURIComponent(text);
     const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${encoded}`;
-    const { sound } = await Audio.Sound.createAsync({ uri: url });
-    _currentSound = sound;
-    await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync().catch(() => {});
-        if (_currentSound === sound) _currentSound = null;
-      }
-    });
+    const player = createAudioPlayer(url);
+    _currentPlayer = player;
+    player.play();
   } catch {
     // Silent fail
   }
@@ -539,6 +533,24 @@ export default function LearnLessonScreen() {
 
   const currentIndex = STAGES.indexOf(stage);
 
+  function handleStageTap(targetStage: LessonStage) {
+    if (targetStage === stage) return;
+    setStage(targetStage);
+    setActiveMode('manual');
+    // Reset sub-state when jumping stages
+    if (targetStage === 'learn') {
+      setCurrentSectionIndex(0);
+      setStepIndex(0);
+    } else if (targetStage === 'watch') {
+      setWatchClipIndex(0);
+    } else if (targetStage === 'practice') {
+      setQuizIndex(0);
+      setQuizScore(0);
+      setSelectedOption(null);
+      setQuizDone(false);
+    }
+  }
+
   function renderProgressDots() {
     return (
       <View style={styles.progressDots}>
@@ -546,7 +558,7 @@ export default function LearnLessonScreen() {
           const isActive = i === currentIndex;
           const isComplete = i < currentIndex;
           return (
-            <View key={s} style={styles.dotWrapper}>
+            <Pressable key={s} style={styles.dotWrapper} onPress={() => handleStageTap(s)}>
               {isComplete ? (
                 <Ionicons name="checkmark-circle" size={32} color={palette.success} />
               ) : isActive ? (
@@ -571,7 +583,7 @@ export default function LearnLessonScreen() {
                   ]}
                 />
               )}
-            </View>
+            </Pressable>
           );
         })}
       </View>
