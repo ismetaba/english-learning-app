@@ -2,7 +2,16 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'data.db');
+function findRepoRoot(): string {
+  let dir = process.cwd();
+  while (dir !== path.dirname(dir)) {
+    // Repo root has app.json (Expo config) alongside data.db
+    if (fs.existsSync(path.join(dir, 'app.json'))) return dir;
+    dir = path.dirname(dir);
+  }
+  return process.cwd();
+}
+const DB_PATH = process.env.DATABASE_PATH || path.join(findRepoRoot(), 'data.db');
 
 let _db: Database.Database | null = null;
 

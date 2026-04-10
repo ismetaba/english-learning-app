@@ -3,9 +3,7 @@
  * Handles fetch, error handling, and retry logic.
  */
 
-const ADMIN_API = __DEV__ ? 'http://localhost:3000' : 'https://english-learning-admin.fly.dev';
-
-declare const __DEV__: boolean;
+const ADMIN_API = 'https://english-learning-admin.fly.dev';
 
 export class ApiError extends Error {
   constructor(
