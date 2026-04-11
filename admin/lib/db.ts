@@ -156,6 +156,23 @@ CREATE TABLE IF NOT EXISTS clip_vocab (
   occurrence_count INTEGER DEFAULT 1,
   PRIMARY KEY (clip_id, word_id)
 );
+
+-- ── Targeted lines (user-curated lines for lessons) ───────────
+CREATE TABLE IF NOT EXISTS targeted_lines (
+  clip_id INTEGER NOT NULL,
+  lesson_id TEXT NOT NULL,
+  line_id INTEGER NOT NULL,
+  PRIMARY KEY (clip_id, lesson_id, line_id)
+);
+
+-- ── Indexes ────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_clips_video_id ON clips(video_id);
+CREATE INDEX IF NOT EXISTS idx_subtitle_lines_clip_id ON subtitle_lines(clip_id);
+CREATE INDEX IF NOT EXISTS idx_word_timestamps_line_id ON word_timestamps(line_id);
+CREATE INDEX IF NOT EXISTS idx_videos_movie_title ON videos(movie_title);
+CREATE INDEX IF NOT EXISTS idx_videos_difficulty ON videos(difficulty);
+CREATE INDEX IF NOT EXISTS idx_clip_structures_lesson_id ON clip_structures(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_sentences_lesson_id ON lesson_sentences(lesson_id);
 `;
 
 export function getDb(): Database.Database {
@@ -783,6 +800,128 @@ export function getClipsByVocabWord(wordId: string): ClipWithDetails[] {
     clip.lines = getLinesForClip(clip.id);
   }
   return clips;
+}
+
+// ── Paginated queries ───────────────────────────────────────────
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface VideoWithStats extends Video {
+  line_count: number;
+  word_count: number;
+}
+
+export function getVideosPaginated(opts: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  show?: string;
+  difficulty?: string;
+  since?: string;
+}): PaginatedResult<VideoWithStats> {
+  const db = getDb();
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (opts.search) {
+    conditions.push('(v.title LIKE ? OR v.movie_title LIKE ?)');
+    params.push(`%${opts.search}%`, `%${opts.search}%`);
+  }
+  if (opts.show) {
+    conditions.push('v.movie_title = ?');
+    params.push(opts.show);
+  }
+  if (opts.difficulty) {
+    conditions.push('v.difficulty = ?');
+    params.push(opts.difficulty);
+  }
+  if (opts.since) {
+    // Normalize ISO timestamp to SQLite datetime format (YYYY-MM-DD HH:MM:SS)
+    const normalized = opts.since.replace('T', ' ').replace(/\.\d+Z$/, '').replace('Z', '');
+    conditions.push('v.created_at >= ?');
+    params.push(normalized);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const total = (db.prepare(`SELECT COUNT(*) as n FROM videos v ${where}`).get(...params) as any).n;
+
+  const offset = (opts.page - 1) * opts.pageSize;
+  const data = db.prepare(`
+    SELECT v.*,
+      (SELECT COUNT(*) FROM subtitle_lines sl JOIN clips c ON sl.clip_id = c.id WHERE c.video_id = v.id) as line_count,
+      (SELECT COUNT(*) FROM word_timestamps wt JOIN subtitle_lines sl ON wt.line_id = sl.id JOIN clips c ON sl.clip_id = c.id WHERE c.video_id = v.id) as word_count
+    FROM videos v
+    ${where}
+    ORDER BY v.movie_title ASC, v.title ASC
+    LIMIT ? OFFSET ?
+  `).all(...params, opts.pageSize, offset) as VideoWithStats[];
+
+  return {
+    data,
+    total,
+    page: opts.page,
+    pageSize: opts.pageSize,
+    totalPages: Math.ceil(total / opts.pageSize),
+  };
+}
+
+export function getDistinctShows(): { movie_title: string; count: number }[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT movie_title, COUNT(*) as count
+    FROM videos
+    WHERE movie_title != ''
+    GROUP BY movie_title
+    ORDER BY count DESC
+  `).all() as { movie_title: string; count: number }[];
+}
+
+export function getDistinctDifficulties(): string[] {
+  const db = getDb();
+  return (db.prepare('SELECT DISTINCT difficulty FROM videos ORDER BY difficulty').all() as { difficulty: string }[]).map(r => r.difficulty);
+}
+
+export function getLessonsPaginated(opts: {
+  page: number;
+  pageSize: number;
+  search?: string;
+}): PaginatedResult<Lesson> {
+  const db = getDb();
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (opts.search) {
+    conditions.push('(l.title LIKE ? OR l.description LIKE ?)');
+    params.push(`%${opts.search}%`, `%${opts.search}%`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const total = (db.prepare(`SELECT COUNT(*) as n FROM lessons l ${where}`).get(...params) as any).n;
+
+  const offset = (opts.page - 1) * opts.pageSize;
+  const data = db.prepare(`
+    SELECT l.*, COUNT(ls.id) as sentence_count
+    FROM lessons l
+    LEFT JOIN lesson_sentences ls ON ls.lesson_id = l.id
+    ${where}
+    GROUP BY l.id
+    ORDER BY l.created_at DESC
+    LIMIT ? OFFSET ?
+  `).all(...params, opts.pageSize, offset) as Lesson[];
+
+  return {
+    data,
+    total,
+    page: opts.page,
+    pageSize: opts.pageSize,
+    totalPages: Math.ceil(total / opts.pageSize),
+  };
 }
 
 // ── Stats ────────────────────────────────────────────────────────

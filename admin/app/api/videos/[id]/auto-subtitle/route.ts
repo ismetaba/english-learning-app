@@ -20,6 +20,9 @@ function findYtDlp(): string {
     path.join(process.env.HOME || '', 'Library', 'Python', '3.14', 'bin', 'yt-dlp'),
     path.join(process.env.HOME || '', 'Library', 'Python', '3.13', 'bin', 'yt-dlp'),
     path.join(process.env.HOME || '', 'Library', 'Python', '3.12', 'bin', 'yt-dlp'),
+    path.join(process.env.HOME || '', 'Library', 'Python', '3.11', 'bin', 'yt-dlp'),
+    path.join(process.env.HOME || '', 'Library', 'Python', '3.10', 'bin', 'yt-dlp'),
+    path.join(process.env.HOME || '', 'Library', 'Python', '3.9', 'bin', 'yt-dlp'),
     path.join(process.env.HOME || '', '.local', 'bin', 'yt-dlp'),
     '/opt/homebrew/bin/yt-dlp',
   ];

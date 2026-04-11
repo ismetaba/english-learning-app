@@ -4,8 +4,8 @@
     {
       "name": "expo-web",
       "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": ["-c", "export PATH=/Users/ismetabaci/.nvm/versions/node/v20.17.0/bin:$PATH && npx expo start --web"],
-      "port": 8081,
+      "runtimeArgs": ["-c", "export PATH=/Users/ismetabaci/.nvm/versions/node/v20.17.0/bin:$PATH && npx expo start --web --port 8083"],
+      "port": 8083,
       "autoPort": true
     },
     {

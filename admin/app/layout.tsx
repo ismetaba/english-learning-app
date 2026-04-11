@@ -43,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <div className="px-3 mt-8 mb-2 text-[9px] font-bold text-zinc-700 uppercase tracking-[0.14em]">Tools</div>
             <div className="space-y-0.5">
+              <NavLink href="/review" icon={<ReviewIcon />} label="Review Clips" />
               <NavLink href="/videos" icon={<SubtitleIcon />} label="Subtitle Editor" />
             </div>
           </div>
@@ -118,6 +119,15 @@ function CurriculumIcon() {
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 2h4v4H2zM10 2h4v4h-4zM2 10h4v4H2z" />
       <path d="M10 12h4M12 10v4" />
+    </svg>
+  );
+}
+
+function ReviewIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" />
+      <circle cx="8" cy="8" r="2" />
     </svg>
   );
 }
