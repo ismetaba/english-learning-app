@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVideo, createClip, createSubtitleLine, createWordTimestamp, deleteAllLinesForClip, deleteClip, getClipsForVideo } from '@/lib/db';
+import { getDb, getVideo, createClip, createSubtitleLine, createWordTimestamp, deleteAllLinesForClip, deleteClip, getClipsForVideo } from '@/lib/db';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -64,12 +64,18 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const video = getVideo(id);
   if (!video) return NextResponse.json({ error: 'Video not found' }, { status: 404 });
 
+  const db = getDb();
   const existingClips = getClipsForVideo(id);
-  for (const clip of existingClips) {
-    deleteAllLinesForClip(clip.id);
-    deleteClip(clip.id);
+  // Also find per-lesson clips for this video
+  const allClips = db.prepare('SELECT id FROM clips WHERE video_id = ?').all(id) as { id: number }[];
+  for (const clip of allClips) {
+    db.prepare('DELETE FROM targeted_lines WHERE clip_id = ?').run(clip.id);
+    db.prepare('DELETE FROM clip_structures WHERE clip_id = ?').run(clip.id);
+    db.prepare('DELETE FROM word_timestamps WHERE line_id IN (SELECT id FROM subtitle_lines WHERE clip_id = ?)').run(clip.id);
+    db.prepare('DELETE FROM subtitle_lines WHERE clip_id = ?').run(clip.id);
+    db.prepare('DELETE FROM clips WHERE id = ?').run(clip.id);
   }
-  return NextResponse.json({ message: `Cleared ${existingClips.length} clips` });
+  return NextResponse.json({ message: `Cleared ${allClips.length} clips and all associated data` });
 }
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

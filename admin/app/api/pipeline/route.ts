@@ -82,10 +82,15 @@ Update progress after each batch of searches.
 Find ALL videos without subtitle lines:
 sqlite3 ${DB_PATH} "SELECT v.id FROM videos v JOIN clips c ON c.video_id = v.id LEFT JOIN subtitle_lines sl ON sl.clip_id = c.id GROUP BY v.id HAVING COUNT(sl.id) = 0"
 
-For each, extract subtitles via the admin API:
-curl -s -X POST "http://localhost:3000/api/videos/<VIDEO_ID>/auto-subtitle" --max-time 300
+IMPORTANT: Run extractions in PARALLEL (4 at a time) for speed. Process videos in batches of 4 using background processes:
 
-If curl fails (server not running), skip and log the error. Update progress after each video.
+curl -s -X POST "http://localhost:3000/api/videos/<ID1>/auto-subtitle" --max-time 300 &
+curl -s -X POST "http://localhost:3000/api/videos/<ID2>/auto-subtitle" --max-time 300 &
+curl -s -X POST "http://localhost:3000/api/videos/<ID3>/auto-subtitle" --max-time 300 &
+curl -s -X POST "http://localhost:3000/api/videos/<ID4>/auto-subtitle" --max-time 300 &
+wait
+
+After each batch, update progress and increment subtitles_extracted by the number that succeeded. If curl fails, log the error and continue.
 
 ## Stage 3: Quality Check
 Get videos that were just subtitled in Stage 2 (check only the ones processed in this run, not old ones):
@@ -147,7 +152,9 @@ For each lesson match:
 RULES that must NEVER be violated:
 - Every assigned clip MUST have at least one targeted line
 - Every clip's bounds MUST be: start = earliest_target - 30s, end = latest_target + 30s
-- One clip = one lesson. Never share a clip across multiple lessons.
+- One clip = one lesson assignment. But a video CAN have multiple clips for the SAME lesson if the targeted lines are far apart.
+- SPLITTING RULE: If targeted lines for one lesson in one video have a gap > 60 seconds between consecutive targets, create SEPARATE clips for each cluster. Example: targets at 0:10, 0:20, 2:00, 2:10 → Clip A (targets 0:10, 0:20, bounds 0:00-0:50) and Clip B (targets 2:00, 2:10, bounds 1:30-2:40)
+- Never create a clip longer than 2 minutes unless all targeted lines are within that range with no 60s+ gaps.
 
 Update progress after each clip.
 

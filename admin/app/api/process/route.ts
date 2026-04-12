@@ -53,10 +53,15 @@ Stages: extract_subtitles, quality_check, assign_lessons, done, error
 Find ALL videos without subtitle lines:
 sqlite3 ${DB_PATH} "SELECT v.id FROM videos v JOIN clips c ON c.video_id = v.id LEFT JOIN subtitle_lines sl ON sl.clip_id = c.id GROUP BY v.id HAVING COUNT(sl.id) = 0"
 
-For each, extract subtitles via the admin API:
-curl -s -X POST "http://localhost:3000/api/videos/<VIDEO_ID>/auto-subtitle" --max-time 300
+IMPORTANT: Run extractions in PARALLEL (4 at a time) for speed. Process videos in batches of 4 using background processes:
 
-If curl fails, log the error and continue. Update progress and increment subtitles_extracted after EACH video.
+curl -s -X POST "http://localhost:3000/api/videos/<ID1>/auto-subtitle" --max-time 300 &
+curl -s -X POST "http://localhost:3000/api/videos/<ID2>/auto-subtitle" --max-time 300 &
+curl -s -X POST "http://localhost:3000/api/videos/<ID3>/auto-subtitle" --max-time 300 &
+curl -s -X POST "http://localhost:3000/api/videos/<ID4>/auto-subtitle" --max-time 300 &
+wait
+
+After each batch, update progress and increment subtitles_extracted by the number that succeeded. If curl fails, log the error and continue.
 
 ## Stage 2: Quality Check
 Get videos with subtitles that still have clips in 'draft' status (unreviewed):
@@ -110,7 +115,9 @@ For each lesson match:
 RULES:
 - Every clip MUST have targeted lines
 - Bounds = earliest_target - 30s to latest_target + 30s
-- One clip = one lesson
+- One clip per lesson assignment. But a video CAN have multiple clips for the SAME lesson if targets are far apart.
+- SPLITTING: If targets for one lesson have a gap > 60s between consecutive ones, create SEPARATE clips per cluster.
+- Never create a clip longer than 2 minutes unless targets are all within range with no 60s+ gaps.
 
 Update progress after each clip.
 
