@@ -47,3 +47,6 @@ yarn-error.*
 /android
 data.db-shm
 data.db-wal
+data_clean.db
+data_clean.db-shm
+data_clean.db-wal
