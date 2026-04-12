@@ -320,15 +320,12 @@ export default function LearnLessonScreen() {
     // Sort clips: prefer clips with more subtitle lines (better quality admin data first)
     const sortedClips = [...clips].sort((a, b) => (b.lines?.length || 0) - (a.lines?.length || 0));
 
-    // Check if any clip has server-provided isTarget flags
-    const hasServerTargets = clips.some(c => c.lines?.some(l => l.isTarget));
-
     for (const clip of sortedClips) {
       if (!clip.lines || clip.lines.length === 0) continue;
 
-      // Use server-provided isTarget flag; if none exist, treat all lines as targets
+      // Use server-provided isTarget flag from targeted_lines table
       const allTargets = clip.lines.filter(l => {
-        if (hasServerTargets && !l.isTarget) return false;
+        if (!l.isTarget) return false;
         const key = l.text.toLowerCase().replace(/[.,!?;:'"]/g, '').trim();
         if (seenSentences.has(key)) return false;
         seenSentences.add(key);

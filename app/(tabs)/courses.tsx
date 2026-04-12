@@ -1,56 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform,
-  ActivityIndicator, Image,
+  ActivityIndicator, FlatList, Dimensions,
 } from 'react-native';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInRight } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { palette, Radius, Shadows } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
+import { fetchCurriculum, CurriculumUnit } from '@/services/curriculumService';
+import { useAppContext } from '@/contexts/AppStateContext';
+import { getCompletedCount } from '@/contexts/AppStateContext';
+import { palette, Radius } from '@/constants/Colors';
 
-// On physical devices, localhost doesn't work — use the Mac's LAN IP.
-// On web/simulator, localhost is fine.
-const DEV_HOST = Platform.OS === 'web' ? 'localhost' : '10.40.16.20';
-const ADMIN_API = __DEV__ ? `http://${DEV_HOST}:3000` : 'https://english-learning-admin.fly.dev';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = 150;
 
-interface LessonSummary {
-  id: number;
-  title: string;
-  title_tr: string | null;
-  description: string | null;
-  level: string;
-  grammar_focus: string | null;
-  sentence_count: number;
-}
-
-const LEVEL_COLORS: Record<string, string> = {
-  elementary: '#47C9FF',
-  beginner: '#00D4AA',
-  intermediate: '#FFB347',
-  advanced: '#FF6B6B',
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  elementary: 'A2',
-  beginner: 'A1',
-  intermediate: 'B1',
-  advanced: 'B2+',
-};
-
-export default function CoursesScreen() {
-  const [lessons, setLessons] = useState<LessonSummary[]>([]);
+export default function VideoScreen() {
+  const [curriculum, setCurriculum] = useState<CurriculumUnit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { getLessonStage, getLessonProgress } = useAppContext();
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${ADMIN_API}/api/lessons/list`);
-        if (!res.ok) throw new Error('Failed to load courses');
-        const data = await res.json();
-        setLessons(data);
-      } catch (e: any) {
-        setError(e.message);
+        const data = await fetchCurriculum();
+        setCurriculum(data);
+      } catch (e) {
+        console.error(e);
       }
       setLoading(false);
     })();
@@ -60,120 +36,90 @@ export default function CoursesScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={palette.primary} />
-        <Text style={styles.loadingText}>Loading courses...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Header */}
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
-        <Text style={styles.title}>Video Dersler</Text>
-        <Text style={styles.subtitle}>Dizi ve filmlerden gramer öğren</Text>
+        <Text style={styles.title}>Video</Text>
+        <Text style={styles.subtitle}>Derslere ait klipleri izle</Text>
       </Animated.View>
 
-      {/* Grammar focus card */}
-      <Animated.View entering={FadeInDown.delay(100).duration(400)}>
-        <View style={styles.focusCard}>
-          <View style={styles.focusIcon}>
-            <Text style={styles.focusIconText}>🎯</Text>
-          </View>
-          <View style={styles.focusContent}>
-            <Text style={styles.focusTitle}>Gramer Odağı</Text>
-            <Text style={styles.focusDesc}>
-              Her derste hedef cümleler renkli vurgulanır. Video otomatik durur ve cümle yapısını gösterir.
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Color legend */}
-      <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-        <View style={styles.legendCard}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#A594FF' }]} />
-            <Text style={styles.legendText}>Özne (Subject)</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FFB347' }]} />
-            <Text style={styles.legendText}>Yrd. Fiil (Aux)</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#5DFFC8' }]} />
-            <Text style={styles.legendText}>Devamı (Pred.)</Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Course cards */}
-      {error && (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorText}>⚠️ {error}</Text>
-          <Text style={styles.errorHint}>Admin panel çalışıyor mu kontrol edin</Text>
-        </View>
-      )}
-
-      {lessons.map((lesson, idx) => {
-        const levelColor = LEVEL_COLORS[lesson.level] || palette.primary;
-        const levelLabel = LEVEL_LABELS[lesson.level] || lesson.level;
+      {curriculum.map((unit, unitIdx) => {
+        const unitColor = unit.color || palette.primary;
 
         return (
-          <Animated.View key={lesson.id} entering={FadeInDown.delay(300 + idx * 80).duration(400)}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.courseCard,
-                pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
-              ]}
-              onPress={() => router.push(`/video-lessons/${lesson.id}` as any)}
-            >
-              {/* Card accent */}
-              <View style={[styles.cardAccent, { backgroundColor: levelColor }]} />
-
-              <View style={styles.cardBody}>
-                <View style={styles.cardTop}>
-                  <View style={styles.cardInfo}>
-                    <View style={[styles.levelBadge, { backgroundColor: levelColor + '20' }]}>
-                      <Text style={[styles.levelBadgeText, { color: levelColor }]}>{levelLabel}</Text>
-                    </View>
-                    {lesson.grammar_focus && (
-                      <View style={styles.grammarBadge}>
-                        <Text style={styles.grammarBadgeText}>{lesson.grammar_focus}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <Text style={styles.cardTitle}>{lesson.title}</Text>
-                {lesson.title_tr && (
-                  <Text style={styles.cardTitleTr}>{lesson.title_tr}</Text>
-                )}
-
-                {lesson.description && (
-                  <Text style={styles.cardDesc} numberOfLines={2}>{lesson.description}</Text>
-                )}
-
-                <View style={styles.cardBottom}>
-                  <View style={styles.cardStat}>
-                    <Text style={styles.cardStatIcon}>🎬</Text>
-                    <Text style={styles.cardStatText}>{lesson.sentence_count} cümle</Text>
-                  </View>
-                  <View style={styles.cardPlay}>
-                    <Text style={styles.cardPlayText}>Başla →</Text>
-                  </View>
-                </View>
+          <View key={unit.id} style={styles.section}>
+            {/* Section label */}
+            <View style={styles.sectionHeader}>
+              <View style={[styles.levelPill, { backgroundColor: unitColor + '15', borderColor: unitColor + '30' }]}>
+                <Text style={[styles.levelText, { color: unitColor }]}>
+                  {unit.cefr_level?.toUpperCase()}
+                </Text>
               </View>
-            </Pressable>
-          </Animated.View>
+              <Text style={styles.sectionTitle}>{unit.title_tr || unit.title}</Text>
+              <Text style={styles.sectionCount}>{unit.lessons.length}</Text>
+            </View>
+
+            {/* Cards */}
+            <FlatList
+              data={unit.lessons}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item: lesson, index }) => {
+                const stage = getLessonStage(lesson.id);
+                const isMastered = stage === 'mastered';
+                const subProgress = getLessonProgress(lesson.id);
+                const done = getCompletedCount(subProgress);
+
+                return (
+                  <Animated.View entering={FadeInRight.delay(index * 40).duration(250)}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.card,
+                        pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+                      ]}
+                      onPress={() => router.push(`/lesson-clips/${lesson.id}` as any)}
+                    >
+                      {/* Top area with icon */}
+                      <View style={[styles.cardIcon, { backgroundColor: unitColor + '12' }]}>
+                        {isMastered ? (
+                          <Ionicons name="checkmark-circle" size={22} color={palette.success} />
+                        ) : (
+                          <Ionicons name="play-circle" size={22} color={unitColor} />
+                        )}
+                      </View>
+
+                      {/* Title */}
+                      <Text style={styles.cardTitle} numberOfLines={2}>
+                        {lesson.title}
+                      </Text>
+                      <Text style={styles.cardSub} numberOfLines={1}>
+                        {lesson.title_tr}
+                      </Text>
+
+                      {/* Progress */}
+                      {done > 0 && !isMastered && (
+                        <View style={styles.cardProgress}>
+                          <View style={styles.progressTrack}>
+                            <View style={[styles.progressFill, { width: `${(done / 3) * 100}%`, backgroundColor: unitColor }]} />
+                          </View>
+                        </View>
+                      )}
+                    </Pressable>
+                  </Animated.View>
+                );
+              }}
+            />
+          </View>
         );
       })}
 
-      {lessons.length === 0 && !error && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📭</Text>
-          <Text style={styles.emptyText}>Henüz ders eklenmemiş</Text>
-        </View>
-      )}
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -183,22 +129,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.bg,
   },
-  content: {
-    paddingBottom: 32,
-  },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: palette.bg,
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: palette.textMuted,
-  },
-
-  // Header
   header: {
     paddingTop: Platform.OS === 'web' ? 20 : 60,
     paddingHorizontal: 20,
@@ -211,205 +147,91 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: palette.textSecondary,
     marginTop: 4,
-    lineHeight: 22,
   },
 
-  // Focus card
-  focusCard: {
-    flexDirection: 'row',
-    backgroundColor: palette.bgCard,
-    borderRadius: Radius.lg,
-    padding: 16,
-    marginHorizontal: 20,
-    marginTop: 20,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: palette.border,
+  // Section
+  section: {
+    marginTop: 28,
   },
-  focusIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: palette.primarySoft,
+  sectionHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  focusIconText: {
-    fontSize: 20,
-  },
-  focusContent: {
-    flex: 1,
-  },
-  focusTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: palette.textPrimary,
-    marginBottom: 4,
-  },
-  focusDesc: {
-    fontSize: 12,
-    color: palette.textSecondary,
-    lineHeight: 18,
-  },
-
-  // Legend
-  legendCard: {
-    flexDirection: 'row',
-    gap: 12,
     paddingHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: palette.bgCard,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: palette.border,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: palette.textSecondary,
-  },
-
-  // Error
-  errorCard: {
-    backgroundColor: palette.errorSoft,
-    borderRadius: Radius.md,
-    padding: 16,
-    marginHorizontal: 20,
-    marginBottom: 16,
-  },
-  errorText: {
-    fontSize: 14,
-    color: palette.error,
-    fontWeight: '600',
-  },
-  errorHint: {
-    fontSize: 12,
-    color: palette.textMuted,
-    marginTop: 4,
-  },
-
-  // Course cards
-  courseCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: Radius.xl,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: palette.border,
-    ...Shadows.card,
-  },
-  cardAccent: {
-    height: 4,
-  },
-  cardBody: {
-    padding: 20,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  cardInfo: {
-    flexDirection: 'row',
+    marginBottom: 14,
     gap: 8,
   },
-  levelBadge: {
-    paddingHorizontal: 10,
+  levelPill: {
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: Radius.full,
+    borderRadius: 6,
+    borderWidth: 1,
   },
-  levelBadgeText: {
+  levelText: {
     fontSize: 11,
     fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  grammarBadge: {
-    backgroundColor: palette.primarySoft,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  grammarBadgeText: {
-    fontSize: 11,
+  sectionTitle: {
+    flex: 1,
+    fontSize: 15,
     fontWeight: '600',
-    color: palette.primary,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
     color: palette.textPrimary,
-    marginBottom: 2,
   },
-  cardTitleTr: {
-    fontSize: 14,
+  sectionCount: {
+    fontSize: 12,
     color: palette.textMuted,
-    marginBottom: 6,
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: palette.textSecondary,
-    lineHeight: 19,
-    marginBottom: 12,
-  },
-  cardBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  cardStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  cardStatIcon: {
-    fontSize: 14,
-  },
-  cardStatText: {
-    fontSize: 13,
-    color: palette.textSecondary,
     fontWeight: '500',
   },
-  cardPlay: {
-    backgroundColor: palette.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: Radius.sm,
-  },
-  cardPlayText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
+
+  // Carousel
+  carousel: {
+    paddingHorizontal: 20,
+    gap: 10,
   },
 
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 40,
+  // Card
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: palette.bgCard,
+    borderRadius: Radius.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: palette.border,
   },
-  emptyEmoji: {
-    fontSize: 48,
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
-  emptyText: {
+  cardTitle: {
     fontSize: 14,
+    fontWeight: '700',
+    color: palette.textPrimary,
+    lineHeight: 18,
+    marginBottom: 3,
+  },
+  cardSub: {
+    fontSize: 11,
     color: palette.textMuted,
+    lineHeight: 15,
+  },
+  cardProgress: {
+    marginTop: 10,
+  },
+  progressTrack: {
+    height: 3,
+    backgroundColor: palette.bgSurface,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
 });

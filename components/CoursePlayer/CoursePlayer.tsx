@@ -68,6 +68,14 @@ interface Props {
   course: CourseData;
   onComplete?: () => void;
   onBack?: () => void;
+  /** Total clips available server-side (for display when paginating) */
+  totalClipsOverall?: number;
+  /** Called when user reaches the last loaded clip — load more if available */
+  onLoadMore?: () => void;
+  /** Whether more clips are currently being fetched */
+  loadingMore?: boolean;
+  /** Called when an individual clip finishes playing */
+  onClipComplete?: (clipId: number) => void;
 }
 
 // ── Grammar Colors ─────────────────────────────────────────────
@@ -92,7 +100,7 @@ function fmtTime(sec: number): string {
 
 // ── Component ──────────────────────────────────────────────────
 
-export default function CoursePlayer({ course, onComplete, onBack }: Props) {
+export default function CoursePlayer({ course, onComplete, onBack, totalClipsOverall, onLoadMore, loadingMore, onClipComplete }: Props) {
   const [clipIdx, setClipIdx] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [phase, setPhase] = useState<'playing' | 'replaying' | 'target-popup' | 'clip-done' | 'course-done'>('playing');
@@ -111,10 +119,26 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
   // Phase ref so callbacks can read latest phase without re-creating
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  // Track whether we're waiting for more clips to auto-advance
+  const pendingAdvanceRef = useRef(false);
 
   const clip = course.clips[clipIdx];
   const totalClips = course.clips.length;
+  const displayTotal = totalClipsOverall ?? totalClips;
   const progress = course.total_targets > 0 ? completedTargets / course.total_targets : 0;
+
+  // Auto-advance to next clip when more clips are loaded
+  useEffect(() => {
+    if (pendingAdvanceRef.current && clipIdx < totalClips - 1 && phase === 'clip-done') {
+      pendingAdvanceRef.current = false;
+      triggeredTargets.current.clear();
+      currentTargetRef.current = null;
+      hasStartedPlaying.current = false;
+      setCurrentTime(0);
+      setClipIdx(clipIdx + 1);
+      setPhase('playing');
+    }
+  }, [totalClips, clipIdx, phase]);
 
   // Find the currently active subtitle line
   const activeLine = clip?.lines.find(
@@ -358,8 +382,9 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
     if (lastLine && currentTime >= lastLine.end_time + 0.5 && currentTime > clip.start_time + 2) {
       pauseVideo();
       setPhase('clip-done');
+      onClipComplete?.(clip.clip_id);
     }
-  }, [currentTime, clip, phase, pauseVideo]);
+  }, [currentTime, clip, phase, pauseVideo, onClipComplete]);
 
   // ── Controls ──────────────────────────────────────────────────
 
@@ -409,10 +434,14 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
       setCurrentTime(0);
       setClipIdx(clipIdx + 1);
       setPhase('playing');
+    } else if (onLoadMore && totalClips < (totalClipsOverall ?? totalClips)) {
+      // More clips available on server — fetch next page, auto-advance when ready
+      pendingAdvanceRef.current = true;
+      onLoadMore();
     } else {
       setPhase('course-done');
     }
-  }, [clipIdx, totalClips]);
+  }, [clipIdx, totalClips, onLoadMore, totalClipsOverall]);
 
   // ── Render: Course Complete ───────────────────────────────────
 
@@ -575,7 +604,7 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
       <View style={styles.container}>
         <View style={styles.clipDoneScreen}>
           <Text style={styles.clipDoneCheck}>✅</Text>
-          <Text style={styles.clipDoneTitle}>Video {clipIdx + 1}/{totalClips} Tamamlandı</Text>
+          <Text style={styles.clipDoneTitle}>Video {clipIdx + 1}/{displayTotal} Tamamlandı</Text>
           <Text style={styles.clipDoneMovie}>{clip.movie_title}</Text>
           <Text style={styles.clipDoneTargets}>
             {clip.target_count} hedef cümle tamamlandı
@@ -589,11 +618,22 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
             </View>
           )}
 
-          <TouchableOpacity style={styles.nextClipBtn} onPress={goNextClip} activeOpacity={0.8}>
-            <Text style={styles.nextClipBtnText}>
-              {clipIdx < totalClips - 1 ? 'Sonraki Video →' : 'Dersi Bitir 🎉'}
-            </Text>
-          </TouchableOpacity>
+          {loadingMore ? (
+            <View style={styles.nextClipBtn}>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={[styles.nextClipBtnText, { marginLeft: 8 }]}>Yükleniyor...</Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.nextClipBtn} onPress={goNextClip} activeOpacity={0.8}>
+              <Text style={styles.nextClipBtnText}>
+                {clipIdx < totalClips - 1
+                  ? 'Sonraki Video →'
+                  : totalClips < displayTotal
+                    ? 'Daha Fazla Yükle →'
+                    : 'Dersi Bitir 🎉'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -615,7 +655,7 @@ export default function CoursePlayer({ course, onComplete, onBack }: Props) {
         </TouchableOpacity>
         <Text style={styles.topTitle} numberOfLines={1}>{clip.movie_title}</Text>
         <View style={styles.topBadge}>
-          <Text style={styles.topBadgeText}>Video {clipIdx + 1}/{totalClips}</Text>
+          <Text style={styles.topBadgeText}>Video {clipIdx + 1}/{displayTotal}</Text>
         </View>
       </View>
 

@@ -93,3 +93,36 @@ export async function fetchLessonClips(lessonId: string): Promise<LessonClip[]> 
   const data = await apiFetch<LessonClip[]>(`/api/v1/lessons/${lessonId}/clips`);
   return data;
 }
+
+export async function fetchAllLessonClips(lessonId: string): Promise<LessonClip[]> {
+  const data = await apiFetch<LessonClip[]>(`/api/v1/lessons/${lessonId}/clips?all=true`);
+  return data;
+}
+
+// ── Paginated clip fetching ─────────────────────────────────────
+
+export interface PaginatedClipsResponse {
+  clips: LessonClip[];
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
+export async function fetchLessonClipsPaginated(
+  lessonId: string,
+  page: number = 1,
+  perPage: number = 10,
+  exclude: string[] = [],
+): Promise<PaginatedClipsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+  });
+  if (exclude.length > 0) {
+    params.set('exclude', exclude.join(','));
+  }
+  return apiFetch<PaginatedClipsResponse>(
+    `/api/v1/lessons/${lessonId}/clips?${params.toString()}`,
+  );
+}
