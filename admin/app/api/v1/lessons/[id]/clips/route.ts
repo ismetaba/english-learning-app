@@ -114,6 +114,7 @@ function formatClipWithLines(
       id: line.id,
       speaker: line.speaker,
       text: line.text,
+      translationTr: line.translation_tr || null,
       startTime: line.start_time,
       endTime: line.end_time,
       isTarget: targetLineIds.has(line.id),

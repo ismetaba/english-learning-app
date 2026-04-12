@@ -19,6 +19,7 @@ function clipToPlayerFormat(clip: LessonClip) {
     lines: clip.lines.map(line => ({
       id: line.id,
       text: line.text,
+      translation_tr: line.translationTr || null,
       speaker: line.speaker || 'Speaker',
       start_time: line.startTime,
       end_time: line.endTime,

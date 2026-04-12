@@ -40,6 +40,7 @@ interface SubtitleLine {
   end_time: number;
   words?: WordTimestamp[];
   is_target: boolean;
+  translation_tr: string | null;
   grammar_annotations: GrammarAnnotation[] | null;
   translations: Translation[] | null;
 }
@@ -499,11 +500,10 @@ export default function CoursePlayer({ course, onComplete, onBack, totalClipsOve
         ? translations.map(t => t.word)
         : target.text.split(' ');
 
-      // Build Turkish sentence from translations
-      const trSentence = translations
-        .map(t => t.tr)
-        .filter(Boolean)
-        .join(' ');
+      // Build Turkish sentence from word-by-word translations, or use full sentence translation
+      const trSentence = translations.length > 0
+        ? translations.map(t => t.tr).filter(Boolean).join(' ')
+        : (target.translation_tr || '');
 
       return (
         <View style={styles.targetArea}>
@@ -768,6 +768,10 @@ export default function CoursePlayer({ course, onComplete, onBack, totalClipsOve
                       line.text
                     )}
                   </Text>
+                  {/* Turkish translation for targeted lines */}
+                  {isTarget && line.translation_tr && (isPast || isActive) && (
+                    <Text style={styles.lineTr}>{line.translation_tr}</Text>
+                  )}
                 </View>
               </View>
             );
@@ -1081,6 +1085,14 @@ const styles = StyleSheet.create({
   },
   lineTextPast: {
     color: palette.textMuted,
+  },
+  lineTr: {
+    color: palette.accent,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 2,
+    fontStyle: 'italic',
+    opacity: 0.8,
   },
 
   // Word-by-word styles

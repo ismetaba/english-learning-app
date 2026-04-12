@@ -316,6 +316,7 @@ export interface SubtitleLine {
   line_index: number;
   speaker: string;
   text: string;
+  translation_tr: string | null;
   start_time: number;
   end_time: number;
   words?: WordTimestamp[];

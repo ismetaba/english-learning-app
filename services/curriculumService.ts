@@ -52,6 +52,7 @@ export interface ClipLine {
   id: number;
   speaker: string;
   text: string;
+  translationTr: string | null;
   startTime: number;
   endTime: number;
   isTarget?: boolean;
