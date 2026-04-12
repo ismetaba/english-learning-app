@@ -103,7 +103,17 @@ function formatClipWithLines(
   clip: { id: number; start_time: number; end_time: number; youtube_video_id: string; movie_title: string },
   targetLineIds: Set<number>,
 ) {
-  const lines = getLinesForClip(clip.id);
+  const db = getDb();
+  // Only return lines within the clip's time range (+5s buffer)
+  const lines = db.prepare(`
+    SELECT * FROM subtitle_lines
+    WHERE clip_id = ? AND start_time >= ? AND end_time <= ?
+    ORDER BY start_time
+  `).all(clip.id, Math.max(0, clip.start_time - 5), clip.end_time + 5) as any[];
+  // Load words for each line
+  for (const line of lines) {
+    line.words = db.prepare('SELECT * FROM word_timestamps WHERE line_id = ? ORDER BY word_index').all(line.id);
+  }
   return {
     id: clip.id,
     youtubeVideoId: clip.youtube_video_id,
