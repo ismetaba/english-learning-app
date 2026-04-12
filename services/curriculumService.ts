@@ -54,6 +54,7 @@ export interface ClipLine {
   text: string;
   startTime: number;
   endTime: number;
+  isTarget?: boolean;
   words: { word: string; startTime: number; endTime: number }[];
 }
 
@@ -88,11 +89,7 @@ export async function fetchLesson(lessonId: string): Promise<LessonDetail> {
 }
 
 export async function fetchLessonClips(lessonId: string): Promise<LessonClip[]> {
-  const cacheKey = `lesson-clips:${lessonId}`;
-  const cached = await getCached<LessonClip[]>(cacheKey);
-  if (cached) return cached;
-
+  // No caching — server returns a random selection of 10 clips each time
   const data = await apiFetch<LessonClip[]>(`/api/v1/lessons/${lessonId}/clips`);
-  await setCache(cacheKey, data, TTL.CLIPS);
   return data;
 }

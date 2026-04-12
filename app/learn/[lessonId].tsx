@@ -248,32 +248,7 @@ export default function LearnLessonScreen() {
 
   const hasSectionBasedLearn = learnSections.length > 0;
 
-  // Build target patterns from lesson content — use regex for precise matching
-  const targetPatterns = useMemo(() => {
-    const patterns: RegExp[] = [];
-    // Lesson 1 specific: greeting & introduction patterns
-    if (lesson?.grammar_pattern) {
-      // Extract multi-word phrases from the pattern
-      const pat = lesson.grammar_pattern.toLowerCase();
-      if (pat.includes('hello') || pat.includes('greeting') || pat.includes('my name is')) {
-        patterns.push(
-          /\bhello\b/i,
-          /\bhi[!,.\s]|^hi$/i,
-          /\bgood\s+(morning|afternoon|evening)\b/i,
-          /\bmy\s+name\s+is\b/i,
-          /\bi'?m\s+[A-Z][a-z]/,           // "I'm Anna", "I'm Buzz" (name after I'm)
-          /\bnice\s+to\s+meet/i,
-          /\bhow\s+are\s+you/i,
-          /\bhow\s+you\s+doin/i,
-        );
-      }
-    }
-    // Fallback: if no patterns, use simple phrase matching
-    if (patterns.length === 0) {
-      patterns.push(/\bhello\b/i, /\bhi[!,.\s]/i, /\bmy\s+name\s+is\b/i);
-    }
-    return patterns;
-  }, [lesson?.grammar_pattern]);
+
 
   // Build word translations — vocab sections + basic English→Turkish dictionary
   const wordTranslations = useMemo(() => {
@@ -345,12 +320,15 @@ export default function LearnLessonScreen() {
     // Sort clips: prefer clips with more subtitle lines (better quality admin data first)
     const sortedClips = [...clips].sort((a, b) => (b.lines?.length || 0) - (a.lines?.length || 0));
 
+    // Check if any clip has server-provided isTarget flags
+    const hasServerTargets = clips.some(c => c.lines?.some(l => l.isTarget));
+
     for (const clip of sortedClips) {
       if (!clip.lines || clip.lines.length === 0) continue;
 
-      // Find all target lines, deduplicate by normalized text (ignore punctuation)
+      // Use server-provided isTarget flag; if none exist, treat all lines as targets
       const allTargets = clip.lines.filter(l => {
-        if (!targetPatterns.some(re => re.test(l.text))) return false;
+        if (hasServerTargets && !l.isTarget) return false;
         const key = l.text.toLowerCase().replace(/[.,!?;:'"]/g, '').trim();
         if (seenSentences.has(key)) return false;
         seenSentences.add(key);
@@ -468,7 +446,7 @@ export default function LearnLessonScreen() {
       total_targets: courseClips.length,
       clips: courseClips,
     };
-  }, [lesson, clips, targetPatterns, wordTranslations]);
+  }, [lesson, clips, wordTranslations]);
 
   // ── Stage navigation ───────────────────────────────────────────
 
