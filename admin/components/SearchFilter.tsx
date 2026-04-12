@@ -13,7 +13,7 @@ export default function SearchFilter({ defaultValue = '', placeholder = 'Search.
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(defaultValue);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     setValue(defaultValue);

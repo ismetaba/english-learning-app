@@ -11,7 +11,11 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ id
   const video = getVideo(id);
   if (!video) notFound();
 
-  const clips = getClipsForVideo(id);
+  const allClips = getClipsForVideo(id);
+  // Show one consolidated clip with deduplicated subtitle lines
+  // Per-lesson clips have the same subtitles — just pick one clip and show its lines
+  const primaryClip = allClips[0];
+  const clips = primaryClip ? [primaryClip] : [];
   const clipsWithLines = clips.map(clip => ({
     ...clip,
     lines: getLinesForClip(clip.id),

@@ -82,7 +82,7 @@ export default function ReviewClient({ clips: initialClips, lessonId, lessonTitl
   });
 
   const playerRef = useRef<any>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
+import { getDb } from '@/lib/db';
 
 const PID_FILE = '/tmp/pipeline-pid.txt';
 const PROGRESS_FILE = '/tmp/pipeline-progress.json';
@@ -54,7 +55,19 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ ...data, running });
+    // Add live DB counts so dashboard always shows real numbers
+    let live = undefined;
+    try {
+      const db = getDb();
+      live = {
+        total_videos: (db.prepare('SELECT COUNT(*) as n FROM videos').get() as any).n,
+        with_subtitles: (db.prepare('SELECT COUNT(DISTINCT c.video_id) as n FROM clips c JOIN subtitle_lines sl ON sl.clip_id = c.id').get() as any).n,
+        total_assignments: (db.prepare('SELECT COUNT(*) as n FROM clip_structures').get() as any).n,
+        total_targeted: (db.prepare('SELECT COUNT(*) as n FROM targeted_lines').get() as any).n,
+      };
+    } catch {}
+
+    return NextResponse.json({ ...data, running, live });
   } catch {
     return NextResponse.json(defaultStatus);
   }

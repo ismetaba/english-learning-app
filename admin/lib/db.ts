@@ -760,6 +760,53 @@ export function addWordToVocabSet(setId: string, wordId: string, sortOrder: numb
 
 // ── Clip structure/vocab mapping helpers ─────────────────────────
 
+const CLIP_PADDING = 30; // seconds before/after targeted sentences
+
+/**
+ * Recalculate a clip's start/end times based on its targeted lines.
+ * Rule: start = earliest_target - 30s (min 0), end = latest_target + 30s
+ * Must be called after any change to targeted_lines for this clip.
+ */
+export function enforceClipBounds(clipId: number): void {
+  const db = getDb();
+  const bounds = db.prepare(`
+    SELECT MIN(sl.start_time) as min_start, MAX(sl.end_time) as max_end
+    FROM targeted_lines tl
+    JOIN subtitle_lines sl ON sl.id = tl.line_id
+    WHERE tl.clip_id = ?
+  `).get(clipId) as { min_start: number | null; max_end: number | null } | undefined;
+
+  if (bounds?.min_start != null && bounds?.max_end != null) {
+    const newStart = Math.max(0, bounds.min_start - CLIP_PADDING);
+    const newEnd = bounds.max_end + CLIP_PADDING;
+    db.prepare('UPDATE clips SET start_time = ?, end_time = ? WHERE id = ?').run(newStart, newEnd, clipId);
+  }
+}
+
+/**
+ * Validate that a clip has targeted lines and correct bounds.
+ * Returns false if the clip violates the rule.
+ */
+export function validateClipRule(clipId: number): boolean {
+  const db = getDb();
+  // Must have at least one targeted line
+  const hasTargets = db.prepare('SELECT 1 FROM targeted_lines WHERE clip_id = ? LIMIT 1').get(clipId);
+  if (!hasTargets) return false;
+
+  // Bounds must match
+  const bounds = db.prepare(`
+    SELECT MIN(sl.start_time) as min_start, MAX(sl.end_time) as max_end
+    FROM targeted_lines tl JOIN subtitle_lines sl ON sl.id = tl.line_id
+    WHERE tl.clip_id = ?
+  `).get(clipId) as { min_start: number; max_end: number };
+  const clip = db.prepare('SELECT start_time, end_time FROM clips WHERE id = ?').get(clipId) as { start_time: number; end_time: number };
+  if (!clip) return false;
+
+  const expectedStart = Math.max(0, bounds.min_start - CLIP_PADDING);
+  const expectedEnd = bounds.max_end + CLIP_PADDING;
+  return Math.abs(clip.start_time - expectedStart) <= 0.5 && Math.abs(clip.end_time - expectedEnd) <= 0.5;
+}
+
 export function addStructureToClip(clipId: number, lessonId: string, lineId?: number): void {
   const db = getDb();
   db.prepare('INSERT OR IGNORE INTO clip_structures (clip_id, lesson_id, line_id) VALUES (?, ?, ?)').run(clipId, lessonId, lineId ?? null);

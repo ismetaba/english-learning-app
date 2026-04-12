@@ -35,12 +35,27 @@ function getRecentActivity() {
 
 function getTotalWords() {
   const db = getDb();
-  return (db.prepare('SELECT COUNT(*) as c FROM word_timestamps').get() as { c: number }).c;
+  // Count unique words (not duplicates across per-lesson clips)
+  return (db.prepare(`
+    SELECT COUNT(*) as c FROM (
+      SELECT DISTINCT wt.word, wt.start_time, c.video_id
+      FROM word_timestamps wt
+      JOIN subtitle_lines sl ON sl.id = wt.line_id
+      JOIN clips c ON c.id = sl.clip_id
+    )
+  `).get() as { c: number }).c;
 }
 
 function getTotalLines() {
   const db = getDb();
-  return (db.prepare('SELECT COUNT(*) as c FROM subtitle_lines').get() as { c: number }).c;
+  // Count unique lines (not duplicates across per-lesson clips)
+  return (db.prepare(`
+    SELECT COUNT(*) as c FROM (
+      SELECT DISTINCT sl.text, sl.start_time, c.video_id
+      FROM subtitle_lines sl
+      JOIN clips c ON c.id = sl.clip_id
+    )
+  `).get() as { c: number }).c;
 }
 
 function getDifficultyBreakdown() {

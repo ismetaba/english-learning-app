@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import ProcessButton from './ProcessButton';
 
 interface PipelineStatus {
   running: boolean;
@@ -17,6 +18,12 @@ interface PipelineStatus {
     errors: string[];
   };
   log: string[];
+  live?: {
+    total_videos: number;
+    with_subtitles: number;
+    total_assignments: number;
+    total_targeted: number;
+  };
 }
 
 const STAGES = ['find_videos', 'extract_subtitles', 'quality_check', 'assign_lessons'];
@@ -34,7 +41,7 @@ export default function PipelineButton() {
   const [uiState, setUiState] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [starting, setStarting] = useState(false);
   const [videoCount, setVideoCount] = useState(50);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   const poll = useCallback(async () => {
@@ -110,124 +117,65 @@ export default function PipelineButton() {
     : 0;
   const elapsedStr = elapsed > 0 ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s` : '';
 
-  // Idle state — compact bar
+  // Idle state
   if (uiState === 'idle') {
     return (
-      <div className="bg-[#111113] rounded-xl border border-zinc-800/50 px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-violet-400">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-          </svg>
+      <div className="bg-[#111113] rounded-xl border border-zinc-800/50 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-violet-600/20 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-violet-400">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+          </div>
           <div>
-            <span className="text-sm font-medium text-zinc-300">Video Pipeline</span>
-            <span className="text-[11px] text-zinc-600 ml-2">Find, subtitle, classify, and assign clips</span>
+            <h3 className="text-[15px] font-semibold text-zinc-200">Video Pipeline</h3>
+            <p className="text-[13px] text-zinc-500 mt-0.5">Find, subtitle, classify, and assign clips to lessons</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-[11px] text-zinc-600">Videos:</label>
-          <input
-            type="number"
-            value={videoCount}
-            onChange={e => setVideoCount(Math.max(1, Math.min(500, Number(e.target.value) || 50)))}
-            className="w-16 px-2 py-1.5 text-[13px] text-center rounded-md bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 focus:outline-none focus:border-violet-500/50"
-            min={1}
-            max={500}
-          />
+        <div className="flex items-center gap-3">
+          <ProcessButton />
+          <div className="w-px h-8 bg-zinc-800" />
+          <div className="flex items-center gap-2 bg-zinc-800/60 rounded-lg px-3 py-2">
+            <label className="text-[13px] text-zinc-400">Videos</label>
+            <input
+              type="number"
+              value={videoCount}
+              onChange={e => setVideoCount(Math.max(1, Math.min(500, Number(e.target.value) || 50)))}
+              className="w-16 px-2 py-1 text-[14px] text-center rounded-md bg-zinc-900 border border-zinc-700/50 text-zinc-200 focus:outline-none focus:border-violet-500/50 font-mono"
+              min={1}
+              max={500}
+            />
+          </div>
           <button
             onClick={handleStart}
             disabled={starting}
-            className="px-4 py-1.5 text-[13px] font-medium rounded-md bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white transition-all"
+            className="px-5 py-2.5 text-[14px] font-medium rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white shadow-lg shadow-violet-600/20 transition-all"
           >
-            {starting ? 'Starting...' : 'Run'}
+            {starting ? 'Starting...' : 'Find + Process'}
           </button>
         </div>
       </div>
     );
   }
 
-  // Running / Done / Error — fixed bottom panel
+  // Running / Done / Error — the global PipelineStatus component handles the bottom bar
+  // Just show a status indicator in the dashboard
   return (
-    <div className="fixed bottom-0 right-0 left-[220px] z-50 bg-[#111113] border-t border-zinc-800/50 p-4 shadow-2xl shadow-black/50">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-zinc-200">Video Pipeline</h3>
-        <div className="flex items-center gap-2">
-          {elapsedStr && <span className="text-[10px] text-zinc-600 font-mono">{elapsedStr}</span>}
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-            uiState === 'running' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-            uiState === 'done' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-            'bg-red-500/10 text-red-400 border border-red-500/20'
-          }`}>
-            {uiState === 'running' ? 'Running' : uiState === 'done' ? 'Complete' : 'Error'}
-          </span>
+    <div className="bg-[#111113] rounded-xl border border-zinc-800/50 px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-lg bg-amber-600/20 flex items-center justify-center">
+          <div className={`w-3 h-3 rounded-full ${uiState === 'running' ? 'bg-amber-400 animate-pulse' : uiState === 'done' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+        </div>
+        <div>
+          <h3 className="text-[15px] font-semibold text-zinc-200">Video Pipeline</h3>
+          <p className="text-[13px] text-zinc-500 mt-0.5">
+            {uiState === 'running' ? 'Pipeline is running — see status bar below' :
+             uiState === 'done' ? 'Pipeline complete — see results below' :
+             'Pipeline encountered an error'}
+          </p>
         </div>
       </div>
-
-      {/* Compact layout: stages + counters + log in a row */}
-      <div className="flex gap-6 items-start">
-        {/* Left: stages + progress */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 mb-2">
-            {STAGES.map((s, i) => (
-              <div key={s} className="flex-1">
-                <div className={`h-1 rounded-full transition-colors ${
-                  i < stageIndex || status?.stage === 'done' ? 'bg-emerald-500' :
-                  i === stageIndex ? 'bg-violet-500 animate-pulse' :
-                  'bg-zinc-800'
-                }`} />
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-[8px] text-zinc-600 mb-2">
-            {STAGES.map(s => <span key={s}>{STAGE_LABELS[s]?.split(' ')[0]}</span>)}
-          </div>
-          <p className="text-[11px] text-zinc-400 truncate">{status?.progress || '...'}</p>
-        </div>
-
-        {/* Middle: counters */}
-        {status?.results && (
-          <div className="flex gap-4 shrink-0">
-            {[
-              { label: 'Found', value: status.results.videos_found, color: 'text-violet-400' },
-              { label: 'Subs', value: status.results.subtitles_extracted, color: 'text-blue-400' },
-              { label: 'Checked', value: status.results.quality_checked, color: 'text-amber-400' },
-              { label: 'Removed', value: status.results.videos_removed, color: 'text-red-400' },
-              { label: 'Assigned', value: status.results.clips_assigned, color: 'text-emerald-400' },
-            ].map(r => (
-              <div key={r.label} className="text-center">
-                <div className={`text-base font-bold font-mono ${r.color}`}>{r.value}</div>
-                <div className="text-[8px] text-zinc-600">{r.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Right: log */}
-        <div className="w-[300px] shrink-0 bg-[#0a0a0c] rounded-md border border-zinc-800/30 p-2 max-h-[80px] overflow-y-auto font-mono text-[9px] text-zinc-600 space-y-0.5">
-          {status?.log?.slice(-10).map((line, i) => (
-            <div key={i} className="truncate">{line}</div>
-          ))}
-          <div ref={logEndRef} />
-        </div>
-      </div>
-
-      {/* Actions */}
-      {(uiState === 'done' || uiState === 'error') && (
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-zinc-800/30">
-          <a href={`/videos?since=${encodeURIComponent(status?.started_at || '')}`} className="px-3 py-1.5 text-[11px] font-medium rounded-md bg-violet-600/20 text-violet-400 border border-violet-500/30 hover:bg-violet-600/30 transition-all">
-            View New Videos
-          </a>
-          <a href="/pipeline/clips" className="px-3 py-1.5 text-[11px] font-medium rounded-md bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-all">
-            View Clips
-          </a>
-          <button
-            onClick={handleReset}
-            className="px-3 py-1.5 text-[11px] font-medium rounded-md bg-zinc-800/50 text-zinc-400 border border-zinc-800/50 hover:bg-zinc-700 transition-all ml-auto"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      {elapsedStr && <span className="text-[14px] text-zinc-500 font-mono">{elapsedStr}</span>}
     </div>
   );
 }

@@ -128,11 +128,26 @@ For each, read subtitle text and check against these A1 lessons:
 - lesson-12-basic-vocabulary: Mentions colors, family members, or body parts
 - lesson-13-simple-commands: Has imperative verbs: "Come here" / "Look at" / "Don't + verb"
 
-A clip can match multiple lessons. For each match:
-1. Link clip to lesson: sqlite3 ${DB_PATH} "INSERT OR IGNORE INTO clip_structures (clip_id, lesson_id) VALUES (<clip_id>, '<lesson_id>')"
-2. For each subtitle line that matches the lesson pattern, save as targeted: sqlite3 ${DB_PATH} "INSERT OR IGNORE INTO targeted_lines (clip_id, lesson_id, line_id) VALUES (<clip_id>, '<lesson_id>', <line_id>)"
-3. IMPORTANT - Auto-trim the clip: set start_time = earliest targeted line start_time - 30 seconds (min 0), end_time = latest targeted line end_time + 30 seconds. This creates a 30-second window around the targeted sentences.
-   sqlite3 ${DB_PATH} "UPDATE clips SET start_time = <new_start>, end_time = <new_end> WHERE id = <clip_id>"
+IMPORTANT: Each lesson gets its OWN separate clip. Do NOT share one clip across multiple lessons.
+
+For each lesson match:
+1. Create a NEW clip for this specific lesson:
+   sqlite3 ${DB_PATH} "INSERT INTO clips (video_id, start_time, end_time, status) VALUES ('<video_id>', 0, 9999, 'approved')"
+   Get the new clip ID: sqlite3 ${DB_PATH} "SELECT last_insert_rowid()"
+2. Copy subtitle lines from the original clip to the new clip:
+   sqlite3 ${DB_PATH} "INSERT INTO subtitle_lines (clip_id, line_index, speaker, text, start_time, end_time) SELECT <new_clip_id>, line_index, speaker, text, start_time, end_time FROM subtitle_lines WHERE clip_id = <original_clip_id>"
+3. Link new clip to lesson:
+   sqlite3 ${DB_PATH} "INSERT OR IGNORE INTO clip_structures (clip_id, lesson_id) VALUES (<new_clip_id>, '<lesson_id>')"
+4. For each subtitle line that matches the lesson pattern, find the NEW line ID and save as targeted:
+   sqlite3 ${DB_PATH} "INSERT OR IGNORE INTO targeted_lines (clip_id, lesson_id, line_id) VALUES (<new_clip_id>, '<lesson_id>', <new_line_id>)"
+5. CRITICAL - Auto-trim: set start_time = earliest targeted line start_time - 30 seconds (min 0), end_time = latest targeted line end_time + 30 seconds:
+   sqlite3 ${DB_PATH} "UPDATE clips SET start_time = MAX(0, (SELECT MIN(sl.start_time) FROM targeted_lines tl JOIN subtitle_lines sl ON sl.id = tl.line_id WHERE tl.clip_id = <new_clip_id>) - 30), end_time = (SELECT MAX(sl.end_time) FROM targeted_lines tl JOIN subtitle_lines sl ON sl.id = tl.line_id WHERE tl.clip_id = <new_clip_id>) + 30 WHERE id = <new_clip_id>"
+6. If no targeted lines were found for this lesson, DELETE the new clip and do NOT link it.
+
+RULES that must NEVER be violated:
+- Every assigned clip MUST have at least one targeted line
+- Every clip's bounds MUST be: start = earliest_target - 30s, end = latest_target + 30s
+- One clip = one lesson. Never share a clip across multiple lessons.
 
 Update progress after each clip.
 
