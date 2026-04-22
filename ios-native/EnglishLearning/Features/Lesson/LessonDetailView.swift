@@ -173,7 +173,7 @@ struct LessonDetailView: View {
         )
     }
 
-    // MARK: - Subtask stepper — connecting line fixed
+    // MARK: - Subtask stepper
 
     private var subtaskStepper: some View {
         let p = appState.subProgress(for: lessonId)
@@ -185,32 +185,26 @@ struct LessonDetailView: View {
         ]
         let currentTask = nextSubTask(p)
 
-        return VStack(spacing: 8) {
-            ZStack(alignment: .top) {
-                // Connecting line — positioned to sit behind the circles
-                HStack(spacing: 0) {
-                    ForEach(0..<(steps.count - 1), id: \.self) { i in
-                        Rectangle()
-                            .fill(connectorColor(forIndex: i, steps: steps, p: p))
-                            .frame(height: 2)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.horizontal, 22)
-                .padding(.top, 19)
+        // Row built with 4 equal steps + 3 connectors between them.
+        return HStack(spacing: 0) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { idx, step in
+                let done = isDone(step.0, p)
+                let active = step.0 == currentTask
 
-                HStack(spacing: 0) {
-                    ForEach(Array(steps.enumerated()), id: \.offset) { _, step in
-                        let done = isDone(step.0, p)
-                        let active = step.0 == currentTask
-                        VStack(spacing: 8) {
-                            stepCircle(icon: step.2, done: done, active: active)
-                            Text(step.1)
-                                .font(.system(size: 11, weight: active ? .bold : .semibold))
-                                .foregroundStyle(active ? Theme.Color.textPrimary : Theme.Color.textMuted)
-                        }
+                VStack(spacing: 8) {
+                    stepCircle(icon: step.2, done: done, active: active)
+                    Text(step.1)
+                        .font(.system(size: 11, weight: active ? .semibold : .medium))
+                        .foregroundStyle(active ? Theme.Color.textPrimary : Theme.Color.textMuted)
+                }
+                .frame(maxWidth: .infinity)
+
+                if idx < steps.count - 1 {
+                    Rectangle()
+                        .fill(connectorColor(forIndex: idx, steps: steps, p: p))
+                        .frame(height: 1.5)
                         .frame(maxWidth: .infinity)
-                    }
+                        .padding(.bottom, 22) // Align line with circle centers (34/2 = 17, plus padding)
                 }
             }
         }
@@ -225,30 +219,30 @@ struct LessonDetailView: View {
 
     private func stepCircle(icon: String, done: Bool, active: Bool) -> some View {
         ZStack {
-            Circle().fill(Theme.Color.background)
-            Circle()
-                .strokeBorder(
-                    done ? Theme.Color.success :
-                    active ? Theme.Color.primary : Theme.Color.border,
-                    lineWidth: 2
-                )
             if done {
                 Circle().fill(Theme.Color.success)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
             } else if active {
-                Circle().fill(Theme.Color.primary)
+                Circle()
+                    .fill(Theme.Color.primary.opacity(0.15))
+                Circle()
+                    .strokeBorder(Theme.Color.primary, lineWidth: 1.5)
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.Color.primary)
             } else {
+                Circle()
+                    .fill(Theme.Color.backgroundCard)
+                Circle()
+                    .strokeBorder(Theme.Color.border, lineWidth: 1)
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Theme.Color.textMuted)
             }
         }
-        .frame(width: 38, height: 38)
+        .frame(width: 34, height: 34)
     }
 
     private func isDone(_ task: SubTask, _ p: LessonProgress) -> Bool {
@@ -456,74 +450,136 @@ struct SectionCardHeader: View {
 
 struct VocabSectionCard: View {
     let section: VocabSection
+    @State private var expandedWords: Set<String> = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionCardHeader(
-                icon: "character.book.closed.fill",
-                iconColor: Theme.Color.accent,
-                title: section.title,
-                subtitle: section.titleTr
-            )
-            VStack(spacing: 8) {
-                ForEach(section.words) { w in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(w.word)
-                                .font(Theme.Font.headline(17, weight: .semibold))
-                                .foregroundStyle(Theme.Color.textPrimary)
-                            if let ipa = w.ipa, !ipa.isEmpty {
-                                Text(ipa)
-                                    .font(Theme.Font.mono(12))
-                                    .foregroundStyle(Theme.Color.textMuted)
-                            }
-                            Spacer()
-                            Text(w.translation)
-                                .font(Theme.Font.body(14, weight: .medium))
-                                .foregroundStyle(Theme.Color.textSecondary)
-                                .lineLimit(1)
-                        }
-                        if !w.example.isEmpty {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(w.example)
-                                    .font(Theme.Font.body(13))
-                                    .foregroundStyle(Theme.Color.textPrimary.opacity(0.85))
-                                    .italic()
-                                Text(w.exampleTr)
-                                    .font(Theme.Font.body(12))
-                                    .foregroundStyle(Theme.Color.textMuted)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                SectionCardHeader(
+                    icon: "character.book.closed",
+                    iconColor: Theme.Color.accent,
+                    title: section.title,
+                    subtitle: section.titleTr
+                )
+                Spacer(minLength: 0)
+                Text("\(section.words.count)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textMuted)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.Color.backgroundElevated))
+                    .overlay(Capsule().strokeBorder(Theme.Color.border, lineWidth: 0.5))
+            }
+            VStack(spacing: 1) {
+                ForEach(Array(section.words.enumerated()), id: \.element.id) { idx, w in
+                    VocabWordRowProfessional(
+                        word: w,
+                        expanded: expandedWords.contains(w.word),
+                        isFirst: idx == 0,
+                        isLast: idx == section.words.count - 1,
+                        onTap: {
+                            Haptics.selection()
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                if expandedWords.contains(w.word) {
+                                    expandedWords.remove(w.word)
+                                } else {
+                                    expandedWords.insert(w.word)
+                                }
                             }
                         }
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Theme.Color.backgroundElevated)
                     )
                 }
             }
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Theme.Color.backgroundElevated)
+            )
         }
         .professionalCard()
     }
 }
 
-struct RuleSectionCard: View {
-    let section: RuleSection
+struct VocabWordRowProfessional: View {
+    let word: VocabSection.VocabWordItem
+    let expanded: Bool
+    let isFirst: Bool
+    let isLast: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 0) {
+            Button(action: onTap) {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(word.word)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.Color.textPrimary)
+                            if let ipa = word.ipa, !ipa.isEmpty {
+                                Text(ipa)
+                                    .font(Theme.Font.mono(11))
+                                    .foregroundStyle(Theme.Color.textMuted)
+                            }
+                        }
+                        Text(word.translation)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.Color.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.Color.textMuted)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.pressable(scale: 0.99))
+
+            if expanded, !word.example.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(word.example)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.Color.textPrimary.opacity(0.9))
+                    Text(word.exampleTr)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.Color.textMuted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+            }
+
+            if !isLast {
+                Divider()
+                    .background(Theme.Color.border.opacity(0.6))
+                    .padding(.leading, 14)
+            }
+        }
+    }
+}
+
+struct RuleSectionCard: View {
+    let section: RuleSection
+    @State private var showTranslation: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
             SectionCardHeader(
-                icon: "text.alignleft",
+                icon: "book.closed",
                 iconColor: Theme.Color.warning,
                 title: section.title,
                 subtitle: section.titleTr
             )
+
             if let pattern = section.pattern, !pattern.isEmpty {
-                HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "function")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.Color.accent)
                     Text(pattern)
                         .font(Theme.Font.mono(13, weight: .semibold))
-                        .foregroundStyle(Theme.Color.accent)
+                        .foregroundStyle(Theme.Color.textPrimary)
                     Spacer()
                 }
                 .padding(10)
@@ -532,45 +588,93 @@ struct RuleSectionCard: View {
                         .fill(Theme.Color.accentSoft)
                 )
             }
-            VStack(alignment: .leading, spacing: 8) {
+
+            // Explanation — English + Turkish toggle
+            VStack(alignment: .leading, spacing: 10) {
                 Text(section.explanation)
-                    .font(Theme.Font.body(14))
+                    .font(.system(size: 14))
                     .foregroundStyle(Theme.Color.textPrimary)
-                    .lineSpacing(3)
-                if !section.explanationTr.isEmpty {
+                    .lineSpacing(4)
+
+                if showTranslation && !section.explanationTr.isEmpty {
                     Text(section.explanationTr)
-                        .font(Theme.Font.body(13))
+                        .font(.system(size: 13))
                         .foregroundStyle(Theme.Color.textMuted)
-                        .lineSpacing(3)
+                        .lineSpacing(4)
                 }
             }
+
+            // Examples
             if !section.examples.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("EXAMPLES")
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(1.2)
-                        .foregroundStyle(Theme.Color.textMuted)
-                    ForEach(section.examples) { ex in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(ex.en)
-                                .font(Theme.Font.body(14))
-                                .foregroundStyle(Theme.Color.textPrimary)
-                            Text(ex.tr)
-                                .font(Theme.Font.body(13))
-                                .foregroundStyle(Theme.Color.textMuted)
+                    HStack {
+                        Text("EXAMPLES")
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(1.2)
+                            .foregroundStyle(Theme.Color.textMuted)
+                        Spacer()
+                        Button {
+                            Haptics.selection()
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                showTranslation.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: showTranslation ? "eye.slash" : "eye")
+                                    .font(.system(size: 10, weight: .semibold))
+                                Text(showTranslation ? "Hide TR" : "Show TR")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundStyle(Theme.Color.textMuted)
                         }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Theme.Color.backgroundElevated)
-                        )
                     }
+                    VStack(spacing: 1) {
+                        ForEach(Array(section.examples.enumerated()), id: \.offset) { idx, ex in
+                            VStack(alignment: .leading, spacing: 3) {
+                                // Highlighted English sentence
+                                Text(highlightedText(ex.en, highlight: ex.highlight))
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Theme.Color.textPrimary)
+                                if showTranslation {
+                                    Text(ex.tr)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Theme.Color.textMuted)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                idx == 0 && idx == section.examples.count - 1
+                                    ? RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.Color.backgroundElevated)
+                                    : (idx == 0
+                                       ? RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.Color.backgroundElevated)
+                                       : (idx == section.examples.count - 1
+                                          ? RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.Color.backgroundElevated)
+                                          : RoundedRectangle(cornerRadius: 0, style: .continuous).fill(Theme.Color.backgroundElevated))
+                                      )
+                            )
+                            if idx < section.examples.count - 1 {
+                                Divider()
+                                    .background(Theme.Color.border.opacity(0.6))
+                                    .padding(.leading, 12)
+                            }
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .padding(.top, 2)
             }
         }
         .professionalCard()
+    }
+
+    private func highlightedText(_ text: String, highlight: String?) -> AttributedString {
+        var out = AttributedString(text)
+        if let h = highlight, !h.isEmpty, let range = out.range(of: h) {
+            out[range].foregroundColor = Theme.Color.accent
+            out[range].font = .system(size: 14, weight: .semibold)
+        }
+        return out
     }
 }
 
@@ -601,56 +705,65 @@ struct TipSectionCard: View {
 
 struct DialogueSectionCard: View {
     let section: DialogueSection
+
+    // Assign each unique speaker a consistent color within the dialogue
+    private var speakerColorMap: [String: Color] {
+        var map: [String: Color] = [:]
+        let palette: [Color] = [Theme.Color.primary, Theme.Color.accent,
+                                Theme.Color.warning, Theme.Color.success]
+        var idx = 0
+        for line in section.lines where map[line.speaker] == nil {
+            map[line.speaker] = palette[idx % palette.count]
+            idx += 1
+        }
+        return map
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             SectionCardHeader(
-                icon: "bubble.left.and.bubble.right.fill",
+                icon: "text.bubble",
                 iconColor: Theme.Color.levelElementary,
                 title: section.title,
-                subtitle: nil
+                subtitle: "Conversation"
             )
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(section.lines.enumerated()), id: \.offset) { idx, line in
+                    let color = speakerColorMap[line.speaker] ?? Theme.Color.primary
+                    // Alternate left/right alignment like chat
+                    let isRight = idx % 2 == 1
                     HStack(alignment: .top, spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(speakerColor(line.speaker, idx: idx).opacity(0.18))
-                            Text(String(line.speaker.prefix(1)).uppercased())
-                                .font(.system(size: 11, weight: .heavy))
-                                .foregroundStyle(speakerColor(line.speaker, idx: idx))
+                        if isRight { Spacer(minLength: 24) }
+                        VStack(alignment: isRight ? .trailing : .leading, spacing: 5) {
+                            Text(line.speaker.uppercased())
+                                .font(.system(size: 9, weight: .heavy))
+                                .tracking(0.8)
+                                .foregroundStyle(color)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(line.text)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Theme.Color.textPrimary)
+                                Text(line.translation)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.Color.textMuted)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Theme.Color.backgroundElevated)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(color.opacity(0.18), lineWidth: 1)
+                            )
                         }
-                        .frame(width: 28, height: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(line.speaker)
-                                .font(.system(size: 10, weight: .heavy))
-                                .tracking(0.6)
-                                .foregroundStyle(speakerColor(line.speaker, idx: idx))
-                            Text(line.text)
-                                .font(Theme.Font.body(14))
-                                .foregroundStyle(Theme.Color.textPrimary)
-                            Text(line.translation)
-                                .font(Theme.Font.body(12))
-                                .foregroundStyle(Theme.Color.textMuted)
-                        }
-                        Spacer(minLength: 0)
+                        if !isRight { Spacer(minLength: 24) }
                     }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Theme.Color.backgroundElevated)
-                    )
                 }
             }
         }
         .professionalCard()
-    }
-
-    private func speakerColor(_ s: String, idx: Int) -> Color {
-        let palette: [Color] = [Theme.Color.primary, Theme.Color.accent,
-                                Theme.Color.warning, Theme.Color.success, Theme.Color.levelUpper]
-        let hash = abs(s.hashValue) &+ idx
-        return palette[hash % palette.count]
     }
 }
 
@@ -662,19 +775,39 @@ struct ExerciseSectionCard: View {
     @State private var revealed: [Int: Bool] = [:]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionCardHeader(
-                icon: "checkmark.circle",
-                iconColor: Theme.Color.success,
-                title: section.title,
-                subtitle: nil
-            )
-            VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                SectionCardHeader(
+                    icon: "checklist",
+                    iconColor: Theme.Color.success,
+                    title: section.title,
+                    subtitle: "Practice"
+                )
+                Spacer(minLength: 0)
+                Text("\(revealed.values.filter { $0 }.count)/\(section.items.count)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textMuted)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.Color.backgroundElevated))
+                    .overlay(Capsule().strokeBorder(Theme.Color.border, lineWidth: 0.5))
+            }
+            VStack(spacing: 10) {
                 ForEach(Array(section.items.enumerated()), id: \.offset) { idx, item in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(item.question)
-                            .font(Theme.Font.body(14, weight: .medium))
-                            .foregroundStyle(Theme.Color.textPrimary)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("\(idx + 1)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Theme.Color.textMuted)
+                                .frame(width: 20, height: 20)
+                                .background(Circle().fill(Theme.Color.backgroundElevated))
+                                .overlay(Circle().strokeBorder(Theme.Color.border, lineWidth: 1))
+                            Text(item.question)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Theme.Color.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                        }
                         VStack(spacing: 6) {
                             ForEach(Array(item.options.enumerated()), id: \.offset) { optIdx, opt in
                                 optionRow(item: item, optionIdx: optIdx, option: opt, itemIdx: idx)

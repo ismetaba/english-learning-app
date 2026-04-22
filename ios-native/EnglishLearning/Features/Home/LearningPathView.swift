@@ -1,6 +1,16 @@
 import SwiftUI
 
-// MARK: - Winding learning path (Duolingo-style road)
+// MARK: - Refined learning path
+//
+// Visual language:
+//   • One quiet accent color (the unit color), desaturated on most surfaces.
+//   • Node ring uses the accent; the interior is the app background for locked,
+//     the accent-soft for available, and full accent for completed.
+//   • The road is a single 3-pt curved line. Completed segments are full accent;
+//     the currently-unlocked segment is a faint accent; locked segments are a
+//     subtle 1-pt dashed stroke.
+//   • No pulsing halos, 3D highlights, or "START" pills. The active node has a
+//     thin outer ring and a small dot indicator below the title.
 
 struct LearningPathView: View {
     let unit: CurriculumUnit
@@ -9,28 +19,25 @@ struct LearningPathView: View {
     var subProgress: (String) -> LessonProgress
     var onTap: (CurriculumLesson) -> Void
 
-    // Node spacing (y distance between successive lessons)
-    private let nodeSpacing: CGFloat = 118
-    private let amplitude: CGFloat = 78  // horizontal sway
-    private let nodeSize: CGFloat = 78
+    private let nodeSpacing: CGFloat = 108
+    private let amplitude: CGFloat = 64
+    private let nodeSize: CGFloat = 60
 
     var body: some View {
         let unitColor = Theme.Color.fromHex(unit.color, fallback: Theme.Color.forCEFR(unit.cefrLevel))
         let nodes = buildNodes(unitColor: unitColor)
-        let totalHeight = CGFloat(unit.lessons.count) * nodeSpacing + 40
+        let totalHeight = max(CGFloat(unit.lessons.count), 1) * nodeSpacing + 30
 
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             UnitBanner(unit: unit, orderIndex: orderIndex,
                        unitColor: unitColor,
                        doneCount: completedCount(),
                        totalCount: unit.lessons.count)
 
             ZStack(alignment: .top) {
-                // Curved connecting road in the background
                 PathRoad(nodes: nodes, color: unitColor)
                     .frame(height: totalHeight)
 
-                // Nodes on top
                 ForEach(Array(nodes.enumerated()), id: \.element.lesson.id) { idx, node in
                     PathNode(
                         lesson: node.lesson,
@@ -52,17 +59,16 @@ struct LearningPathView: View {
         unit.lessons.filter { stage($0.id) == .mastered }.count
     }
 
-    // Build node metadata (position + state)
     private func buildNodes(unitColor: Color) -> [PathNodeData] {
         var nodes: [PathNodeData] = []
         let centerX: CGFloat = UIScreen.main.bounds.width / 2
         var foundCurrent = false
 
         for (idx, lesson) in unit.lessons.enumerated() {
-            // Zigzag offset: 0, +amp, 0, -amp pattern via sine wave
-            let phase = Double(idx) * .pi / 2.2
+            // Smoother sine-wave zigzag: swap side every node
+            let phase = Double(idx) * .pi / 2.4
             let offset = sin(phase) * amplitude
-            let y = CGFloat(idx) * nodeSpacing + nodeSize / 2 + 16
+            let y = CGFloat(idx) * nodeSpacing + nodeSize / 2 + 12
 
             let lessonStage = stage(lesson.id)
             let state: PathNodeData.State = {
@@ -97,7 +103,7 @@ struct PathNodeData {
     let isCurrent: Bool
 }
 
-// MARK: - The road itself
+// MARK: - The road (curved segments)
 
 struct PathRoad: View {
     let nodes: [PathNodeData]
@@ -106,36 +112,16 @@ struct PathRoad: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Locked/unlocked segments drawn individually so we can style by state
-                ForEach(Array(segments().enumerated()), id: \.offset) { idx, seg in
+                ForEach(Array(segments().enumerated()), id: \.offset) { _, seg in
                     segmentPath(from: seg.start, to: seg.end, control: seg.control)
                         .stroke(
-                            strokeStyle(for: seg.state),
+                            strokeColor(for: seg.state),
                             style: StrokeStyle(
-                                lineWidth: 12,
+                                lineWidth: seg.state == .locked ? 1.5 : 3,
                                 lineCap: .round,
-                                dash: seg.state == .locked ? [6, 12] : []
+                                dash: seg.state == .locked ? [4, 7] : []
                             )
                         )
-
-                    // Shadow glow for completed segments
-                    if seg.state == .completed {
-                        segmentPath(from: seg.start, to: seg.end, control: seg.control)
-                            .stroke(color.opacity(0.35), style: StrokeStyle(lineWidth: 22, lineCap: .round))
-                            .blur(radius: 14)
-                    }
-
-                    // Inner highlight for available segments
-                    if seg.state == .available {
-                        segmentPath(from: seg.start, to: seg.end, control: seg.control)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [color.opacity(0.9), color.opacity(0.3)],
-                                    startPoint: .top, endPoint: .bottom
-                                ),
-                                style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                            )
-                    }
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -149,23 +135,11 @@ struct PathRoad: View {
         return p
     }
 
-    private func strokeStyle(for state: PathSegment.State) -> LinearGradient {
+    private func strokeColor(for state: PathSegment.State) -> Color {
         switch state {
-        case .completed:
-            return LinearGradient(
-                colors: [color, color.opacity(0.7)],
-                startPoint: .top, endPoint: .bottom
-            )
-        case .available:
-            return LinearGradient(
-                colors: [color.opacity(0.45), color.opacity(0.25)],
-                startPoint: .top, endPoint: .bottom
-            )
-        case .locked:
-            return LinearGradient(
-                colors: [Theme.Color.border, Theme.Color.borderLight],
-                startPoint: .top, endPoint: .bottom
-            )
+        case .completed: return color.opacity(0.7)
+        case .available: return color.opacity(0.35)
+        case .locked:    return Theme.Color.border
         }
     }
 
@@ -183,14 +157,14 @@ struct PathRoad: View {
         for i in 0..<(nodes.count - 1) {
             let a = nodes[i], b = nodes[i + 1]
             let midY = (a.y + b.y) / 2
-            // Control point offset outward to make curvy road
             let controlX = (a.x + b.x) / 2
-            let controlOffset: CGFloat = (a.x > b.x) ? -60 : 60
-            let control = CGPoint(x: controlX + controlOffset, y: midY)
+            // Pull control point slightly outward for a gentle S-curve
+            let dir: CGFloat = (b.x - a.x) < 0 ? -1 : 1
+            let control = CGPoint(x: controlX + dir * 24, y: midY)
 
             let state: PathSegment.State = {
                 if a.state == .completed && b.state == .completed { return .completed }
-                if a.state == .completed && b.state == .available { return .available }
+                if a.state == .completed { return .available }
                 if b.state == .locked { return .locked }
                 return .available
             }()
@@ -206,7 +180,7 @@ struct PathRoad: View {
     }
 }
 
-// MARK: - Path node (the big round icon button)
+// MARK: - Path node
 
 struct PathNode: View {
     let lesson: CurriculumLesson
@@ -217,92 +191,44 @@ struct PathNode: View {
     let progress: LessonProgress
     let onTap: () -> Void
 
-    @State private var pulse: CGFloat = 1.0
-    @State private var hovered = false
-
     var body: some View {
         Button {
             guard state != .locked else { return }
             Haptics.medium()
             onTap()
         } label: {
-            VStack(spacing: 8) {
-                nodeCircle
+            VStack(spacing: 6) {
+                circle
                 label
             }
         }
-        .buttonStyle(.pressable(scale: 0.92))
+        .buttonStyle(.pressable(scale: 0.94))
         .disabled(state == .locked)
         .frame(width: 150)
-        .onAppear {
-            if isCurrent {
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                    pulse = 1.12
-                }
-            }
-        }
     }
 
-    // MARK: - Node circle
+    // MARK: - Circle
 
     @ViewBuilder
-    private var nodeCircle: some View {
+    private var circle: some View {
         ZStack {
-            // Outer rings for current / available states
-            if state != .locked {
-                // Outermost pulsing halo (only for current)
-                if isCurrent {
-                    Circle()
-                        .stroke(color.opacity(0.35), lineWidth: 4)
-                        .frame(width: 96, height: 96)
-                        .scaleEffect(pulse)
-                        .blur(radius: 1.5)
-                    Circle()
-                        .fill(color.opacity(0.18))
-                        .frame(width: 110, height: 110)
-                        .scaleEffect(pulse)
-                        .blur(radius: 8)
-                }
-                // Subtle static ring
+            // Outer ring for current node — subtle, static
+            if isCurrent {
                 Circle()
-                    .stroke(color.opacity(state == .completed ? 0.35 : 0.25), lineWidth: 4)
-                    .frame(width: 92, height: 92)
+                    .strokeBorder(color.opacity(0.25), lineWidth: 1)
+                    .frame(width: 76, height: 76)
             }
 
             // Main circle
             ZStack {
-                // Background gradient
+                Circle().fill(interiorFill)
                 Circle()
-                    .fill(backgroundFill)
-
-                // Top highlight — gives 3D sheen
-                Circle()
-                    .stroke(
-                        LinearGradient(
-                            colors: [.white.opacity(topHighlightOpacity), .clear],
-                            startPoint: .top, endPoint: .center
-                        ),
-                        lineWidth: 3
-                    )
-                    .blendMode(.overlay)
-
-                // Bottom shadow lip
-                Circle()
-                    .stroke(
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.4)],
-                            startPoint: .center, endPoint: .bottom
-                        ),
-                        lineWidth: 3
-                    )
-
+                    .strokeBorder(borderColor, lineWidth: borderWidth)
                 icon
             }
-            .frame(width: 78, height: 78)
-            .shadow(color: shadowColor, radius: 12, x: 0, y: 6)
-            .offset(y: isCurrent ? -2 : 0)
+            .frame(width: circleSize, height: circleSize)
         }
-        .frame(width: 110, height: 110)
+        .frame(height: 76)
     }
 
     @ViewBuilder
@@ -310,113 +236,106 @@ struct PathNode: View {
         switch state {
         case .locked:
             Image(systemName: "lock.fill")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.Color.textDisabled)
         case .completed:
             Image(systemName: "checkmark")
-                .font(.system(size: 32, weight: .heavy))
+                .font(.system(size: 22, weight: .heavy))
                 .foregroundStyle(.white)
         case .available:
             Image(systemName: iconName)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(isCurrent ? .white : color)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(iconColor)
         }
     }
 
     private var iconName: String {
         switch lesson.lessonType.lowercased() {
-        case "grammar", "structure": return "book.closed.fill"
-        case "vocab": return "character.book.closed.fill"
-        case "scene": return "film.fill"
-        case "review": return "star.fill"
-        default: return "sparkles"
+        case "grammar", "structure": return "book.closed"
+        case "vocab": return "character.book.closed"
+        case "scene": return "film"
+        case "review": return "star"
+        default: return "text.book.closed"
         }
     }
 
-    private var backgroundFill: AnyShapeStyle {
+    // MARK: - State-dependent styling
+
+    private var circleSize: CGFloat {
+        state == .locked ? 44 : 60
+    }
+
+    private var interiorFill: Color {
         switch state {
-        case .locked:
-            return AnyShapeStyle(
-                LinearGradient(colors: [Theme.Color.backgroundSurface, Theme.Color.backgroundCard],
-                               startPoint: .top, endPoint: .bottom)
-            )
-        case .completed:
-            return AnyShapeStyle(
-                LinearGradient(colors: [color, color.opacity(0.75)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-            )
-        case .available:
-            if isCurrent {
-                return AnyShapeStyle(
-                    LinearGradient(colors: [color, color.opacity(0.8)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-            } else {
-                return AnyShapeStyle(
-                    LinearGradient(colors: [Theme.Color.backgroundElevated, Theme.Color.backgroundCard],
-                                   startPoint: .top, endPoint: .bottom)
-                )
-            }
+        case .locked: return Theme.Color.backgroundCard
+        case .completed: return color
+        case .available: return isCurrent ? color.opacity(0.12) : Theme.Color.backgroundCard
         }
     }
 
-    private var topHighlightOpacity: Double {
+    private var borderColor: Color {
         switch state {
-        case .locked: return 0.08
-        case .available: return isCurrent ? 0.45 : 0.2
-        case .completed: return 0.45
+        case .locked: return Theme.Color.border
+        case .completed: return color.opacity(0.4)
+        case .available: return isCurrent ? color : color.opacity(0.4)
         }
     }
 
-    private var shadowColor: Color {
+    private var borderWidth: CGFloat {
         switch state {
-        case .locked: return .black.opacity(0.3)
-        case .available: return isCurrent ? color.opacity(0.55) : color.opacity(0.25)
-        case .completed: return color.opacity(0.45)
+        case .completed: return 0
+        case .available: return isCurrent ? 2 : 1.5
+        case .locked: return 1
         }
     }
 
-    // MARK: - Label below node
+    private var iconColor: Color {
+        isCurrent ? color : color.opacity(0.85)
+    }
+
+    // MARK: - Label
 
     @ViewBuilder
     private var label: some View {
-        VStack(spacing: 4) {
-            if isCurrent {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: 10, weight: .bold))
-                    Text("START")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .tracking(0.9)
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3)
-                .background(
-                    Capsule().fill(color).shadow(color: color.opacity(0.5), radius: 6, y: 2)
-                )
-                .offset(y: -2)
-            }
+        VStack(spacing: 3) {
             Text(lesson.displayTitle)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(titleColor)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 4)
+
+            if isCurrent {
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 4, height: 4)
+                    Text("CURRENT")
+                        .font(.system(size: 8, weight: .heavy))
+                        .tracking(0.8)
+                        .foregroundStyle(color)
+                }
+                .padding(.top, 1)
+            } else if state == .completed {
+                Text("COMPLETED")
+                    .font(.system(size: 8, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundStyle(Theme.Color.textMuted)
+            }
         }
     }
 
     private var titleColor: Color {
         switch state {
         case .locked: return Theme.Color.textMuted
-        case .available: return Theme.Color.textPrimary
+        case .available: return isCurrent ? Theme.Color.textPrimary : Theme.Color.textSecondary
         case .completed: return Theme.Color.textSecondary
         }
     }
 }
 
-// MARK: - Unit banner
+// MARK: - Unit banner (unchanged from last refinement)
 
 struct UnitBanner: View {
     let unit: CurriculumUnit
@@ -427,7 +346,6 @@ struct UnitBanner: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            // Unit number badge
             ZStack {
                 RoundedRectangle(cornerRadius: 11, style: .continuous)
                     .fill(unitColor.opacity(0.16))
