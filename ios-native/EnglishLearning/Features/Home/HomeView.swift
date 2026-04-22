@@ -93,18 +93,16 @@ struct HomeView: View {
     // MARK: - Hero header (greeting + stats)
 
     private var heroHeader: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(appState.t.t(appState.greetingKey))
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.Color.textSecondary)
-                    Text("Your journey ")
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                    Text("Your journey")
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(Theme.Color.textPrimary)
                         .tracking(-0.5)
-                    + Text("✨")
-                        .font(.system(size: 28))
                 }
                 Spacer()
                 AvatarBadge(level: appState.levelInfo.level)
@@ -179,33 +177,18 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Background ambience
+// MARK: - Background ambience — subtle, not gaudy
 
 struct BackgroundAmbience: View {
     var body: some View {
         ZStack {
             Theme.Color.background
-
-            // Top-left violet glow
+            // Single soft violet haze — provides depth without drawing attention
             Circle()
-                .fill(Theme.Color.primary.opacity(0.22))
+                .fill(Theme.Color.primary.opacity(0.08))
                 .blur(radius: 120)
                 .frame(width: 360, height: 360)
-                .offset(x: -160, y: -260)
-
-            // Right cyan glow
-            Circle()
-                .fill(Theme.Color.accent.opacity(0.15))
-                .blur(radius: 110)
-                .frame(width: 280, height: 280)
-                .offset(x: 170, y: -40)
-
-            // Bottom pink glow
-            Circle()
-                .fill(Theme.Color.levelUpper.opacity(0.1))
-                .blur(radius: 100)
-                .frame(width: 300, height: 300)
-                .offset(x: -100, y: 380)
+                .offset(x: -120, y: -220)
         }
         .ignoresSafeArea()
     }
@@ -219,24 +202,20 @@ struct AvatarBadge: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Theme.Gradient.heroPrimary)
+                .fill(Theme.Color.backgroundElevated)
             Circle()
-                .stroke(LinearGradient(
-                    colors: [.white.opacity(0.35), .white.opacity(0.05)],
-                    startPoint: .top, endPoint: .bottom
-                ), lineWidth: 1.5)
-            VStack(spacing: -2) {
+                .stroke(Theme.Color.primary.opacity(0.4), lineWidth: 1.5)
+            VStack(spacing: -1) {
                 Text("LVL")
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .tracking(0.6)
+                    .font(.system(size: 8, weight: .heavy))
+                    .tracking(0.8)
+                    .foregroundStyle(Theme.Color.textMuted)
                 Text("\(level)")
-                    .font(.system(size: 18, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Theme.Color.primary)
             }
         }
-        .frame(width: 48, height: 48)
-        .shadow(color: Theme.Color.primary.opacity(0.45), radius: 12, y: 4)
+        .frame(width: 46, height: 46)
     }
 }
 
@@ -278,45 +257,31 @@ struct StatBubble: View {
     var glow: Bool = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.2))
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(color)
-            }
-            .frame(width: 30, height: 30)
-            VStack(alignment: .leading, spacing: -1) {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 0) {
                 Text(value)
-                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.Color.textPrimary)
                 Text(label)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.Color.textMuted)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial.opacity(0.5))
-        )
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.Color.backgroundCard.opacity(0.7))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.Color.backgroundCard)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [color.opacity(glow ? 0.35 : 0.15), .clear],
-                        startPoint: .top, endPoint: .bottom
-                    ),
-                    lineWidth: 1
-                )
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Theme.Color.border, lineWidth: 1)
         )
     }
 }
@@ -324,48 +289,40 @@ struct StatBubble: View {
 struct LevelBubble: View {
     let info: Levels.Info
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.Color.primarySoft)
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Theme.Color.primary)
-                }
-                .frame(width: 30, height: 30)
-                VStack(alignment: .leading, spacing: -1) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.Color.primary)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 0) {
                     Text(info.name)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Theme.Color.textPrimary)
                         .lineLimit(1)
-                    Text("lvl \(info.level) · \(Int(info.percent))%")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    Text("Level \(info.level) · \(Int(info.percent))%")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Theme.Color.textMuted)
                 }
                 Spacer(minLength: 0)
             }
             ProgressBar(percent: info.percent, height: 5, color: Theme.Color.primary)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial.opacity(0.5))
-        )
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.Color.backgroundCard.opacity(0.7))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.Color.backgroundCard)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Theme.Color.primaryGlow, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Theme.Color.border, lineWidth: 1)
         )
     }
 }
 
-// MARK: - Continue learning card (big, cinematic)
+// MARK: - Continue learning card
 
 struct ContinueLearningCard: View {
     @EnvironmentObject var appState: AppState
@@ -377,105 +334,64 @@ struct ContinueLearningCard: View {
     var body: some View {
         let unitColor = Theme.Color.fromHex(unit.color, fallback: Theme.Color.forCEFR(unit.cefrLevel))
         Button(action: { Haptics.medium(); onTap() }) {
-            ZStack(alignment: .bottomLeading) {
-                // Background layers
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(Theme.Color.backgroundElevated)
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(LinearGradient(
-                        colors: [unitColor.opacity(0.4), unitColor.opacity(0.1)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ))
+            HStack(alignment: .center, spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(unitColor.opacity(0.18))
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(unitColor)
+                }
+                .frame(width: 52, height: 52)
 
-                // Decorative blobs
-                Circle()
-                    .fill(unitColor.opacity(0.35))
-                    .blur(radius: 45)
-                    .frame(width: 200, height: 200)
-                    .offset(x: 150, y: -60)
-                Circle()
-                    .fill(Theme.Color.primary.opacity(0.2))
-                    .blur(radius: 35)
-                    .frame(width: 150, height: 150)
-                    .offset(x: -60, y: 80)
-
-                // Content
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        tagPill(text: "CONTINUE")
-                        tagPill(text: unit.cefrLevel.uppercased(), fill: unitColor)
+                        Text("CONTINUE")
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(1.2)
+                            .foregroundStyle(Theme.Color.textMuted)
+                        Text("·")
+                            .foregroundStyle(Theme.Color.textMuted)
+                        Text(unit.cefrLevel.uppercased())
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(1.2)
+                            .foregroundStyle(unitColor)
                     }
-
                     Text(lesson.displayTitle)
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
-                        .tracking(-0.3)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.Color.textPrimary)
                         .lineLimit(2)
-
-                    if lesson.title != lesson.displayTitle {
-                        Text(lesson.title)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.7))
-                            .lineLimit(1)
-                    }
-
-                    HStack(spacing: 12) {
+                        .multilineTextAlignment(.leading)
+                    HStack(spacing: 6) {
                         ProgressBar(
                             percent: Double(subProgress.completedCount) / 3 * 100,
-                            height: 5,
-                            color: .white,
-                            track: .white.opacity(0.2)
+                            height: 3,
+                            color: unitColor
                         )
-                        .frame(maxWidth: 100)
-
+                        .frame(width: 80)
                         Text("\(subProgress.completedCount)/3")
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.85))
-
-                        Spacer(minLength: 0)
-
-                        HStack(spacing: 6) {
-                            Text(appState.t.t("continue"))
-                                .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 11, weight: .heavy))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule()
-                                .fill(.white.opacity(0.22))
-                                .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
-                        )
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.Color.textMuted)
                     }
                 }
-                .padding(22)
-            }
-            .frame(height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .strokeBorder(.white.opacity(0.1), lineWidth: 1)
-            )
-            .shadow(color: unitColor.opacity(0.35), radius: 22, y: 10)
-        }
-        .buttonStyle(.pressable(scale: 0.97))
-    }
 
-    private func tagPill(text: String, fill: Color? = nil) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .heavy, design: .rounded))
-            .tracking(1.2)
-            .foregroundStyle(fill != nil ? .white : .white.opacity(0.9))
-            .padding(.horizontal, 9)
-            .padding(.vertical, 4)
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textMuted)
+            }
+            .padding(14)
             .background(
-                Capsule().fill(fill ?? Color.white.opacity(0.18))
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Theme.Color.backgroundCard)
             )
             .overlay(
-                Capsule().stroke(.white.opacity(0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Theme.Color.border, lineWidth: 1)
             )
+        }
+        .buttonStyle(.pressable(scale: 0.98))
     }
 }
 

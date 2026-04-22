@@ -426,62 +426,57 @@ struct UnitBanner: View {
     let totalCount: Int
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                .fill(Theme.Color.backgroundElevated)
-            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [unitColor.opacity(0.25), unitColor.opacity(0.05)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                ))
-            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                .strokeBorder(unitColor.opacity(0.4), lineWidth: 1.5)
-
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(.white.opacity(0.15))
-                    Circle()
-                        .stroke(.white.opacity(0.25), lineWidth: 1.5)
-                    Text("\(orderIndex + 1)")
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                .frame(width: 52, height: 52)
-                .shadow(color: unitColor.opacity(0.5), radius: 8, y: 3)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("UNIT \(orderIndex + 1)")
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
-                            .tracking(1.2)
-                            .foregroundStyle(.white.opacity(0.85))
-                        Text("·")
-                            .foregroundStyle(.white.opacity(0.6))
-                        Text(unit.cefrLevel.uppercased())
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
-                            .tracking(1.2)
-                            .foregroundStyle(.white.opacity(0.85))
-                    }
-                    Text(unit.displayTitle)
-                        .font(.system(size: 20, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
-                        .tracking(-0.3)
-                        .lineLimit(2)
-                }
-                Spacer(minLength: 0)
-                VStack(spacing: 2) {
-                    Text("\(doneCount)")
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
-                    Text("of \(totalCount)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
+        HStack(alignment: .center, spacing: 14) {
+            // Unit number badge
+            ZStack {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(unitColor.opacity(0.16))
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(unitColor.opacity(0.35), lineWidth: 1)
+                Text("\(orderIndex + 1)")
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .foregroundStyle(unitColor)
             }
-            .padding(18)
+            .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
+                    Text("UNIT \(orderIndex + 1)")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.Color.textMuted)
+                    Text("·")
+                        .foregroundStyle(Theme.Color.textMuted)
+                    Text(unit.cefrLevel.uppercased())
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(unitColor)
+                }
+                Text(unit.displayTitle)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                    .tracking(-0.2)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(doneCount)/\(totalCount)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                Text("lessons")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textMuted)
+            }
         }
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
-        .shadow(color: unitColor.opacity(0.3), radius: 14, y: 6)
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Theme.Color.backgroundCard)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Theme.Color.border, lineWidth: 1)
+        )
     }
 }

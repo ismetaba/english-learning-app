@@ -57,23 +57,13 @@ struct VocabView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "character.book.closed.fill")
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundStyle(Theme.Color.accent)
-                Text("WORD BANK")
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundStyle(Theme.Color.accent)
-            }
-            Text("Expand your\nvocabulary")
-                .font(.system(size: 32, weight: .heavy, design: .rounded))
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Vocabulary")
+                .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Theme.Color.textPrimary)
                 .tracking(-0.5)
-                .lineSpacing(-4)
-            Text("Smart spaced repetition remembers for you")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+            Text("Your word bank · spaced repetition")
+                .font(.system(size: 14))
                 .foregroundStyle(Theme.Color.textSecondary)
         }
         .padding(.horizontal, 20)
@@ -85,72 +75,40 @@ struct VocabView: View {
             Haptics.medium()
             showReview = true
         } label: {
-            ZStack(alignment: .bottomLeading) {
-                // Gradient background
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Theme.Color.accent.opacity(0.9), Theme.Color.levelElementary.opacity(0.7)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-
-                // Decorative blobs
-                Circle()
-                    .fill(.white.opacity(0.15))
-                    .blur(radius: 30)
-                    .frame(width: 180, height: 180)
-                    .offset(x: 150, y: -50)
-
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: 8) {
-                        ZStack {
-                            Circle().fill(.white.opacity(0.25))
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                        .frame(width: 36, height: 36)
-                        Text("DAILY REVIEW")
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
-                            .tracking(1.5)
-                            .foregroundStyle(.white.opacity(0.9))
-                    }
-                    Text("\(stats.dueToday) words due today")
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
-                        .tracking(-0.3)
-                    Text("Tap to start flashcards")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.85))
-                    HStack {
-                        Spacer()
-                        HStack(spacing: 6) {
-                            Text("Start review")
-                                .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 12, weight: .heavy))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(
-                            Capsule().fill(.white.opacity(0.25))
-                                .overlay(Capsule().stroke(.white.opacity(0.35), lineWidth: 1))
-                        )
-                    }
+            HStack(alignment: .center, spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Theme.Color.accentSoft)
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Theme.Color.accent)
                 }
-                .padding(20)
+                .frame(width: 52, height: 52)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Daily review")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                    Text("\(stats.dueToday) words due today")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.Color.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textMuted)
             }
-            .frame(height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Theme.Color.backgroundCard)
             )
-            .shadow(color: Theme.Color.accent.opacity(0.35), radius: 22, y: 10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Theme.Color.border, lineWidth: 1)
+            )
         }
-        .buttonStyle(.pressable(scale: 0.97))
+        .buttonStyle(.pressable(scale: 0.98))
         .padding(.horizontal, 20)
     }
 

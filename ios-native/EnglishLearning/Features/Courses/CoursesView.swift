@@ -48,23 +48,13 @@ struct CoursesView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "film.stack.fill")
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundStyle(Theme.Color.primary)
-                Text("MOVIE LIBRARY")
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundStyle(Theme.Color.primary)
-            }
-            Text("Real clips,\nreal English")
-                .font(.system(size: 32, weight: .heavy, design: .rounded))
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Library")
+                .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Theme.Color.textPrimary)
                 .tracking(-0.5)
-                .lineSpacing(-4)
             Text("Learn with authentic movie scenes")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.system(size: 14))
                 .foregroundStyle(Theme.Color.textSecondary)
         }
         .padding(.horizontal, 20)

@@ -30,61 +30,36 @@ struct ProfileView: View {
         let level = appState.levelInfo
         return VStack(spacing: 14) {
             ZStack {
-                // Outer glow
-                Circle()
-                    .fill(Theme.Color.primary.opacity(0.25))
-                    .frame(width: 160, height: 160)
-                    .blur(radius: 30)
-
                 // Progress ring
                 Circle()
-                    .stroke(Theme.Color.border, lineWidth: 6)
-                    .frame(width: 120, height: 120)
+                    .stroke(Theme.Color.border, lineWidth: 4)
+                    .frame(width: 112, height: 112)
                 Circle()
                     .trim(from: 0, to: CGFloat(level.percent / 100))
-                    .stroke(
-                        LinearGradient(
-                            colors: [Theme.Color.primary, Theme.Color.accent, Theme.Color.primaryLight],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                    )
+                    .stroke(Theme.Color.primary,
+                            style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 120, height: 120)
+                    .frame(width: 112, height: 112)
 
                 // Avatar
                 ZStack {
-                    Circle()
-                        .fill(Theme.Gradient.heroPrimary)
-                    Circle()
-                        .stroke(.white.opacity(0.2), lineWidth: 1.5)
-                    Text("👤")
-                        .font(.system(size: 50))
+                    Circle().fill(Theme.Color.backgroundElevated)
+                    Circle().strokeBorder(Theme.Color.border, lineWidth: 1)
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(Theme.Color.primary)
                 }
-                .frame(width: 104, height: 104)
-
-                // Level badge overlay
-                Circle()
-                    .fill(Theme.Color.xp)
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Text("\(level.level)")
-                            .font(.system(size: 15, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.white)
-                    )
-                    .overlay(Circle().stroke(Theme.Color.background, lineWidth: 3))
-                    .offset(x: 42, y: 42)
-                    .shadow(color: Theme.Color.xp.opacity(0.5), radius: 8, y: 3)
+                .frame(width: 96, height: 96)
             }
-            .frame(height: 130)
+            .frame(height: 120)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text(level.name)
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.Color.textPrimary)
-                    .tracking(-0.3)
-                Text("Level \(level.level) · \(Int(level.percent))% to next")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .tracking(-0.2)
+                Text("Level \(level.level)")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Theme.Color.textMuted)
             }
         }

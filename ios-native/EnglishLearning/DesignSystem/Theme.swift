@@ -112,21 +112,30 @@ enum Theme {
     }
 
     // MARK: - Typography
+    //
+    // Hierarchy guidelines:
+    //   • Hero numerals (XP, streak counts, big stat values) — `display`, rounded, heavy
+    //   • Screen + section titles — `title`, default design, bold, tight tracking
+    //   • Body copy — `body`, default design, regular
+    //   • All-caps labels / metadata — `caption`, default design, heavy, wide tracking
+    //
+    // We intentionally avoid .rounded on body/label text — it reads playful/amateur
+    // when overused. .rounded is reserved for numerals and hero display text.
     enum Font {
         static func display(_ size: CGFloat = 32, weight: SwiftUI.Font.Weight = .heavy) -> SwiftUI.Font {
             .system(size: size, weight: weight, design: .rounded)
         }
         static func title(_ size: CGFloat = 22, weight: SwiftUI.Font.Weight = .bold) -> SwiftUI.Font {
-            .system(size: size, weight: weight, design: .rounded)
+            .system(size: size, weight: weight, design: .default)
         }
         static func headline(_ size: CGFloat = 17, weight: SwiftUI.Font.Weight = .semibold) -> SwiftUI.Font {
-            .system(size: size, weight: weight, design: .rounded)
+            .system(size: size, weight: weight, design: .default)
         }
         static func body(_ size: CGFloat = 15, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
             .system(size: size, weight: weight, design: .default)
         }
         static func caption(_ size: CGFloat = 12, weight: SwiftUI.Font.Weight = .semibold) -> SwiftUI.Font {
-            .system(size: size, weight: weight, design: .rounded)
+            .system(size: size, weight: weight, design: .default)
         }
         static func mono(_ size: CGFloat = 14, weight: SwiftUI.Font.Weight = .medium) -> SwiftUI.Font {
             .system(size: size, weight: weight, design: .monospaced)
