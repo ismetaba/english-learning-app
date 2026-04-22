@@ -12,6 +12,11 @@ struct ClipPlayerView: View {
     @State private var showTranslation = true
     @State private var command: YouTubePlayerView.PlayerCommand? = nil
     @State private var loopTarget: (start: Double, end: Double)? = nil
+    /// Line IDs already auto-paused during this visit to the current clip —
+    /// prevents the "stop at target" logic from re-triggering on scrub or loop.
+    @State private var pausedTargets: Set<Int> = []
+    /// Currently-presented "target reached" prompt. Cleared on resume or next.
+    @State private var targetBanner: ClipLine? = nil
     @EnvironmentObject var appState: AppState
 
     private var clip: LessonClip { clips[index] }
@@ -31,6 +36,38 @@ struct ClipPlayerView: View {
         .onChange(of: clip.id) { _, _ in
             currentTime = clip.startTime
             command = .reload
+            pausedTargets = []
+            targetBanner = nil
+        }
+    }
+
+    // MARK: - Target-line auto-pause
+
+    /// If the playhead just crossed the end of a line marked `isTarget`, pause
+    /// the player once and surface a prompt so the learner can practice.
+    /// Skips lines that end in the first ~1.5s of the clip — those read as
+    /// annoying micro-pauses right after autoplay begins.
+    private func checkTargetPause(at t: Double) {
+        let elapsed = t - clip.startTime
+        guard elapsed >= 1.5 else { return }
+        guard let target = clip.lines.first(where: { line in
+            line.isTarget == true
+            && !pausedTargets.contains(line.id)
+            && (line.endTime - clip.startTime) >= 1.5
+            && t >= line.endTime
+            && t <= line.endTime + 0.6
+        }) else { return }
+        pausedTargets.insert(target.id)
+        Haptics.medium()
+        command = .pause
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            targetBanner = target
+        }
+    }
+
+    private func dismissTargetBanner() {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            targetBanner = nil
         }
     }
 
@@ -88,6 +125,10 @@ struct ClipPlayerView: View {
                         if t >= clip.endTime - 0.1 {
                             loopTarget = nil
                         }
+                        // Target-line stop: only outside of an active loop.
+                        if loopTarget == nil {
+                            checkTargetPause(at: t)
+                        }
                     },
                     onReady: {
                         isPlaying = true
@@ -99,7 +140,24 @@ struct ClipPlayerView: View {
                 )
                 .aspectRatio(16.0/9.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
-                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+                )
+                .overlay(alignment: .bottom) {
+                    // Subtle vignette so overlays read against bright video content.
+                    LinearGradient(
+                        colors: [Color.black.opacity(0), Color.black.opacity(0.35)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 60)
+                    .allowsHitTesting(false)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 6)
 
                 // top overlay
                 HStack(alignment: .center) {
@@ -321,6 +379,10 @@ struct ClipPlayerView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 12) {
+            if let banner = targetBanner {
+                targetReachedCard(for: banner)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             progressSlider
             HStack(spacing: 14) {
                 controlButton(icon: "backward.end.fill", action: previous, disabled: index == 0)
@@ -358,6 +420,7 @@ struct ClipPlayerView: View {
         .padding(.horizontal, 20)
         .padding(.top, 14)
         .padding(.bottom, 26)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: targetBanner?.id)
         .background(
             ZStack {
                 Rectangle()
@@ -385,12 +448,29 @@ struct ClipPlayerView: View {
         let total = max(clip.duration, 1)
         let played = max(0, currentTime - clip.startTime)
         return VStack(spacing: 6) {
-            ProgressBar(
-                percent: Double(played / total) * 100,
-                height: 5,
-                color: Theme.Color.primary,
-                track: Theme.Color.backgroundSurface.opacity(0.6)
-            )
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.Color.backgroundSurface.opacity(0.6))
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Theme.Color.primary, Theme.Color.primary.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ))
+                        .frame(width: max(0, min(geo.size.width, geo.size.width * played / total)))
+                        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: played)
+                    // Line start markers
+                    ForEach(clip.lines.dropFirst(), id: \.id) { line in
+                        let x = geo.size.width * max(0, (line.startTime - clip.startTime) / total)
+                        Rectangle()
+                            .fill(line.isTarget == true ? Theme.Color.accent : Color.white.opacity(0.35))
+                            .frame(width: line.isTarget == true ? 2 : 1, height: 5)
+                            .offset(x: x)
+                    }
+                }
+            }
+            .frame(height: 5)
             HStack {
                 Text(formatTime(played))
                     .font(Theme.Font.mono(11, weight: .semibold))
@@ -403,9 +483,62 @@ struct ClipPlayerView: View {
         }
     }
 
+    /// Shown above the progress bar when playback auto-paused at a target line.
+    private func targetReachedCard(for line: ClipLine) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
+                    .fill(Theme.Color.accent.opacity(0.18))
+                Image(systemName: "scope")
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundStyle(Theme.Color.accent)
+            }
+            .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Target line — take a moment")
+                    .font(Theme.Font.caption(11, weight: .heavy))
+                    .foregroundStyle(Theme.Color.accent)
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+                Text("\u{201C}\(line.text)\u{201D}")
+                    .font(Theme.Font.headline(13, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 6)
+            Button {
+                Haptics.medium()
+                command = .seek(line.startTime)
+                loopTarget = (line.startTime, line.endTime)
+                command = .play
+                targetBanner = nil
+            } label: {
+                Image(systemName: "repeat.1")
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(Theme.Color.accent)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Theme.Color.accentSoft))
+                    .overlay(Circle().strokeBorder(Theme.Color.accent.opacity(0.35), lineWidth: 1))
+            }
+            .buttonStyle(.pressable)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+                .fill(Theme.Color.backgroundElevated.opacity(0.9))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+                .strokeBorder(Theme.Color.accent.opacity(0.35), lineWidth: 1)
+        )
+        .shadow(color: Theme.Color.accent.opacity(0.25), radius: 18, x: 0, y: 6)
+    }
+
     private var playPauseButton: some View {
         Button {
             Haptics.medium()
+            if !isPlaying { dismissTargetBanner() }
             command = isPlaying ? .pause : .play
         } label: {
             ZStack {
@@ -452,6 +585,7 @@ struct ClipPlayerView: View {
 
     private func next() {
         onClipComplete?(clip)
+        targetBanner = nil
         if index < totalClips - 1 {
             Haptics.medium()
             withAnimation { index += 1 }
@@ -464,6 +598,7 @@ struct ClipPlayerView: View {
     private func previous() {
         guard index > 0 else { return }
         Haptics.medium()
+        targetBanner = nil
         withAnimation { index -= 1 }
     }
 
@@ -569,22 +704,39 @@ struct SubtitleLineView: View {
     }
 
     private var speakerChip: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(active ? Theme.Color.primary : Theme.Color.textMuted)
-                .frame(width: 6, height: 6)
-            Text(line.speaker)
-                .font(Theme.Font.caption(11, weight: .heavy))
-                .foregroundStyle(active ? Theme.Color.primaryLight : Theme.Color.textMuted)
-                .tracking(0.6)
-                .textCase(.uppercase)
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(active ? Theme.Color.primary : Theme.Color.textMuted)
+                    .frame(width: 6, height: 6)
+                Text(line.speaker)
+                    .font(Theme.Font.caption(11, weight: .heavy))
+                    .foregroundStyle(active ? Theme.Color.primaryLight : Theme.Color.textMuted)
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(active ? Theme.Color.primarySoft : Theme.Color.backgroundSurface.opacity(0.5))
+            )
+
+            if line.isTarget == true {
+                HStack(spacing: 4) {
+                    Image(systemName: "scope")
+                        .font(.system(size: 9, weight: .heavy))
+                    Text("TARGET")
+                        .font(Theme.Font.caption(10, weight: .heavy))
+                        .tracking(0.8)
+                }
+                .foregroundStyle(Theme.Color.accent)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Theme.Color.accentSoft))
+                .overlay(Capsule().strokeBorder(Theme.Color.accent.opacity(0.4), lineWidth: 1))
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            Capsule()
-                .fill(active ? Theme.Color.primarySoft : Theme.Color.backgroundSurface.opacity(0.5))
-        )
     }
 
     @ViewBuilder
