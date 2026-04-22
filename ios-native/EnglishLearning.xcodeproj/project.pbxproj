@@ -25,11 +25,13 @@
 		9B6CB645DC6FC31E1E95AE68 /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2267F6A923939D4F36866E6 /* ViewModifiers.swift */; };
 		B19C0853ED3BEEB14690AD3F /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36BE3A80DC7932C2C14FB9AE /* SectionHeader.swift */; };
 		B88BC7E80260C0ED81DC0441 /* VocabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */; };
+		BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */; };
 		C184C026E2B993368FB538C4 /* ScenesLandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CC9EEA658DDF432920728B /* ScenesLandingView.swift */; };
 		C3857CCB1EC084802DD74058 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333C2AE61D5D3786689BBED7 /* ProfileView.swift */; };
 		C5AB1754EB5665310C2922F7 /* EnglishLearningApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294C12FF81F41CF119374B70 /* EnglishLearningApp.swift */; };
 		C79B50704A7D1171F6E5B5ED /* ClipPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */; };
 		CBB9FED90FCFEE9CCBD5E6C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FA05CB9673702CC47B3F2DB /* Assets.xcassets */; };
+		D45BBBCF5E57E808438F4DBD /* YouTubePlayerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */; };
 		D81D5F4B69FCCFFC79BC387C /* LearningPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25540F8B535DAF9E129ED01 /* LearningPathView.swift */; };
 		DC9419DFC2A2D5399F66050D /* VocabSetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2BF65F1AA5FA5AFA58E1CD /* VocabSetView.swift */; };
 		E7FF61B7A031602BB0FD78D8 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5A9767244D65F74709188D /* HomeView.swift */; };
@@ -39,10 +41,21 @@
 		FA5AC3986F450AD504E98A0A /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71ACAFE06F340C436181393D /* APIClient.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A021322C3326C32B5595EC3E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6ECDC1DD1961EE4ED5986189 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 67C3B6551CEE3A42FBF9B5D4;
+			remoteInfo = EnglishLearning;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		026131E29DF8E3DAD68F443D /* Curriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curriculum.swift; sourceTree = "<group>"; };
 		1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipPlayerView.swift; sourceTree = "<group>"; };
 		1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
+		275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerEmbedIntegrationTests.swift; sourceTree = "<group>"; };
 		294C12FF81F41CF119374B70 /* EnglishLearningApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishLearningApp.swift; sourceTree = "<group>"; };
 		29C1C7DD782B63C6BFA39036 /* DailyTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyTasksView.swift; sourceTree = "<group>"; };
 		2A06CCE962B5E537FA2F22AF /* LoadingStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingStates.swift; sourceTree = "<group>"; };
@@ -51,6 +64,7 @@
 		480EBA7F8952FC952B0F60F6 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		4E5A9767244D65F74709188D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishLearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerViewTests.swift; sourceTree = "<group>"; };
 		6DD7DB2DCE34DC861E71D58F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		71ACAFE06F340C436181393D /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		71E5E036D9B7957EC0F15AE1 /* Vocab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vocab.swift; sourceTree = "<group>"; };
@@ -66,6 +80,7 @@
 		A25540F8B535DAF9E129ED01 /* LearningPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathView.swift; sourceTree = "<group>"; };
 		A6CC9EEA658DDF432920728B /* ScenesLandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenesLandingView.swift; sourceTree = "<group>"; };
 		BC1FAFED55839850EBD82E6A /* Progress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Progress.swift; sourceTree = "<group>"; };
+		C30629C8D487F662CA85BA94 /* EnglishLearningTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EnglishLearningTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		CBF6F523CFB9DA6B3CE1C345 /* VocabReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabReviewView.swift; sourceTree = "<group>"; };
 		E2267F6A923939D4F36866E6 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
@@ -95,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				6AA0FBDDBD0B342BF2F8F1CD /* EnglishLearning */,
+				C43B29CC2B198C6DD66E2BB8 /* EnglishLearningTests */,
 				691E76DE42E340F6480ED6A3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -156,6 +172,7 @@
 			isa = PBXGroup;
 			children = (
 				55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */,
+				C30629C8D487F662CA85BA94 /* EnglishLearningTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -262,6 +279,15 @@
 			path = Courses;
 			sourceTree = "<group>";
 		};
+		C43B29CC2B198C6DD66E2BB8 /* EnglishLearningTests */ = {
+			isa = PBXGroup;
+			children = (
+				275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */,
+				6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */,
+			);
+			path = EnglishLearningTests;
+			sourceTree = "<group>";
+		};
 		E9F47E3E5C44D290776C39DE /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -294,6 +320,24 @@
 			productReference = 55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E552FE5ED7A073982AA86A97 /* EnglishLearningTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA2398F18CA2B064DBC9DE5F /* Build configuration list for PBXNativeTarget "EnglishLearningTests" */;
+			buildPhases = (
+				84D58F0124FFF69999D3515C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				17B332FFB3DE7F19C4035D4F /* PBXTargetDependency */,
+			);
+			name = EnglishLearningTests;
+			packageProductDependencies = (
+			);
+			productName = EnglishLearningTests;
+			productReference = C30629C8D487F662CA85BA94 /* EnglishLearningTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -304,6 +348,10 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					67C3B6551CEE3A42FBF9B5D4 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					E552FE5ED7A073982AA86A97 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
@@ -324,6 +372,7 @@
 			projectRoot = "";
 			targets = (
 				67C3B6551CEE3A42FBF9B5D4 /* EnglishLearning */,
+				E552FE5ED7A073982AA86A97 /* EnglishLearningTests */,
 			);
 		};
 /* End PBXProject section */
@@ -376,7 +425,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		84D58F0124FFF69999D3515C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */,
+				D45BBBCF5E57E808438F4DBD /* YouTubePlayerViewTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		17B332FFB3DE7F19C4035D4F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 67C3B6551CEE3A42FBF9B5D4 /* EnglishLearning */;
+			targetProxy = A021322C3326C32B5595EC3E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		03EA113891D348A07A3F772E /* Release */ = {
@@ -398,6 +464,24 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ismetaba.englishlearning.native;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1C41E420CE36219F2CCB9ABC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ismetaba.englishlearning.native.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnglishLearning.app/EnglishLearning";
 			};
 			name = Release;
 		};
@@ -556,6 +640,24 @@
 			};
 			name = Debug;
 		};
+		D20ABDCE94F1F6D2778127B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ismetaba.englishlearning.native.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnglishLearning.app/EnglishLearning";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -564,6 +666,15 @@
 			buildConfigurations = (
 				31A1D29BD41B415C0A541DA4 /* Debug */,
 				398141D9E811D3E901F75545 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EA2398F18CA2B064DBC9DE5F /* Build configuration list for PBXNativeTarget "EnglishLearningTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D20ABDCE94F1F6D2778127B1 /* Debug */,
+				1C41E420CE36219F2CCB9ABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -52,3 +52,17 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: "AccentColor"
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+
+  EnglishLearningTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: EnglishLearningTests
+    dependencies:
+      - target: EnglishLearning
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ismetaba.englishlearning.native.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"

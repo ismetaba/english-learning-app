@@ -12,6 +12,7 @@ struct YouTubePlayerView: UIViewRepresentable {
     var currentTime: ((Double) -> Void)? = nil
     var onReady: (() -> Void)? = nil
     var onEnded: (() -> Void)? = nil
+    var onError: ((Int) -> Void)? = nil
 
     @Binding var command: PlayerCommand?
 
@@ -43,7 +44,7 @@ struct YouTubePlayerView: UIViewRepresentable {
         context.coordinator.webView = web
 
         let html = Self.makeHTML(videoId: videoId, start: startTime, end: endTime, autoplay: autoplay)
-        web.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com"))
+        web.loadHTMLString(html, baseURL: URL(string: "https://www.youtube-nocookie.com"))
         return web
     }
 
@@ -56,7 +57,7 @@ struct YouTubePlayerView: UIViewRepresentable {
 
     // MARK: - HTML
 
-    private static func makeHTML(videoId: String, start: Double, end: Double?, autoplay: Bool) -> String {
+    static func makeHTML(videoId: String, start: Double, end: Double?, autoplay: Bool) -> String {
         let startSec = String(Int(start))
         let endSec: String = end.map { String(Int($0)) } ?? "null"
         let endPlayerVar: String = end.map { "end: \(Int($0))," } ?? ""
@@ -79,14 +80,16 @@ struct YouTubePlayerView: UIViewRepresentable {
         html += "function send(kind,data){if(!window.webkit||!window.webkit.messageHandlers||!window.webkit.messageHandlers.ytBridge)return;window.webkit.messageHandlers.ytBridge.postMessage({kind:kind,data:data});}"
 
         html += "function onYouTubeIframeAPIReady(){player=new YT.Player('player',{"
+        html += "host:'https://www.youtube-nocookie.com',"
         html += "videoId:'\(videoId)',"
         html += "playerVars:{autoplay:\(autoplayInt),controls:0,modestbranding:1,rel:0,playsinline:1,disablekb:1,fs:0,iv_load_policy:3,"
         html += "start:\(startSec),"
         html += endPlayerVar
-        html += "origin:'https://www.youtube.com'},"
+        html += "origin:'https://www.youtube-nocookie.com'},"
         html += "events:{"
         html += "onReady:function(){send('ready',{});ticker=setInterval(function(){if(player&&player.getCurrentTime){var t=player.getCurrentTime();send('time',t);if(endSec&&t>=endSec){player.pauseVideo();}}},220);},"
-        html += "onStateChange:function(e){send('state',e.data);if(e.data===YT.PlayerState.ENDED)send('ended',{});}"
+        html += "onStateChange:function(e){send('state',e.data);if(e.data===YT.PlayerState.ENDED)send('ended',{});},"
+        html += "onError:function(e){send('error',e.data);}"
         html += "}});}"
 
         html += "function cmd(c){if(!player)return;"
@@ -144,6 +147,12 @@ struct YouTubePlayerView: UIViewRepresentable {
                 }
             case "ended":
                 DispatchQueue.main.async { self.parent.onEnded?() }
+            case "error":
+                if let code = body["data"] as? Int {
+                    DispatchQueue.main.async { self.parent.onError?(code) }
+                } else if let n = body["data"] as? NSNumber {
+                    DispatchQueue.main.async { self.parent.onError?(n.intValue) }
+                }
             default:
                 break
             }

@@ -20,11 +20,20 @@ struct EnglishLearningApp: App {
 struct RootView: View {
     @EnvironmentObject var appState: AppState
 
+    /// Debug entry point — launching with `-StartInClipPlayer YES` boots straight
+    /// into ClipPlayerView with live data. Used for design iteration on simulator.
+    private var startsInClipPlayer: Bool {
+        ProcessInfo.processInfo.arguments.contains("-StartInClipPlayer") ||
+            ProcessInfo.processInfo.environment["START_IN_CLIP_PLAYER"] == "1"
+    }
+
     var body: some View {
         ZStack {
             Theme.Color.background.ignoresSafeArea()
 
-            if !appState.isLoaded {
+            if startsInClipPlayer {
+                DebugClipPlayerLauncher()
+            } else if !appState.isLoaded {
                 SplashView()
                     .transition(.opacity)
             } else if !appState.progress.onboardingCompleted {
@@ -37,6 +46,32 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: appState.isLoaded)
         .animation(.easeInOut(duration: 0.4), value: appState.progress.onboardingCompleted)
+    }
+}
+
+/// Fetches the first lesson's clips and jumps straight into ClipPlayerView.
+/// Only reachable via launch argument; not wired into normal navigation.
+private struct DebugClipPlayerLauncher: View {
+    @State private var clips: [LessonClip] = []
+    @State private var failure: String? = nil
+
+    var body: some View {
+        Group {
+            if let failure = failure {
+                Text(failure).foregroundStyle(.red).padding()
+            } else if clips.isEmpty {
+                ProgressView().tint(Theme.Color.primary)
+            } else {
+                ClipPlayerView(clips: clips)
+            }
+        }
+        .task {
+            do {
+                clips = try await APIClient.shared.fetchLessonClips(lessonId: "lesson-01-greetings")
+            } catch {
+                failure = "Failed to load clips: \(error.localizedDescription)"
+            }
+        }
     }
 }
 
