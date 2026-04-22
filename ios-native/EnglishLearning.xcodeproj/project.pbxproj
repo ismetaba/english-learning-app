@@ -30,6 +30,7 @@
 		C5AB1754EB5665310C2922F7 /* EnglishLearningApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294C12FF81F41CF119374B70 /* EnglishLearningApp.swift */; };
 		C79B50704A7D1171F6E5B5ED /* ClipPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */; };
 		CBB9FED90FCFEE9CCBD5E6C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FA05CB9673702CC47B3F2DB /* Assets.xcassets */; };
+		D81D5F4B69FCCFFC79BC387C /* LearningPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25540F8B535DAF9E129ED01 /* LearningPathView.swift */; };
 		DC9419DFC2A2D5399F66050D /* VocabSetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2BF65F1AA5FA5AFA58E1CD /* VocabSetView.swift */; };
 		E7FF61B7A031602BB0FD78D8 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5A9767244D65F74709188D /* HomeView.swift */; };
 		F0F41CFF379F915651472723 /* SpacedRepetition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E719052C8218642BC0ADDB8C /* SpacedRepetition.swift */; };
@@ -62,6 +63,7 @@
 		898D883E553A0F54A8112D89 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		8FA05CB9673702CC47B3F2DB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9ECC83A0DB154A5D98FBDF2E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		A25540F8B535DAF9E129ED01 /* LearningPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathView.swift; sourceTree = "<group>"; };
 		A6CC9EEA658DDF432920728B /* ScenesLandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenesLandingView.swift; sourceTree = "<group>"; };
 		BC1FAFED55839850EBD82E6A /* Progress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Progress.swift; sourceTree = "<group>"; };
 		C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
@@ -238,6 +240,7 @@
 			isa = PBXGroup;
 			children = (
 				4E5A9767244D65F74709188D /* HomeView.swift */,
+				A25540F8B535DAF9E129ED01 /* LearningPathView.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -350,6 +353,7 @@
 				805DB3D255E629401691F168 /* DailyTasksView.swift in Sources */,
 				C5AB1754EB5665310C2922F7 /* EnglishLearningApp.swift in Sources */,
 				E7FF61B7A031602BB0FD78D8 /* HomeView.swift in Sources */,
+				D81D5F4B69FCCFFC79BC387C /* LearningPathView.swift in Sources */,
 				F73FB5B550CBEBD4A4F8EA69 /* LessonClipsView.swift in Sources */,
 				5EE2F2A0F844D5C7200E27A1 /* LessonDetailView.swift in Sources */,
 				9697A2746C904AAFF9DE3653 /* LoadingStates.swift in Sources */,

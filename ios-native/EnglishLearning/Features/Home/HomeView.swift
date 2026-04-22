@@ -22,14 +22,14 @@ final class HomeViewModel: ObservableObject {
 struct HomeView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = HomeViewModel()
-    @State private var showProfile = false
     @State private var selectedLesson: CurriculumLesson? = nil
-    @State private var selectedUnit: CurriculumUnit? = nil
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.Color.background.ignoresSafeArea()
+            ZStack(alignment: .top) {
+                // Ambient background
+                BackgroundAmbience()
 
                 if vm.isLoading && vm.curriculum.isEmpty {
                     LoadingState(label: appState.t.t("loading"))
@@ -40,6 +40,10 @@ struct HomeView: View {
                 } else {
                     content
                 }
+
+                // Floating sticky header — appears on scroll
+                StickyHeader(scrollOffset: scrollOffset)
+                    .environmentObject(appState)
             }
             .navigationDestination(item: $selectedLesson) { lesson in
                 LessonDetailView(lessonId: lesson.id, lessonTitle: lesson.displayTitle)
@@ -51,157 +55,87 @@ struct HomeView: View {
 
     private var content: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 24) {
-                header
-                streakHero
-                recommendedSection
-                learningPath
-                Spacer().frame(height: 120) // bottom bar clearance
+            VStack(spacing: 26) {
+                heroHeader
+                heroRecommendation
+
+                ForEach(Array(vm.curriculum.prefix(3).enumerated()), id: \.element.id) { idx, unit in
+                    LearningPathView(
+                        unit: unit,
+                        orderIndex: idx,
+                        stage: { appState.stage(for: $0) },
+                        subProgress: { appState.subProgress(for: $0) },
+                        onTap: { selectedLesson = $0 }
+                    )
+                    .padding(.horizontal, 16)
+                }
+
+                if vm.curriculum.count > 3 {
+                    comingSoonCard
+                }
+
+                Spacer().frame(height: 120) // tab bar clearance
             }
-            .padding(.horizontal, 20)
             .padding(.top, 12)
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onChange(of: geo.frame(in: .named("home-scroll")).minY) { _, newY in
+                            scrollOffset = max(0, -newY)
+                        }
+                }
+            )
         }
-        .refreshable {
-            await vm.load(forceRefresh: true)
-        }
+        .coordinateSpace(name: "home-scroll")
+        .refreshable { await vm.load(forceRefresh: true) }
     }
 
-    // MARK: - Header
+    // MARK: - Hero header (greeting + stats)
 
-    private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(appState.t.t(appState.greetingKey))
-                    .font(Theme.Font.body(14))
-                    .foregroundStyle(Theme.Color.textMuted)
-                Text(appState.progress.onboardingLevel == .beginner ? "Let's learn" : "Keep going")
-                    .font(Theme.Font.display(30))
-                    .foregroundStyle(Theme.Color.textPrimary)
-                    .tracking(-0.5)
-            }
-            Spacer()
-            Button {
-                showProfile = true
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient(
-                            colors: [Theme.Color.primary, Theme.Color.primaryDark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                    Text("\(appState.levelInfo.level)")
-                        .font(Theme.Font.headline(16, weight: .heavy))
-                        .foregroundStyle(.white)
-                }
-                .frame(width: 44, height: 44)
-                .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1))
-                .shadow(color: Theme.Color.primary.opacity(0.4), radius: 12, x: 0, y: 4)
-            }
-            .buttonStyle(.pressable)
-        }
-        .padding(.top, 48)
-    }
-
-    // MARK: - Streak + daily goal hero
-
-    private var streakHero: some View {
-        let level = appState.levelInfo
-        return VStack(spacing: 16) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "flame.fill")
-                            .foregroundStyle(Theme.Color.streak)
-                        Text("\(appState.progress.streak)")
-                            .font(Theme.Font.display(36, weight: .heavy))
-                            .foregroundStyle(Theme.Color.textPrimary)
-                    }
-                    Text("\(appState.progress.streak == 1 ? "day" : "days") streak")
-                        .font(Theme.Font.body(13))
-                        .foregroundStyle(Theme.Color.textMuted)
-                }
-                Divider().frame(height: 50).background(Theme.Color.border)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "bolt.fill")
-                            .foregroundStyle(Theme.Color.xp)
-                        Text("\(appState.progress.xp)")
-                            .font(Theme.Font.display(36, weight: .heavy))
-                            .foregroundStyle(Theme.Color.textPrimary)
-                    }
-                    Text("total XP")
-                        .font(Theme.Font.body(13))
-                        .foregroundStyle(Theme.Color.textMuted)
+    private var heroHeader: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(appState.t.t(appState.greetingKey))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.Color.textSecondary)
+                    Text("Your journey ")
+                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                        .tracking(-0.5)
+                    + Text("✨")
+                        .font(.system(size: 28))
                 }
                 Spacer()
+                AvatarBadge(level: appState.levelInfo.level)
             }
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(level.name)
-                        .font(Theme.Font.headline(14, weight: .bold))
-                        .foregroundStyle(Theme.Color.textSecondary)
-                    Spacer()
-                    Text("Lvl \(level.level)")
-                        .font(Theme.Font.caption(12, weight: .bold))
-                        .foregroundStyle(Theme.Color.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3)
-                        .background(Theme.Color.primarySoft, in: Capsule())
-                }
-                ProgressBar(percent: level.percent, height: 8, color: Theme.Color.primary)
-                HStack {
-                    Text("\(appState.progress.xp - level.current) / \(level.next - level.current) XP")
-                        .font(Theme.Font.caption(11, weight: .semibold))
-                        .foregroundStyle(Theme.Color.textMuted)
-                    Spacer()
-                    Text("\(Int(level.percent))%")
-                        .font(Theme.Font.caption(11, weight: .bold))
-                        .foregroundStyle(Theme.Color.textSecondary)
-                }
-            }
+
+            StatsRow(
+                xp: appState.progress.xp,
+                streak: appState.progress.streak,
+                levelInfo: appState.levelInfo
+            )
         }
-        .padding(20)
-        .background {
-            RoundedRectangle(cornerRadius: Theme.Radius.xl, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [Theme.Color.backgroundElevated, Theme.Color.backgroundCard],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.xl, style: .continuous)
-                .strokeBorder(Theme.Color.borderAccent, lineWidth: 1.5)
-        )
-        .premiumShadow(.card)
+        .padding(.horizontal, 20)
+        .padding(.top, 58)
     }
 
-    // MARK: - Recommended next lesson
+    // MARK: - Continue learning (big feature card)
 
     @ViewBuilder
-    private var recommendedSection: some View {
+    private var heroRecommendation: some View {
         if let (unit, lesson) = recommendedLesson() {
-            VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(
-                    title: appState.t.t("continueLearning"),
-                    subtitle: "Pick up where you left off",
-                    icon: "sparkles",
-                    iconColor: Theme.Color.primary
-                )
-                Button {
-                    Haptics.medium()
-                    selectedLesson = lesson
-                } label: {
-                    RecommendationCard(unit: unit, lesson: lesson, mastery: appState.mastery(for: lesson.id))
-                }
-                .buttonStyle(.pressable)
-            }
+            ContinueLearningCard(
+                unit: unit,
+                lesson: lesson,
+                subProgress: appState.subProgress(for: lesson.id),
+                onTap: { selectedLesson = lesson }
+            )
+            .padding(.horizontal, 20)
         }
     }
 
     private func recommendedLesson() -> (CurriculumUnit, CurriculumLesson)? {
-        // First non-mastered lesson in order
         for unit in vm.curriculum {
             for lesson in unit.lessons {
                 if appState.stage(for: lesson.id) != .mastered {
@@ -212,290 +146,389 @@ struct HomeView: View {
         return vm.curriculum.first.flatMap { u in u.lessons.first.map { (u, $0) } }
     }
 
-    // MARK: - Learning path
+    // MARK: - Coming soon card
 
-    private var learningPath: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHeader(
-                title: "Learning path",
-                subtitle: "Follow the curriculum step by step",
-                icon: "map.fill",
-                iconColor: Theme.Color.accent
-            )
-            VStack(spacing: 28) {
-                ForEach(Array(vm.curriculum.enumerated()), id: \.element.id) { idx, unit in
-                    UnitTimeline(unit: unit, orderIndex: idx) { lesson in
-                        selectedLesson = lesson
-                    }
-                }
+    private var comingSoonCard: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle().fill(Theme.Color.primarySoft).frame(width: 54, height: 54)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Theme.Color.primary)
             }
+            Text("More levels coming soon")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.Color.textPrimary)
+            Text("Complete the current units to unlock B1 and beyond.")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.Color.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
         }
+        .padding(.vertical, 26)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                .fill(Theme.Color.backgroundCard.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                .strokeBorder(Theme.Color.border, lineWidth: 1)
+        )
+        .padding(.horizontal, 20)
     }
 }
 
-// MARK: - Recommendation card
+// MARK: - Background ambience
 
-struct RecommendationCard: View {
-    @EnvironmentObject var appState: AppState
-    let unit: CurriculumUnit
-    let lesson: CurriculumLesson
-    let mastery: LessonMastery
-
+struct BackgroundAmbience: View {
     var body: some View {
-        let unitColor = Theme.Color.fromHex(unit.color, fallback: Theme.Color.forCEFR(unit.cefrLevel))
-        ZStack(alignment: .topTrailing) {
-            HStack(alignment: .top, spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                        .fill(unitColor.opacity(0.2))
-                    Image(systemName: mastery.stage == .mastered ? "checkmark.seal.fill" : "play.circle.fill")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(unitColor)
-                }
-                .frame(width: 54, height: 54)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Chip(label: unit.cefrLevel.uppercased(), color: unitColor)
-                        Text(unit.displayTitle)
-                            .font(Theme.Font.caption(12, weight: .bold))
-                            .foregroundStyle(Theme.Color.textMuted)
-                            .lineLimit(1)
-                    }
-                    Text(lesson.displayTitle)
-                        .font(Theme.Font.headline(18, weight: .bold))
-                        .foregroundStyle(Theme.Color.textPrimary)
-                        .lineLimit(2)
-                    if lesson.titleTr != lesson.title, !lesson.title.isEmpty {
-                        Text(lesson.title)
-                            .font(Theme.Font.body(13))
-                            .foregroundStyle(Theme.Color.textSecondary)
-                            .lineLimit(1)
-                    }
-                    subProgressRow
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(18)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                    .fill(Theme.Color.backgroundCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                    .strokeBorder(unitColor.opacity(0.35), lineWidth: 1.5)
-            )
-            .overlay(alignment: .bottomTrailing) {
-                RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                    .fill(LinearGradient(
-                        colors: [unitColor.opacity(0.12), .clear],
-                        startPoint: .bottomTrailing,
-                        endPoint: .topLeading
-                    ))
-                    .allowsHitTesting(false)
-            }
-            .premiumShadow(.small)
+        ZStack {
+            Theme.Color.background
 
+            // Top-left violet glow
             Circle()
-                .fill(unitColor)
-                .frame(width: 10, height: 10)
-                .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 1))
-                .padding(14)
-        }
-    }
+                .fill(Theme.Color.primary.opacity(0.22))
+                .blur(radius: 120)
+                .frame(width: 360, height: 360)
+                .offset(x: -160, y: -260)
 
-    @ViewBuilder
-    private var subProgressRow: some View {
-        let p = appState.subProgress(for: lesson.id)
-        HStack(spacing: 6) {
-            pillDot("L", done: p.learnCompleted)
-            pillDot("V", done: p.vocabCompleted)
-            pillDot("W", done: p.watchCompleted)
-            pillDot("T", done: p.testPassed)
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .bold))
-                Text(appState.t.t("continue"))
-                    .font(Theme.Font.caption(12, weight: .bold))
-            }
-            .foregroundStyle(Theme.Color.primary)
-        }
-        .padding(.top, 4)
-    }
+            // Right cyan glow
+            Circle()
+                .fill(Theme.Color.accent.opacity(0.15))
+                .blur(radius: 110)
+                .frame(width: 280, height: 280)
+                .offset(x: 170, y: -40)
 
-    private func pillDot(_ letter: String, done: Bool) -> some View {
-        Text(letter)
-            .font(Theme.Font.caption(10, weight: .heavy))
-            .foregroundStyle(done ? .white : Theme.Color.textMuted)
-            .frame(width: 20, height: 20)
-            .background(done ? Theme.Color.success : Theme.Color.backgroundSurface, in: Circle())
+            // Bottom pink glow
+            Circle()
+                .fill(Theme.Color.levelUpper.opacity(0.1))
+                .blur(radius: 100)
+                .frame(width: 300, height: 300)
+                .offset(x: -100, y: 380)
+        }
+        .ignoresSafeArea()
     }
 }
 
-// MARK: - Unit timeline
+// MARK: - Avatar badge (level)
 
-struct UnitTimeline: View {
-    @EnvironmentObject var appState: AppState
-    let unit: CurriculumUnit
-    let orderIndex: Int
-    let onLessonTap: (CurriculumLesson) -> Void
-
-    var body: some View {
-        let unitColor = Theme.Color.fromHex(unit.color, fallback: Theme.Color.forCEFR(unit.cefrLevel))
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(unitColor.opacity(0.2))
-                    Text("\(orderIndex + 1)")
-                        .font(Theme.Font.headline(16, weight: .heavy))
-                        .foregroundStyle(unitColor)
-                }
-                .frame(width: 40, height: 40)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 8) {
-                        Chip(label: unit.cefrLevel.uppercased(), color: unitColor)
-                        Text("\(unit.lessons.count) lessons")
-                            .font(Theme.Font.caption(11, weight: .bold))
-                            .foregroundStyle(Theme.Color.textMuted)
-                    }
-                    Text(unit.displayTitle)
-                        .font(Theme.Font.headline(17, weight: .bold))
-                        .foregroundStyle(Theme.Color.textPrimary)
-                }
-                Spacer()
-                let done = unit.lessons.filter { appState.stage(for: $0.id) == .mastered }.count
-                Text("\(done)/\(unit.lessons.count)")
-                    .font(Theme.Font.caption(12, weight: .bold))
-                    .foregroundStyle(Theme.Color.textSecondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Theme.Color.backgroundElevated, in: Capsule())
-            }
-
-            VStack(spacing: 0) {
-                ForEach(Array(unit.lessons.enumerated()), id: \.element.id) { idx, lesson in
-                    HStack(spacing: 14) {
-                        VStack(spacing: 0) {
-                            if idx == 0 {
-                                Spacer().frame(height: 12)
-                            } else {
-                                Rectangle()
-                                    .fill(Theme.Color.border)
-                                    .frame(width: 2, height: 14)
-                            }
-                            LessonBullet(
-                                stage: appState.stage(for: lesson.id),
-                                unitColor: unitColor
-                            )
-                            if idx < unit.lessons.count - 1 {
-                                Rectangle()
-                                    .fill(Theme.Color.border)
-                                    .frame(width: 2, height: 18)
-                            } else {
-                                Spacer().frame(height: 12)
-                            }
-                        }
-                        .frame(width: 30)
-
-                        Button {
-                            onLessonTap(lesson)
-                        } label: {
-                            LessonRow(
-                                lesson: lesson,
-                                stage: appState.stage(for: lesson.id),
-                                progress: appState.subProgress(for: lesson.id),
-                                unitColor: unitColor
-                            )
-                        }
-                        .buttonStyle(.pressable)
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct LessonBullet: View {
-    let stage: LessonStage?
-    let unitColor: Color
+struct AvatarBadge: View {
+    let level: Int
 
     var body: some View {
         ZStack {
-            Circle().fill(Theme.Color.background)
             Circle()
-                .strokeBorder(borderColor, lineWidth: 2)
-            if stage == .mastered {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .heavy))
+                .fill(Theme.Gradient.heroPrimary)
+            Circle()
+                .stroke(LinearGradient(
+                    colors: [.white.opacity(0.35), .white.opacity(0.05)],
+                    startPoint: .top, endPoint: .bottom
+                ), lineWidth: 1.5)
+            VStack(spacing: -2) {
+                Text("LVL")
+                    .font(.system(size: 9, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .tracking(0.6)
+                Text("\(level)")
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
-                    .frame(width: 22, height: 22)
-                    .background(Theme.Color.success, in: Circle())
-            } else if stage == nil {
-                // default empty
-                EmptyView()
-            } else {
-                Circle().fill(unitColor).frame(width: 8, height: 8)
             }
         }
-        .frame(width: 22, height: 22)
+        .frame(width: 48, height: 48)
+        .shadow(color: Theme.Color.primary.opacity(0.45), radius: 12, y: 4)
     }
+}
 
-    private var borderColor: Color {
-        switch stage {
-        case .mastered: return Theme.Color.success
-        case .none: return Theme.Color.border
-        default: return unitColor
+// MARK: - Stats row
+
+struct StatsRow: View {
+    let xp: Int
+    let streak: Int
+    let levelInfo: Levels.Info
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                StatBubble(
+                    icon: "flame.fill",
+                    value: "\(streak)",
+                    label: "streak",
+                    color: Theme.Color.streak,
+                    glow: streak > 0
+                )
+                StatBubble(
+                    icon: "bolt.fill",
+                    value: "\(xp)",
+                    label: "XP",
+                    color: Theme.Color.xp,
+                    glow: true
+                )
+            }
+            LevelBubble(info: levelInfo)
         }
     }
 }
 
-struct LessonRow: View {
-    let lesson: CurriculumLesson
-    let stage: LessonStage?
-    let progress: LessonProgress
-    let unitColor: Color
+struct StatBubble: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    var glow: Bool = false
 
     var body: some View {
-        let isMastered = stage == .mastered
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(lesson.displayTitle)
-                    .font(Theme.Font.headline(15, weight: .bold))
-                    .foregroundStyle(isMastered ? Theme.Color.textSecondary : Theme.Color.textPrimary)
-                    .lineLimit(2)
-                if lesson.title != lesson.displayTitle {
-                    Text(lesson.title)
-                        .font(Theme.Font.body(12))
-                        .foregroundStyle(Theme.Color.textMuted)
-                        .lineLimit(1)
-                }
-                if !isMastered && progress.completedCount > 0 {
-                    HStack(spacing: 6) {
-                        ProgressBar(percent: Double(progress.completedCount) / 3 * 100,
-                                   height: 4, color: unitColor)
-                            .frame(width: 80)
-                        Text("\(progress.completedCount)/3")
-                            .font(Theme.Font.caption(10, weight: .bold))
-                            .foregroundStyle(Theme.Color.textMuted)
-                    }
-                }
+        HStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(color)
             }
-            Spacer(minLength: 4)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Theme.Color.textMuted)
+            .frame(width: 30, height: 30)
+            VStack(alignment: .leading, spacing: -1) {
+                Text(value)
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                Text(label)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.Color.textMuted)
+            }
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                .fill(Theme.Color.backgroundCard)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial.opacity(0.5))
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.Color.backgroundCard.opacity(0.7))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                .strokeBorder(isMastered ? Theme.Color.success.opacity(0.3) : Theme.Color.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [color.opacity(glow ? 0.35 : 0.15), .clear],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
         )
-        .opacity(isMastered ? 0.8 : 1.0)
+    }
+}
+
+struct LevelBubble: View {
+    let info: Levels.Info
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Color.primarySoft)
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.Color.primary)
+                }
+                .frame(width: 30, height: 30)
+                VStack(alignment: .leading, spacing: -1) {
+                    Text(info.name)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                        .lineLimit(1)
+                    Text("lvl \(info.level) · \(Int(info.percent))%")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.Color.textMuted)
+                }
+                Spacer(minLength: 0)
+            }
+            ProgressBar(percent: info.percent, height: 5, color: Theme.Color.primary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial.opacity(0.5))
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.Color.backgroundCard.opacity(0.7))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Theme.Color.primaryGlow, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Continue learning card (big, cinematic)
+
+struct ContinueLearningCard: View {
+    @EnvironmentObject var appState: AppState
+    let unit: CurriculumUnit
+    let lesson: CurriculumLesson
+    let subProgress: LessonProgress
+    let onTap: () -> Void
+
+    var body: some View {
+        let unitColor = Theme.Color.fromHex(unit.color, fallback: Theme.Color.forCEFR(unit.cefrLevel))
+        Button(action: { Haptics.medium(); onTap() }) {
+            ZStack(alignment: .bottomLeading) {
+                // Background layers
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(Theme.Color.backgroundElevated)
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(LinearGradient(
+                        colors: [unitColor.opacity(0.4), unitColor.opacity(0.1)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+
+                // Decorative blobs
+                Circle()
+                    .fill(unitColor.opacity(0.35))
+                    .blur(radius: 45)
+                    .frame(width: 200, height: 200)
+                    .offset(x: 150, y: -60)
+                Circle()
+                    .fill(Theme.Color.primary.opacity(0.2))
+                    .blur(radius: 35)
+                    .frame(width: 150, height: 150)
+                    .offset(x: -60, y: 80)
+
+                // Content
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 6) {
+                        tagPill(text: "CONTINUE")
+                        tagPill(text: unit.cefrLevel.uppercased(), fill: unitColor)
+                    }
+
+                    Text(lesson.displayTitle)
+                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .tracking(-0.3)
+                        .lineLimit(2)
+
+                    if lesson.title != lesson.displayTitle {
+                        Text(lesson.title)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .lineLimit(1)
+                    }
+
+                    HStack(spacing: 12) {
+                        ProgressBar(
+                            percent: Double(subProgress.completedCount) / 3 * 100,
+                            height: 5,
+                            color: .white,
+                            track: .white.opacity(0.2)
+                        )
+                        .frame(maxWidth: 100)
+
+                        Text("\(subProgress.completedCount)/3")
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.85))
+
+                        Spacer(minLength: 0)
+
+                        HStack(spacing: 6) {
+                            Text(appState.t.t("continue"))
+                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 11, weight: .heavy))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(.white.opacity(0.22))
+                                .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
+                        )
+                    }
+                }
+                .padding(22)
+            }
+            .frame(height: 180)
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+            )
+            .shadow(color: unitColor.opacity(0.35), radius: 22, y: 10)
+        }
+        .buttonStyle(.pressable(scale: 0.97))
+    }
+
+    private func tagPill(text: String, fill: Color? = nil) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .heavy, design: .rounded))
+            .tracking(1.2)
+            .foregroundStyle(fill != nil ? .white : .white.opacity(0.9))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+                Capsule().fill(fill ?? Color.white.opacity(0.18))
+            )
+            .overlay(
+                Capsule().stroke(.white.opacity(0.25), lineWidth: 1)
+            )
+    }
+}
+
+// MARK: - Sticky header on scroll
+
+struct StickyHeader: View {
+    @EnvironmentObject var appState: AppState
+    let scrollOffset: CGFloat
+
+    private var visibility: Double {
+        min(1.0, max(0.0, Double(scrollOffset - 90) / 60.0))
+    }
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(visibility)
+            Rectangle()
+                .fill(Theme.Color.background.opacity(0.7 * visibility))
+            HStack(spacing: 10) {
+                Text("Your journey")
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                Spacer()
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .foregroundStyle(Theme.Color.streak)
+                    Text("\(appState.progress.streak)")
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                }
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.fill")
+                        .foregroundStyle(Theme.Color.xp)
+                    Text("\(appState.progress.xp)")
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 50)
+            .padding(.bottom, 10)
+            .opacity(visibility)
+        }
+        .frame(height: 96)
+        .overlay(
+            Rectangle()
+                .fill(Theme.Color.border.opacity(0.5 * visibility))
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
+        .allowsHitTesting(false)
+        .ignoresSafeArea(edges: .top)
     }
 }

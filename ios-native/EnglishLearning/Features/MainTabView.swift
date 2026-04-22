@@ -54,19 +54,17 @@ struct MainTabView: View {
                 case .profile: ProfileView()
                 }
             }
-            .transition(.asymmetric(
-                insertion: .opacity.combined(with: .move(edge: .trailing)),
-                removal: .opacity
-            ))
+            .transition(.opacity)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             FloatingTabBar(selected: $selected, onCenterTap: {
                 showDailyTasks = true
             })
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .environmentObject(appState)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 10)
         }
-        .animation(.easeInOut(duration: 0.28), value: selected)
+        .animation(.easeInOut(duration: 0.24), value: selected)
         .sheet(isPresented: $showDailyTasks) {
             DailyTasksView()
                 .environmentObject(appState)
@@ -75,12 +73,13 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - Floating pill tab bar
+// MARK: - Glassy floating pill tab bar with animated selection
 
 struct FloatingTabBar: View {
     @EnvironmentObject var appState: AppState
     @Binding var selected: MainTab
     var onCenterTap: () -> Void
+    @Namespace private var selection
 
     var body: some View {
         HStack(spacing: 0) {
@@ -89,68 +88,118 @@ struct FloatingTabBar: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 8)
-        .background {
-            ZStack {
-                RoundedRectangle(cornerRadius: 38, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 38, style: .continuous)
-                    .fill(Color(hex: 0x11182A).opacity(0.92))
-                RoundedRectangle(cornerRadius: 38, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(0.45), radius: 28, x: 0, y: 14)
-            .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 8)
+        .background(barBackground)
+        .frame(height: 78)
+    }
+
+    private var barBackground: some View {
+        ZStack {
+            // Glass
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .fill(.ultraThinMaterial)
+
+            // Tint + depth
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .fill(Color(hex: 0x0E1424).opacity(0.85))
+
+            // Top highlight — gives a glassy sheen
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.14), .clear],
+                        startPoint: .top, endPoint: .center
+                    ),
+                    lineWidth: 1
+                )
+
+            // Outer border
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
         }
+        .shadow(color: .black.opacity(0.55), radius: 28, y: 14)
+        .shadow(color: Theme.Color.primary.opacity(0.15), radius: 18, y: 6)
     }
 
     @ViewBuilder
     private func tabButton(tab: MainTab) -> some View {
         if tab == .play {
-            Button(action: {
-                Haptics.medium()
-                onCenterTap()
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient(
-                            colors: [Theme.Color.primary, Theme.Color.primaryDark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                    Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1)
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
-                        .offset(x: 2)
-                }
-                .frame(width: 58, height: 58)
-                .offset(y: -6)
-                .shadow(color: Theme.Color.primary.opacity(0.55), radius: 18, x: 0, y: 6)
-            }
-            .buttonStyle(.pressable)
+            centerPlayButton
         } else {
             Button(action: {
                 Haptics.selection()
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
                     selected = tab
                 }
             }) {
-                VStack(spacing: 4) {
+                VStack(spacing: 3) {
                     Image(systemName: selected == tab ? tab.iconFilled : tab.icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(selected == tab ? Theme.Color.textPrimary : Theme.Color.textMuted)
-                        .scaleEffect(selected == tab ? 1.08 : 1.0)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(selected == tab ? .white : Theme.Color.textMuted)
                     Text(tab.label(t: appState.t))
-                        .font(.system(size: 11, weight: selected == tab ? .bold : .medium, design: .rounded))
-                        .foregroundStyle(selected == tab ? Theme.Color.textPrimary : Theme.Color.textMuted)
+                        .font(.system(size: 10, weight: selected == tab ? .heavy : .semibold, design: .rounded))
+                        .foregroundStyle(selected == tab ? .white : Theme.Color.textMuted)
                         .tracking(-0.1)
                 }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Theme.Color.primary.opacity(0.3), Theme.Color.primary.opacity(0.08)],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .strokeBorder(Theme.Color.primary.opacity(0.35), lineWidth: 1)
+                        )
+                        .opacity(selected == tab ? 1 : 0)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selected)
+                )
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.pressable)
+            .buttonStyle(.pressable(scale: 0.92))
         }
+    }
+
+    private var centerPlayButton: some View {
+        Button(action: {
+            Haptics.medium()
+            onCenterTap()
+        }) {
+            ZStack {
+                // Halo
+                Circle()
+                    .fill(Theme.Color.primary.opacity(0.25))
+                    .frame(width: 72, height: 72)
+                    .blur(radius: 14)
+
+                // Main
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [Theme.Color.primary, Theme.Color.primaryDark],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+                Circle()
+                    .stroke(
+                        LinearGradient(colors: [.white.opacity(0.5), .clear],
+                                       startPoint: .top, endPoint: .center),
+                        lineWidth: 1.5
+                    )
+                Image(systemName: "play.fill")
+                    .font(.system(size: 22, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .offset(x: 2)
+            }
+            .frame(width: 56, height: 56)
+            .offset(y: -10)
+            .shadow(color: Theme.Color.primary.opacity(0.6), radius: 18, y: 6)
+        }
+        .buttonStyle(.pressable)
     }
 }
