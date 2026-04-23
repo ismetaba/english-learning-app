@@ -176,6 +176,14 @@ struct ClipPlayerView: View {
                     .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }
             .buttonStyle(.pressable)
+
+            // Expand icon (placeholder for future fullscreen)
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white.opacity(0.9))
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
         }
         .padding(.horizontal, 12)
         .padding(.top, 20)
