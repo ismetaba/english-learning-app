@@ -30,8 +30,22 @@ struct ClipPlayerView: View {
 
     private var clip: LessonClip { clips[index] }
     private var totalClips: Int { clips.count }
+
+    /// The line to keep "selected" in the UI. Strictly-active while a line is
+    /// playing, and during the silent gaps between lines we keep the previous
+    /// line selected so the accent rail and translation stay on-screen.
     private var currentLineIndex: Int? {
-        clip.lines.firstIndex(where: { currentTime >= $0.startTime && currentTime <= $0.endTime })
+        guard !clip.lines.isEmpty else { return nil }
+        if let active = clip.lines.firstIndex(where: {
+            currentTime >= $0.startTime && currentTime <= $0.endTime
+        }) {
+            return active
+        }
+        // Gap handling — snap to the most recently finished line.
+        if let lastPlayed = clip.lines.lastIndex(where: { $0.endTime < currentTime }) {
+            return lastPlayed
+        }
+        return nil
     }
 
     // MARK: - Body
