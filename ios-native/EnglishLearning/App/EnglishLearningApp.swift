@@ -68,13 +68,16 @@ private struct DebugClipPlayerLauncher: View {
         .task {
             do {
                 let all = try await APIClient.shared.fetchLessonClips(lessonId: "lesson-01-greetings")
-                // Prefer a clip whose target line lands mid-scene, so the karaoke
-                // line is visible for screenshots before the target pause fires.
-                let withLateTarget = all.first { clip in
-                    guard let tgt = clip.lines.first(where: { $0.isTarget == true }) else { return false }
-                    return (tgt.endTime - clip.startTime) >= 8
+                // Prefer a clip with plenty of lines AND a late target, so the
+                // full-height transcript scroll is visible for design review
+                // before the target pause fires.
+                let good = all.first { clip in
+                    guard clip.lines.count >= 10,
+                          let tgt = clip.lines.first(where: { $0.isTarget == true })
+                    else { return false }
+                    return (tgt.endTime - clip.startTime) >= 15
                 }
-                clips = withLateTarget.map { [$0] } ?? all
+                clips = good.map { [$0] } ?? all
             } catch {
                 failure = "Failed to load clips: \(error.localizedDescription)"
             }

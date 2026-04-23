@@ -42,7 +42,7 @@ struct ClipPlayerView: View {
             VStack(spacing: 0) {
                 videoBlock
                 subtitlePanel
-                Spacer(minLength: 0)
+                    .frame(maxHeight: .infinity)
             }
             controls
         }
@@ -217,34 +217,108 @@ struct ClipPlayerView: View {
     private var subtitlePanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             subtitleHeader
+                .padding(.horizontal, 20)
                 .padding(.top, 16)
-                .padding(.bottom, 14)
+                .padding(.bottom, 10)
 
             if let banner = targetBanner {
                 targetChoice(for: banner)
+                    .padding(.horizontal, 20)
                     .padding(.bottom, 14)
             } else {
-                // Previous line
-                if let i = currentLineIndex, i > 0 {
-                    contextLine(clip.lines[i - 1], placement: .previous)
-                    dividerRule
+                transcriptScroll
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Scrollable transcript that fills the remaining screen space. Each line
+    /// renders either as a dimmed context line or, when active, as the
+    /// "currentLineBlock" with accent rail + karaoke. Scroll position
+    /// auto-tracks the active line, placing it at ~40% from the top of the
+    /// scrollable area (just above center) so upcoming lines dominate the view.
+    private var transcriptScroll: some View {
+        GeometryReader { geo in
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Top padding so the first line can scroll to the anchor position.
+                        Color.clear.frame(height: geo.size.height * 0.15)
+                        ForEach(Array(clip.lines.enumerated()), id: \.element.id) { idx, line in
+                            VStack(alignment: .leading, spacing: 0) {
+                                if currentLineIndex == idx {
+                                    currentLineBlock
+                                } else {
+                                    contextRow(line, idx: idx)
+                                }
+                                if idx < clip.lines.count - 1 {
+                                    dividerRule
+                                        .padding(.leading, currentLineIndex == idx || currentLineIndex == idx + 1 ? 0 : 48)
+                                }
+                            }
+                            .id("line-\(idx)")
+                        }
+                        // Bottom padding so the last line can still scroll up to anchor.
+                        Color.clear.frame(height: geo.size.height * 0.45)
+                    }
+                    .padding(.horizontal, 20)
                 }
-                // Current line
-                currentLineBlock
-                // Next line
-                if let i = currentLineIndex, i < clip.lines.count - 1 {
-                    dividerRule
-                    contextLine(clip.lines[i + 1], placement: .next)
-                }
-                // If there is no active line yet (before first line), show
-                // the first line as an inviting upcoming preview.
-                if currentLineIndex == nil, let first = clip.lines.first {
-                    contextLine(first, placement: .next)
+                .mask(
+                    VStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                            .frame(height: 20)
+                        Rectangle().fill(.black)
+                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                            .frame(height: 140)
+                    }
+                )
+                .onChange(of: currentLineIndex) { _, newValue in
+                    guard let i = newValue else { return }
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+                        proxy.scrollTo("line-\(i)", anchor: UnitPoint(x: 0.5, y: 0.4))
+                    }
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Compact row for non-active lines in the scrollable transcript — timestamp
+    /// on the left, text + optional translation, no chevron. Tapping seeks.
+    private func contextRow(_ line: ClipLine, idx: Int) -> some View {
+        let distance = currentLineIndex.map { abs(idx - $0) } ?? 0
+        let opacity = max(0.35, 0.9 - Double(distance) * 0.12)
+        return Button(action: {
+            Haptics.selection()
+            command = .seek(line.startTime)
+            if !isPlaying { command = .play }
+        }) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(formatTime(line.startTime - clip.startTime))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color(hex: 0x5E6B8A))
+                    .frame(width: 36, alignment: .leading)
+                    .padding(.top, 3)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(line.text)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color(hex: 0x94A0C4))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    if showTranslation, let tr = line.translationTr, !tr.isEmpty {
+                        Text(tr)
+                            .font(.system(size: 12))
+                            .italic()
+                            .foregroundStyle(Color(hex: 0x5E6B8A))
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .opacity(opacity)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable(scale: 0.99))
     }
 
     private var subtitleHeader: some View {
