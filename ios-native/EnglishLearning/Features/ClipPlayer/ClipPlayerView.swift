@@ -1,13 +1,16 @@
 import SwiftUI
 
-/// Full-featured clip player: YouTube embed + synced subtitles + translation + controls.
+/// V3 — Cinematic Overlay.
 ///
-/// Layout philosophy — **hero current line**:
-///   • Video sits as a contained cinema card at top.
-///   • The current subtitle is rendered huge, centered, as the main focus.
-///   • Previous / next lines peek above and below as muted context.
-///   • A floating glass control bar lives at the bottom with just the essentials.
-///   • Target lines pause once with explicit Listen again / Continue choices.
+/// Three horizontal zones:
+///   1. Video block (16:9) with overlay chrome, center play button, REC chip.
+///   2. Subtitle panel — previous / current (karaoke) / next, left accent rail
+///      on the current line only.
+///   3. Transport row + secondary chip row, with a gradient fade from the
+///      background at the bottom.
+///
+/// Karaoke: within the active line each word is colored by progress —
+///   past → text-primary, active → accent w/ underline, upcoming → muted.
 struct ClipPlayerView: View {
     let clips: [LessonClip]
     var onClipComplete: ((LessonClip) -> Void)? = nil
@@ -20,7 +23,9 @@ struct ClipPlayerView: View {
     @State private var command: YouTubePlayerView.PlayerCommand? = nil
     @State private var pausedTargets: Set<Int> = []
     @State private var targetBanner: ClipLine? = nil
-    @State private var showFullTranscript = false
+    @State private var isLooping = false
+    @State private var speed: Double = 1.0
+    @State private var loopRange: (Double, Double)? = nil
     @EnvironmentObject var appState: AppState
 
     private var clip: LessonClip { clips[index] }
@@ -28,327 +33,369 @@ struct ClipPlayerView: View {
     private var currentLineIndex: Int? {
         clip.lines.firstIndex(where: { currentTime >= $0.startTime && currentTime <= $0.endTime })
     }
-    private var currentLine: ClipLine? {
-        currentLineIndex.flatMap { clip.lines[$0] }
-    }
-    private var previousLine: ClipLine? {
-        guard let i = currentLineIndex, i > 0 else { return nil }
-        return clip.lines[i - 1]
-    }
-    private var nextLine: ClipLine? {
-        guard let i = currentLineIndex, i < clip.lines.count - 1 else { return nil }
-        return clip.lines[i + 1]
-    }
 
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            backdrop
-            content
+        ZStack(alignment: .bottom) {
+            Color(hex: 0x080A14).ignoresSafeArea()
+            VStack(spacing: 0) {
+                videoBlock
+                subtitlePanel
+                Spacer(minLength: 0)
+            }
+            controls
         }
         .preferredColorScheme(.dark)
-        .statusBarHidden(false)
-        .sheet(isPresented: $showFullTranscript) {
-            TranscriptSheet(
-                clip: clip,
-                currentLineIndex: currentLineIndex,
-                showTranslation: showTranslation,
-                onSelect: { line in
-                    command = .seek(line.startTime)
-                    if !isPlaying { command = .play }
-                    showFullTranscript = false
-                }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationBackground(.ultraThinMaterial)
-        }
         .onChange(of: clip.id) { _, _ in
             currentTime = clip.startTime
             command = .reload
             pausedTargets = []
             targetBanner = nil
+            loopRange = nil
         }
     }
 
-    // MARK: - Backdrop (soft color wash from the movie thumbnail)
+    // MARK: - Video block
 
-    private var backdrop: some View {
-        GeometryReader { geo in
-            ZStack {
-                Theme.Color.background
-                AsyncImage(url: URL(string: "https://i.ytimg.com/vi/\(clip.youtubeVideoId)/hqdefault.jpg")) { phase in
-                    if case .success(let image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geo.size.width, height: geo.size.width * 0.9)
-                            .blur(radius: 90)
-                            .opacity(0.42)
-                            .frame(maxHeight: .infinity, alignment: .top)
+    private var videoBlock: some View {
+        ZStack {
+            // YouTube embed
+            YouTubePlayerView(
+                videoId: clip.youtubeVideoId,
+                startTime: clip.startTime,
+                endTime: clip.endTime,
+                autoplay: true,
+                isPlaying: $isPlaying,
+                currentTime: { t in
+                    self.currentTime = t
+                    if let loop = loopRange, t >= loop.1 {
+                        command = .seek(loop.0)
                     }
+                    checkTargetPause(at: t)
+                },
+                onReady: { isPlaying = true },
+                onEnded: { next() },
+                command: $command
+            )
+
+            // Letterbox bars (top / bottom)
+            VStack {
+                Rectangle().fill(.black).frame(height: 14)
+                Spacer()
+                Rectangle().fill(.black).frame(height: 14)
+            }
+            .allowsHitTesting(false)
+
+            // Top chrome (back + title + CC + expand)
+            VStack {
+                topChrome
+                Spacer()
+                // REC chip
+                recChip
+                    .padding(.bottom, 14)
+            }
+
+            // Tap to toggle play/pause (excluding the chrome zone)
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    Haptics.medium()
+                    command = isPlaying ? .pause : .play
                 }
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.0),
-                        Color.black.opacity(0.65),
-                        Theme.Color.background
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+
+            // Center play button — visible only when paused
+            if !isPlaying {
+                Button {
+                    Haptics.medium()
+                    command = .play
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 64, height: 64)
+                        .background(
+                            Circle()
+                                .fill(Color(hex: 0x080A14, opacity: 0.55))
+                                .background(Circle().fill(.ultraThinMaterial))
+                        )
+                        .overlay(
+                            Circle().strokeBorder(Color.white.opacity(0.3), lineWidth: 1.5)
+                        )
+                        .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 6)
+                }
+                .transition(.opacity)
             }
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
+        .aspectRatio(16.0/9.0, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .background(Color.black)
+        .animation(.easeInOut(duration: 0.22), value: isPlaying)
     }
 
-    // MARK: - Content stack
-
-    private var content: some View {
-        VStack(spacing: 0) {
-            topBar
-            videoCard
-            heroStack
-            Spacer(minLength: 0)
-            bottomControls
-        }
-    }
-
-    // MARK: - Top bar
-
-    private var topBar: some View {
-        HStack(alignment: .center) {
+    private var topChrome: some View {
+        HStack(alignment: .center, spacing: 10) {
+            // Back button
             Button {
                 Haptics.light()
                 onFinish?()
             } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .bold))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 36, height: 36)
-                    .background(Circle().fill(.ultraThinMaterial))
+                    .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }
             .buttonStyle(.pressable)
-            Spacer()
-            VStack(spacing: 1) {
-                Text(clip.movieTitle.uppercased())
-                    .font(Theme.Font.caption(10, weight: .heavy))
-                    .tracking(1.6)
-                    .foregroundStyle(Theme.Color.textMuted)
-                Text("Scene \(index + 1) of \(totalClips)")
-                    .font(Theme.Font.caption(12, weight: .semibold))
-                    .foregroundStyle(Theme.Color.textPrimary)
+
+            // Title
+            VStack(alignment: .leading, spacing: 2) {
+                Text(clip.movieTitle)
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text("Scene \(index + 1) of \(totalClips) · \(formatTime(clip.duration))")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .lineLimit(1)
             }
-            Spacer()
+
+            Spacer(minLength: 0)
+
+            // CC (captions) toggle
             Button {
                 Haptics.selection()
                 showTranslation.toggle()
             } label: {
-                Image(systemName: showTranslation ? "text.bubble.fill" : "text.bubble")
+                Image(systemName: "captions.bubble\(showTranslation ? ".fill" : "")")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(showTranslation ? Theme.Color.primary : .white.opacity(0.85))
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(.ultraThinMaterial))
+                    .foregroundStyle(showTranslation ? Color(hex: 0x06D6B0) : .white)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }
             .buttonStyle(.pressable)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 12)
+        .padding(.top, 20)
+        .background(
+            LinearGradient(
+                colors: [Color(hex: 0x080A14, opacity: 0.9), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
     }
 
-    // MARK: - Video card
-
-    private var videoCard: some View {
-        YouTubePlayerView(
-            videoId: clip.youtubeVideoId,
-            startTime: clip.startTime,
-            endTime: clip.endTime,
-            autoplay: true,
-            isPlaying: $isPlaying,
-            currentTime: { t in
-                self.currentTime = t
-                checkTargetPause(at: t)
-            },
-            onReady: { isPlaying = true },
-            onEnded: { next() },
-            command: $command
-        )
-        .aspectRatio(16.0/9.0, contentMode: .fit)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.45), radius: 22, x: 0, y: 12)
-        .padding(.horizontal, 16)
+    private var recChip: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(Color(hex: 0xEF4444))
+                .frame(width: 6, height: 6)
+            Text("REC · \(formatTime(currentTime - clip.startTime))")
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Color(hex: 0x080A14, opacity: 0.65)))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
     }
 
-    // MARK: - Hero subtitle stack
+    // MARK: - Subtitle panel
 
-    private var heroStack: some View {
-        VStack(spacing: 0) {
+    private var subtitlePanel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            subtitleHeader
+                .padding(.top, 16)
+                .padding(.bottom, 14)
+
             if let banner = targetBanner {
                 targetChoice(for: banner)
-                    .padding(.top, 24)
-                    .padding(.horizontal, 16)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .opacity
-                    ))
+                    .padding(.bottom, 14)
             } else {
-                peekLine(previousLine, placement: .previous)
-                    .padding(.top, 14)
-                heroLine
-                    .padding(.vertical, 6)
-                peekLine(nextLine, placement: .next)
+                // Previous line
+                if let i = currentLineIndex, i > 0 {
+                    contextLine(clip.lines[i - 1], placement: .previous)
+                    dividerRule
+                }
+                // Current line
+                currentLineBlock
+                // Next line
+                if let i = currentLineIndex, i < clip.lines.count - 1 {
+                    dividerRule
+                    contextLine(clip.lines[i + 1], placement: .next)
+                }
+                // If there is no active line yet (before first line), show
+                // the first line as an inviting upcoming preview.
+                if currentLineIndex == nil, let first = clip.lines.first {
+                    contextLine(first, placement: .next)
+                }
             }
         }
-        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: currentLineIndex)
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: targetBanner?.id)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var heroLine: some View {
-        Group {
-            if let line = currentLine {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: 8) {
-                        if !line.speaker.isEmpty {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(Theme.Color.primary)
-                                    .frame(width: 6, height: 6)
-                                Text(line.speaker)
-                                    .font(Theme.Font.caption(10, weight: .heavy))
-                                    .tracking(1.0)
-                                    .foregroundStyle(Theme.Color.textSecondary)
-                                    .textCase(.uppercase)
+    private var subtitleHeader: some View {
+        HStack(alignment: .center) {
+            HStack(spacing: 4) {
+                Text("SUBTITLES")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.5)
+                    .foregroundStyle(Color(hex: 0x06D6B0))
+                Text("· line \((currentLineIndex ?? 0) + 1) / \(clip.lines.count)")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(0.5)
+                    .foregroundStyle(Color(hex: 0x5E6B8A))
+            }
+            Spacer(minLength: 0)
+            Text(formatTime(currentTime - clip.startTime))
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color(hex: 0x5E6B8A))
+        }
+    }
+
+    private enum ContextPlacement { case previous, next }
+
+    private func contextLine(_ line: ClipLine, placement: ContextPlacement) -> some View {
+        Button(action: {
+            Haptics.selection()
+            command = .seek(line.startTime)
+            if !isPlaying { command = .play }
+        }) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(formatTime(line.startTime - clip.startTime))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color(hex: 0x5E6B8A))
+                    .frame(width: 36, alignment: .leading)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(line.text)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color(hex: 0x94A0C4))
+                        .lineLimit(2)
+                    if showTranslation, let tr = line.translationTr, !tr.isEmpty {
+                        Text(tr)
+                            .font(.system(size: 12))
+                            .italic()
+                            .foregroundStyle(Color(hex: 0x5E6B8A))
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: placement == .previous ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color(hex: 0x5E6B8A))
+            }
+            .opacity(0.55)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable(scale: 0.99))
+    }
+
+    private var dividerRule: some View {
+        Rectangle()
+            .fill(Color(hex: 0x1E2A42))
+            .frame(height: 1)
+    }
+
+    @ViewBuilder
+    private var currentLineBlock: some View {
+        if let i = currentLineIndex {
+            let line = clip.lines[i]
+            HStack(alignment: .top, spacing: 0) {
+                // Left accent rail (gradient cyan → violet)
+                LinearGradient(
+                    colors: [Color(hex: 0x06D6B0), Color(hex: 0xA99CFF)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(width: 3)
+                .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                .shadow(color: Color(hex: 0x06D6B0, opacity: 0.5), radius: 6)
+                .padding(.vertical, 2)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    if !line.speaker.isEmpty || line.isTarget == true {
+                        HStack(spacing: 8) {
+                            if !line.speaker.isEmpty {
+                                Text(line.speaker.uppercased())
+                                    .font(.system(size: 10, weight: .heavy))
+                                    .tracking(1.3)
+                                    .foregroundStyle(Color(hex: 0x8577FF))
+                            }
+                            if line.isTarget == true {
+                                Text("TARGET")
+                                    .font(.system(size: 9, weight: .heavy))
+                                    .tracking(1.3)
+                                    .foregroundStyle(Color(hex: 0x06D6B0))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule().fill(Color(hex: 0x06D6B0, opacity: 0.15)))
                             }
                         }
-                        if line.isTarget == true {
-                            Text("TARGET")
-                                .font(Theme.Font.caption(9, weight: .heavy))
-                                .tracking(1.2)
-                                .foregroundStyle(Theme.Color.accent)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(Theme.Color.accent.opacity(0.15)))
-                        }
-                        Spacer(minLength: 0)
-                        Button {
-                            Haptics.selection()
-                            command = .seek(line.startTime)
-                            if !isPlaying { command = .play }
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(Theme.Color.textSecondary)
-                                .frame(width: 30, height: 30)
-                                .background(Circle().fill(Color.white.opacity(0.08)))
-                        }
-                        .buttonStyle(.pressable)
                     }
-
-                    heroText(for: line)
+                    Text(karaokeAttributed(for: line))
+                        .font(.system(size: 20, weight: .bold))
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .animation(.easeInOut(duration: 0.18), value: currentTime)
 
                     if showTranslation, let tr = line.translationTr, !tr.isEmpty {
                         Text(tr)
-                            .font(Theme.Font.body(15))
-                            .foregroundStyle(Theme.Color.textMuted)
-                            .lineSpacing(3)
+                            .font(.system(size: 13))
+                            .italic()
+                            .foregroundStyle(Color(hex: 0x94A0C4))
+                            .lineSpacing(2)
                     }
                 }
+                .padding(.leading, 14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                )
+            }
+            .padding(.vertical, 14)
+        } else {
+            // Pre-first-line: a quiet placeholder so the layout doesn't jump.
+            HStack(spacing: 8) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Listening…")
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundStyle(Color(hex: 0x5E6B8A))
+            .padding(.vertical, 20)
+        }
+    }
+
+    /// Builds the karaoke line: past words primary, active word accent cyan
+    /// with underline, upcoming words muted.
+    private func karaokeAttributed(for line: ClipLine) -> AttributedString {
+        guard !line.words.isEmpty else {
+            var s = AttributedString(line.text)
+            s.foregroundColor = Color(hex: 0xF1F3FF)
+            return s
+        }
+        var result = AttributedString()
+        for (idx, w) in line.words.enumerated() {
+            var piece = AttributedString(w.word)
+            let past = currentTime >= w.endTime
+            let active = currentTime >= w.startTime && currentTime < w.endTime
+            if active {
+                piece.foregroundColor = Color(hex: 0x06D6B0)
+                piece.underlineStyle = .single
+            } else if past {
+                piece.foregroundColor = Color(hex: 0xF1F3FF)
             } else {
-                // No active line — show a placeholder focus card.
-                VStack(spacing: 6) {
-                    Image(systemName: "waveform")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(Theme.Color.textMuted)
-                    Text("Listening…")
-                        .font(Theme.Font.body(14))
-                        .foregroundStyle(Theme.Color.textMuted)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-                .background(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
+                piece.foregroundColor = Color(hex: 0x5E6B8A)
+            }
+            result.append(piece)
+            if idx < line.words.count - 1 {
+                result.append(AttributedString(" "))
             }
         }
-    }
-
-    @ViewBuilder
-    private func heroText(for line: ClipLine) -> some View {
-        let attributed = buildAttributedHero(line: line)
-        Text(attributed)
-            .font(.system(size: 24, weight: .semibold, design: .default))
-            .foregroundStyle(Theme.Color.textPrimary)
-            .tracking(-0.3)
-            .lineSpacing(4)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    /// Word-level highlight: bolds the currently-spoken word and tints it primary.
-    private func buildAttributedHero(line: ClipLine) -> AttributedString {
-        var out = AttributedString(line.text)
-        guard let active = line.words.first(where: { currentTime >= $0.startTime && currentTime <= $0.endTime }),
-              let range = out.range(of: active.word, options: .caseInsensitive)
-        else { return out }
-        out[range].foregroundColor = Theme.Color.primary
-        out[range].inlinePresentationIntent = .stronglyEmphasized
-        return out
-    }
-
-    // MARK: - Peek lines (prev / next context)
-
-    private enum PeekPlacement { case previous, next }
-
-    @ViewBuilder
-    private func peekLine(_ line: ClipLine?, placement: PeekPlacement) -> some View {
-        if let line = line {
-            Button {
-                Haptics.selection()
-                command = .seek(line.startTime)
-                if !isPlaying { command = .play }
-            } label: {
-                HStack(spacing: 8) {
-                    if placement == .previous {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Theme.Color.textMuted)
-                    }
-                    Text(line.text)
-                        .font(Theme.Font.body(13))
-                        .foregroundStyle(Theme.Color.textMuted)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    if placement == .next {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Theme.Color.textMuted)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.pressable(scale: 0.99))
-        }
+        return result
     }
 
     // MARK: - Target choice card
@@ -358,38 +405,39 @@ struct ClipPlayerView: View {
             HStack(spacing: 8) {
                 Image(systemName: "target")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.Color.accent)
-                Text("Target line")
-                    .font(Theme.Font.caption(11, weight: .heavy))
-                    .tracking(1.0)
-                    .foregroundStyle(Theme.Color.accent)
-                    .textCase(.uppercase)
+                    .foregroundStyle(Color(hex: 0x06D6B0))
+                Text("TARGET LINE")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.3)
+                    .foregroundStyle(Color(hex: 0x06D6B0))
             }
             Text("\u{201C}\(line.text)\u{201D}")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.Color.textPrimary)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color(hex: 0xF1F3FF))
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
             if showTranslation, let tr = line.translationTr, !tr.isEmpty {
                 Text(tr)
-                    .font(Theme.Font.body(14))
-                    .foregroundStyle(Theme.Color.textMuted)
+                    .font(.system(size: 13))
+                    .italic()
+                    .foregroundStyle(Color(hex: 0x94A0C4))
             }
             HStack(spacing: 10) {
                 Button {
                     Haptics.medium()
                     listenAgain(line)
                 } label: {
-                    HStack(spacing: 7) {
+                    HStack(spacing: 6) {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                         Text("Listen again")
-                            .font(Theme.Font.headline(14, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                     }
-                    .foregroundStyle(Theme.Color.textPrimary)
+                    .foregroundStyle(Color(hex: 0xF1F3FF))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.vertical, 12)
+                    .background(Color(hex: 0x1A2238), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color(hex: 0x1E2A42), lineWidth: 1))
                 }
                 .buttonStyle(.pressable)
 
@@ -397,142 +445,224 @@ struct ClipPlayerView: View {
                     Haptics.medium()
                     continueFromTarget()
                 } label: {
-                    HStack(spacing: 7) {
+                    HStack(spacing: 6) {
                         Text("Continue")
-                            .font(Theme.Font.headline(14, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(Theme.Color.primary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .shadow(color: Theme.Color.primary.opacity(0.45), radius: 14, x: 0, y: 6)
+                    .padding(.vertical, 12)
+                    .background(Color(hex: 0x8577FF), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .shadow(color: Color(hex: 0x8577FF, opacity: 0.45), radius: 10, x: 0, y: 4)
                 }
                 .buttonStyle(.pressable)
             }
         }
-        .padding(20)
+        .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(hex: 0x111827))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Theme.Color.accent.opacity(0.35), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color(hex: 0x06D6B0, opacity: 0.35), lineWidth: 1)
         )
     }
 
-    // MARK: - Bottom controls (floating glass pill)
+    // MARK: - Controls (absolute bottom)
 
-    private var bottomControls: some View {
-        VStack(spacing: 14) {
-            progressBar
-            controlsRow
+    private var controls: some View {
+        VStack(spacing: 10) {
+            transportRow
+            chipRow
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
         .padding(.bottom, 24)
+        .background(
+            LinearGradient(
+                colors: [.clear, Color(hex: 0x080A14, opacity: 0.9), Color(hex: 0x080A14)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
+        )
     }
 
-    private var progressBar: some View {
-        let total = max(clip.duration, 1)
-        let played = max(0, currentTime - clip.startTime)
-        return VStack(spacing: 6) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.12))
-                    Capsule()
-                        .fill(Theme.Color.primary)
-                        .frame(width: max(0, min(geo.size.width, geo.size.width * played / total)))
-                }
+    private var transportRow: some View {
+        HStack(spacing: 10) {
+            // Prev line (small)
+            smallTransport(icon: "backward.end.fill") {
+                seekLine(offset: -1)
             }
-            .frame(height: 3)
-            HStack {
-                Text(formatTime(played))
-                    .font(Theme.Font.mono(11, weight: .medium))
-                    .foregroundStyle(Theme.Color.textSecondary)
-                Spacer()
-                Button {
-                    Haptics.light()
-                    showFullTranscript = true
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "list.bullet")
-                            .font(.system(size: 10, weight: .bold))
-                        Text("All lines")
-                            .font(Theme.Font.caption(11, weight: .semibold))
-                    }
-                    .foregroundStyle(Theme.Color.textSecondary)
-                }
-                Spacer()
-                Text(formatTime(total))
-                    .font(Theme.Font.mono(11, weight: .medium))
-                    .foregroundStyle(Theme.Color.textMuted)
-            }
-        }
-    }
-
-    private var controlsRow: some View {
-        HStack(spacing: 18) {
-            controlIcon("backward.end.fill", action: previous, disabled: index == 0)
-            controlIcon("chevron.left") { seekToLine(offset: -1) }
-            playButton
-            controlIcon("chevron.right") { seekToLine(offset: 1) }
-            controlIcon("forward.end.fill", action: next, disabled: index >= totalClips - 1)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var playButton: some View {
-        Button {
-            Haptics.medium()
-            if targetBanner != nil { targetBanner = nil }
-            command = isPlaying ? .pause : .play
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(Theme.Color.primary)
+            // Play / Pause (primary)
+            Button {
+                Haptics.medium()
+                if targetBanner != nil { targetBanner = nil }
+                command = isPlaying ? .pause : .play
+            } label: {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.white)
-                    .offset(x: isPlaying ? 0 : 2)
+                    .frame(width: 48, height: 48)
+                    .background(Circle().fill(Color(hex: 0x8577FF)))
+                    .shadow(color: Color(hex: 0x8577FF, opacity: 0.5), radius: 14, x: 0, y: 6)
             }
-            .frame(width: 62, height: 62)
-            .shadow(color: Theme.Color.primary.opacity(0.5), radius: 16, x: 0, y: 8)
+            .buttonStyle(.pressable)
+            // Next line
+            smallTransport(icon: "forward.end.fill") {
+                seekLine(offset: 1)
+            }
+            // Scrubber
+            scrubber
+                .padding(.leading, 6)
         }
-        .buttonStyle(.pressable)
     }
 
-    private func controlIcon(_ name: String,
-                             action: @escaping () -> Void = {},
-                             disabled: Bool = false) -> some View {
+    private func smallTransport(icon: String, action: @escaping () -> Void) -> some View {
         Button {
             Haptics.light()
             action()
         } label: {
-            Image(systemName: name)
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Theme.Color.textPrimary)
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(Color.white.opacity(0.07)))
-                .opacity(disabled ? 0.3 : 1.0)
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color(hex: 0x94A0C4))
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Color(hex: 0x111827)))
+                .overlay(Circle().strokeBorder(Color(hex: 0x1E2A42), lineWidth: 1))
         }
-        .disabled(disabled)
+        .buttonStyle(.pressable)
+    }
+
+    private var scrubber: some View {
+        let total = max(clip.duration, 0.01)
+        let played = max(0, min(total, currentTime - clip.startTime))
+        let fraction = played / total
+        return HStack(spacing: 8) {
+            Text(formatTime(played))
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color(hex: 0x94A0C4))
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(hex: 0x222D47))
+                        .frame(height: 4)
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Color(hex: 0x8577FF), Color(hex: 0xA99CFF)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ))
+                        .frame(width: max(0, geo.size.width * fraction), height: 4)
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().strokeBorder(Color(hex: 0x8577FF, opacity: 0.5), lineWidth: 3))
+                        .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                        .offset(x: max(0, geo.size.width * fraction) - 5)
+                }
+                .frame(height: 20)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { g in
+                            let f = max(0, min(1, g.location.x / geo.size.width))
+                            command = .seek(clip.startTime + total * f)
+                        }
+                )
+            }
+            .frame(height: 20)
+            Text(formatTime(total))
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color(hex: 0x5E6B8A))
+        }
+    }
+
+    private var chipRow: some View {
+        HStack(spacing: 6) {
+            Spacer()
+            chip(icon: "arrow.counterclockwise", label: "Replay line", active: false) {
+                replayCurrentLine()
+            }
+            chip(icon: "infinity", label: "Loop", active: isLooping) {
+                toggleLoop()
+            }
+            chip(icon: nil, label: speedLabel, active: speed != 1.0) {
+                cycleSpeed()
+            }
+            Spacer()
+        }
+    }
+
+    private var speedLabel: String {
+        String(format: "%.2f×", speed)
+    }
+
+    private func chip(icon: String?, label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.selection()
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 11, weight: .bold))
+                }
+                Text(label)
+                    .font(.system(size: 11, weight: .bold))
+            }
+            .foregroundStyle(active ? .white : Color(hex: 0x94A0C4))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                Capsule().fill(active ? Color(hex: 0x8577FF) : Color(hex: 0x111827))
+            )
+            .overlay(
+                Capsule().strokeBorder(active ? Color(hex: 0x8577FF) : Color(hex: 0x1E2A42), lineWidth: 1)
+            )
+        }
         .buttonStyle(.pressable)
     }
 
     // MARK: - Actions
 
-    private func seekToLine(offset: Int) {
+    private func seekLine(offset: Int) {
         guard !clip.lines.isEmpty else { return }
-        let baseIndex = currentLineIndex ?? 0
-        let target = baseIndex + offset
+        let base = currentLineIndex ?? 0
+        let target = base + offset
         guard (0..<clip.lines.count).contains(target) else { return }
-        let line = clip.lines[target]
+        command = .seek(clip.lines[target].startTime)
+        if !isPlaying { command = .play }
+    }
+
+    private func replayCurrentLine() {
+        guard let i = currentLineIndex else { return }
+        let line = clip.lines[i]
         command = .seek(line.startTime)
         if !isPlaying { command = .play }
+    }
+
+    private func toggleLoop() {
+        if isLooping {
+            isLooping = false
+            loopRange = nil
+        } else if let i = currentLineIndex {
+            let line = clip.lines[i]
+            isLooping = true
+            loopRange = (line.startTime, line.endTime)
+        }
+    }
+
+    private func cycleSpeed() {
+        switch speed {
+        case 1.0: speed = 1.25
+        case 1.25: speed = 0.75
+        default: speed = 1.0
+        }
+        // Note: YouTube iframe API supports setPlaybackRate — wiring that is
+        // TODO; the chip reflects intent for now.
     }
 
     private func next() {
@@ -554,7 +684,7 @@ struct ClipPlayerView: View {
         withAnimation { index -= 1 }
     }
 
-    // MARK: - Target-line stop behavior
+    // MARK: - Target-line auto-pause
 
     private func checkTargetPause(at t: Double) {
         let elapsed = t - clip.startTime
@@ -569,7 +699,7 @@ struct ClipPlayerView: View {
         pausedTargets.insert(target.id)
         Haptics.medium()
         command = .pause
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             targetBanner = target
         }
     }
@@ -587,88 +717,7 @@ struct ClipPlayerView: View {
     }
 
     private func formatTime(_ t: Double) -> String {
-        let secs = Int(t.rounded())
-        return String(format: "%d:%02d", secs / 60, secs % 60)
-    }
-}
-
-// MARK: - Transcript sheet (all lines, summoned via "All lines")
-
-private struct TranscriptSheet: View {
-    let clip: LessonClip
-    let currentLineIndex: Int?
-    let showTranslation: Bool
-    let onSelect: (ClipLine) -> Void
-
-    var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(clip.lines.enumerated()), id: \.element.id) { idx, line in
-                            row(idx: idx, line: line, active: currentLineIndex == idx)
-                                .id("line-\(idx)")
-                        }
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 6)
-                    .padding(.bottom, 24)
-                }
-                .onAppear {
-                    if let i = currentLineIndex {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                            proxy.scrollTo("line-\(i)", anchor: .center)
-                        }
-                    }
-                }
-            }
-            .navigationTitle(clip.movieTitle)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .preferredColorScheme(.dark)
-    }
-
-    private func row(idx: Int, line: ClipLine, active: Bool) -> some View {
-        Button {
-            Haptics.selection()
-            onSelect(line)
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(active ? Theme.Color.primary : Color.clear)
-                    .frame(width: 3)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        if !line.speaker.isEmpty {
-                            Text(line.speaker.uppercased())
-                                .font(Theme.Font.caption(9, weight: .heavy))
-                                .tracking(0.7)
-                                .foregroundStyle(Theme.Color.textMuted)
-                        }
-                        if line.isTarget == true {
-                            Text("TARGET")
-                                .font(Theme.Font.caption(9, weight: .heavy))
-                                .tracking(0.8)
-                                .foregroundStyle(Theme.Color.accent)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(Theme.Color.accent.opacity(0.15)))
-                        }
-                    }
-                    Text(line.text)
-                        .font(Theme.Font.headline(15, weight: active ? .semibold : .regular))
-                        .foregroundStyle(active ? Theme.Color.textPrimary : Theme.Color.textSecondary)
-                    if showTranslation, let tr = line.translationTr, !tr.isEmpty {
-                        Text(tr)
-                            .font(Theme.Font.body(12))
-                            .foregroundStyle(Theme.Color.textMuted)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.pressable(scale: 0.99))
+        let s = max(0, Int(t.rounded()))
+        return String(format: "%02d:%02d", s / 60, s % 60)
     }
 }
