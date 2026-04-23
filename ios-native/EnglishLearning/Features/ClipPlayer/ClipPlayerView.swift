@@ -314,8 +314,46 @@ struct ClipPlayerView: View {
     private var currentLineBlock: some View {
         if let i = currentLineIndex {
             let line = clip.lines[i]
-            HStack(alignment: .top, spacing: 0) {
-                // Left accent rail (gradient cyan → violet)
+            VStack(alignment: .leading, spacing: 10) {
+                if !line.speaker.isEmpty || line.isTarget == true {
+                    HStack(spacing: 8) {
+                        if !line.speaker.isEmpty {
+                            Text(line.speaker.uppercased())
+                                .font(.system(size: 10, weight: .heavy))
+                                .tracking(1.3)
+                                .foregroundStyle(Color(hex: 0x8577FF))
+                        }
+                        if line.isTarget == true {
+                            Text("TARGET")
+                                .font(.system(size: 9, weight: .heavy))
+                                .tracking(1.3)
+                                .foregroundStyle(Color(hex: 0x06D6B0))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color(hex: 0x06D6B0, opacity: 0.15)))
+                        }
+                    }
+                }
+                Text(karaokeAttributed(for: line))
+                    .font(.system(size: 20, weight: .bold))
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .animation(.easeInOut(duration: 0.18), value: currentTime)
+
+                if showTranslation, let tr = line.translationTr, !tr.isEmpty {
+                    Text(tr)
+                        .font(.system(size: 13))
+                        .italic()
+                        .foregroundStyle(Color(hex: 0x94A0C4))
+                        .lineSpacing(2)
+                }
+            }
+            .padding(.leading, 14)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Accent rail as an overlay so it matches the content height exactly
+            // rather than stretching down through the rest of the screen.
+            .overlay(alignment: .leading) {
                 LinearGradient(
                     colors: [Color(hex: 0x06D6B0), Color(hex: 0xA99CFF)],
                     startPoint: .top,
@@ -323,47 +361,8 @@ struct ClipPlayerView: View {
                 )
                 .frame(width: 3)
                 .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
-                .shadow(color: Color(hex: 0x06D6B0, opacity: 0.5), radius: 6)
-                .padding(.vertical, 2)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    if !line.speaker.isEmpty || line.isTarget == true {
-                        HStack(spacing: 8) {
-                            if !line.speaker.isEmpty {
-                                Text(line.speaker.uppercased())
-                                    .font(.system(size: 10, weight: .heavy))
-                                    .tracking(1.3)
-                                    .foregroundStyle(Color(hex: 0x8577FF))
-                            }
-                            if line.isTarget == true {
-                                Text("TARGET")
-                                    .font(.system(size: 9, weight: .heavy))
-                                    .tracking(1.3)
-                                    .foregroundStyle(Color(hex: 0x06D6B0))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Capsule().fill(Color(hex: 0x06D6B0, opacity: 0.15)))
-                            }
-                        }
-                    }
-                    Text(karaokeAttributed(for: line))
-                        .font(.system(size: 20, weight: .bold))
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .animation(.easeInOut(duration: 0.18), value: currentTime)
-
-                    if showTranslation, let tr = line.translationTr, !tr.isEmpty {
-                        Text(tr)
-                            .font(.system(size: 13))
-                            .italic()
-                            .foregroundStyle(Color(hex: 0x94A0C4))
-                            .lineSpacing(2)
-                    }
-                }
-                .padding(.leading, 14)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 6)
             }
-            .padding(.vertical, 14)
         } else {
             // Pre-first-line: a quiet placeholder so the layout doesn't jump.
             HStack(spacing: 8) {
@@ -377,33 +376,26 @@ struct ClipPlayerView: View {
         }
     }
 
-    /// Builds the karaoke line: past words primary, active word accent cyan
-    /// with underline, upcoming words muted.
+    /// Karaoke line. Starts from line.text so no words are lost when the
+    /// word list is sparse, then mutes upcoming words and colors the active
+    /// word cyan with an underline.
     private func karaokeAttributed(for line: ClipLine) -> AttributedString {
-        guard !line.words.isEmpty else {
-            var s = AttributedString(line.text)
-            s.foregroundColor = Color(hex: 0xF1F3FF)
-            return s
-        }
-        var result = AttributedString()
-        for (idx, w) in line.words.enumerated() {
-            var piece = AttributedString(w.word)
-            let past = currentTime >= w.endTime
-            let active = currentTime >= w.startTime && currentTime < w.endTime
-            if active {
-                piece.foregroundColor = Color(hex: 0x06D6B0)
-                piece.underlineStyle = .single
-            } else if past {
-                piece.foregroundColor = Color(hex: 0xF1F3FF)
-            } else {
-                piece.foregroundColor = Color(hex: 0x5E6B8A)
-            }
-            result.append(piece)
-            if idx < line.words.count - 1 {
-                result.append(AttributedString(" "))
+        var out = AttributedString(line.text)
+        out.foregroundColor = Color(hex: 0xF1F3FF)
+
+        // Mute words that haven't been spoken yet (have a startTime > currentTime).
+        for w in line.words where currentTime < w.startTime {
+            if let r = out.range(of: w.word, options: .caseInsensitive) {
+                out[r].foregroundColor = Color(hex: 0x5E6B8A)
             }
         }
-        return result
+        // Highlight the currently-spoken word, if any.
+        if let active = line.words.first(where: { currentTime >= $0.startTime && currentTime < $0.endTime }),
+           let r = out.range(of: active.word, options: .caseInsensitive) {
+            out[r].foregroundColor = Color(hex: 0x06D6B0)
+            out[r].underlineStyle = .single
+        }
+        return out
     }
 
     // MARK: - Target choice card
