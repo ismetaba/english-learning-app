@@ -46,11 +46,15 @@ function subState(sp: any, k: string, ck: string): 'done' | 'on' | 'off' {
 }
 
 export default function PathNode({
-  title, type, state, color, onPress, onSubTaskPress, delay = 0, lessonNumber, subProgress, isCurrent,
+  title, type, state, color, onPress, onSubTaskPress, delay = 0, subProgress, isCurrent,
 }: PathNodeProps) {
   const locked = state === 'locked';
   const done = state === 'completed';
   const { t } = useTranslation();
+
+  // Active lesson uses green as the "go" color, regardless of unit theme
+  const accent = isCurrent ? palette.success : color;
+  const showBadges = !!isCurrent;
 
   const nextSub = !locked
     ? subState(subProgress, 'learn', 'learnCompleted') !== 'done' ? 'learn'
@@ -59,30 +63,29 @@ export default function PathNode({
     : 'test'
     : null;
 
-  // Pulsing animation for outer ring
   const pulse = useSharedValue(1);
-  const glowOpacity = useSharedValue(0.25);
+  const glowOpacity = useSharedValue(0.3);
 
   useEffect(() => {
-    if (!locked) {
+    if (isCurrent) {
       pulse.value = withRepeat(
         withSequence(
-          withTiming(1.06, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1.08, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
           withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
         ),
-        -1, // infinite
+        -1,
         true,
       );
       glowOpacity.value = withRepeat(
         withSequence(
-          withTiming(0.4, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.15, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.55, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.2, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
         ),
         -1,
         true,
       );
     }
-  }, [locked]);
+  }, [isCurrent]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -93,59 +96,75 @@ export default function PathNode({
     <Pressable
       onPress={onPress}
       disabled={locked}
-      style={({ pressed }) => [s.container, pressed && !locked && { transform: [{ scale: 0.92 }] }]}
+      style={({ pressed }) => [s.container, pressed && !locked && { transform: [{ scale: 0.94 }] }]}
     >
       <Animated.View entering={ZoomIn.delay(delay).duration(400)} style={s.inner}>
-        {/* Outer dark ring (background ring) */}
-        {!locked && (
-          <View style={[s.outerRingBg, { borderColor: done ? color + '20' : color + '15' }]} />
-        )}
-
-        {/* Animated glow ring */}
-        {!locked && (
-          <Animated.View style={[
-            s.outerRing,
-            { borderColor: done ? color : color },
-            pulseStyle,
-          ]} />
+        {/* Outer glow ring (only on active lesson) */}
+        {isCurrent && (
+          <>
+            <View style={[s.outerRingBg, { borderColor: accent + '30' }]} />
+            <Animated.View style={[s.outerRing, { borderColor: accent }, pulseStyle]} />
+          </>
         )}
 
         {/* Circle */}
         <View style={[
           s.circle,
           locked && s.circLocked,
-          !locked && !done && { borderColor: color, borderWidth: 3, backgroundColor: palette.bgCard,
-            shadowColor: color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-          done && { backgroundColor: color, borderWidth: 0,
-            shadowColor: color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8 },
+          !locked && !done && isCurrent && {
+            borderColor: accent, borderWidth: 3, backgroundColor: palette.bgCard,
+            shadowColor: accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+          },
+          !locked && !done && !isCurrent && {
+            backgroundColor: palette.bgSurface, borderWidth: 0,
+          },
+          done && {
+            backgroundColor: accent, borderWidth: 0,
+            shadowColor: accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8,
+          },
         ]}>
           {locked ? (
-            <Ionicons name="lock-closed" size={22} color={palette.textDisabled} />
+            <Ionicons name="lock-closed" size={28} color={palette.textDisabled} />
           ) : done ? (
-            <Ionicons name="checkmark" size={28} color="#fff" />
+            <Ionicons name="checkmark" size={32} color="#fff" />
           ) : (
-            <Ionicons name={TYPE_ICONS[type] || 'book-outline'} size={26} color={color} />
+            <Ionicons
+              name={TYPE_ICONS[type] || 'book-outline'}
+              size={isCurrent ? 34 : 30}
+              color={isCurrent ? accent : palette.textDisabled}
+            />
           )}
         </View>
 
         {/* Title */}
-        <Text style={[s.title, locked && s.titleLocked, done && s.titleDone]} numberOfLines={2}>{title}</Text>
+        <Text
+          style={[
+            s.title,
+            (locked || (!isCurrent && !done)) && s.titleMuted,
+            isCurrent && s.titleCurrent,
+          ]}
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
 
-        {/* Badges */}
-        {!locked && (
+        {/* Badges — only on active lesson */}
+        {showBadges && (
           <Animated.View entering={FadeIn.delay(delay + 100).duration(200)} style={s.badges}>
             <View style={[s.badge, { backgroundColor: palette.bgSurface }]}>
-              <Text style={[s.badgeText, { color: palette.textMuted }]}>{t(TYPE_LABELS[type] || type)}</Text>
+              <Text style={[s.badgeText, { color: palette.textSecondary }]}>
+                {t(TYPE_LABELS[type] || type)}
+              </Text>
             </View>
             {nextSub && nextSub !== 'test' && (
               <Pressable onPress={() => onSubTaskPress(nextSub as any)}>
-                <View style={[s.badge, { backgroundColor: color + '20' }]}>
-                  <Text style={[s.badgeText, { color }]}>{nextSub.toUpperCase()}</Text>
+                <View style={[s.badge, { backgroundColor: accent + '22' }]}>
+                  <Text style={[s.badgeText, { color: accent }]}>{nextSub.toUpperCase()}</Text>
                 </View>
               </Pressable>
             )}
             {nextSub === 'test' && (
-              <View style={[s.badge, { backgroundColor: palette.xp + '20' }]}>
+              <View style={[s.badge, { backgroundColor: palette.xp + '22' }]}>
                 <Text style={[s.badgeText, { color: palette.xp }]}>TEST</Text>
               </View>
             )}
@@ -156,18 +175,31 @@ export default function PathNode({
   );
 }
 
-const SZ = 72;
+const SZ = 92;
+const WIDTH = 150;
 
 const s = StyleSheet.create({
-  container: { alignItems: 'center', width: 130 },
-  inner: { alignItems: 'center', width: 130 },
+  container: { alignItems: 'center', width: WIDTH },
+  inner: { alignItems: 'center', width: WIDTH },
   outerRingBg: {
-    position: 'absolute', top: -10, left: (130 - SZ - 20) / 2, width: SZ + 20, height: SZ + 20,
-    borderRadius: (SZ + 20) / 2, borderWidth: 3, borderStyle: 'solid', opacity: 0.15,
+    position: 'absolute',
+    top: -14,
+    left: (WIDTH - (SZ + 28)) / 2,
+    width: SZ + 28,
+    height: SZ + 28,
+    borderRadius: (SZ + 28) / 2,
+    borderWidth: 3,
+    borderStyle: 'solid',
   },
   outerRing: {
-    position: 'absolute', top: -6, left: (130 - SZ - 12) / 2, width: SZ + 12, height: SZ + 12,
-    borderRadius: (SZ + 12) / 2, borderWidth: 2.5, borderStyle: 'solid',
+    position: 'absolute',
+    top: -10,
+    left: (WIDTH - (SZ + 20)) / 2,
+    width: SZ + 20,
+    height: SZ + 20,
+    borderRadius: (SZ + 20) / 2,
+    borderWidth: 3,
+    borderStyle: 'solid',
   },
   circle: {
     width: SZ, height: SZ, borderRadius: SZ / 2,
@@ -175,12 +207,32 @@ const s = StyleSheet.create({
   },
   circLocked: { backgroundColor: palette.bgSurface, borderWidth: 0 },
   title: {
-    fontSize: 13, fontWeight: '700', color: palette.textPrimary,
-    textAlign: 'center', marginTop: 8, lineHeight: 17, letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: '700',
+    color: palette.textPrimary,
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
+    letterSpacing: -0.2,
   },
-  titleLocked: { color: palette.textMuted, fontWeight: '500' },
-  titleDone: { color: palette.textSecondary },
-  badges: { flexDirection: 'row', gap: 4, marginTop: 6, flexWrap: 'wrap', justifyContent: 'center' },
-  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: Radius.full },
-  badgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  titleMuted: { color: palette.textMuted, fontWeight: '600' },
+  titleCurrent: { color: palette.textPrimary, fontWeight: '800' },
+  badges: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  badge: {
+    paddingHorizontal: 11,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
 });

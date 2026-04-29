@@ -8,7 +8,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
-const ICON_ACTIVE = palette.textPrimary;
+const ICON_ACTIVE = palette.primary;
 const LABEL_INACTIVE = palette.textMuted;
 const BAR_BG = '#11182A';
 const BAR_BORDER = 'rgba(255,255,255,0.06)';
@@ -96,7 +96,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('learn'),
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'book' : 'book-outline'} focused={focused} />,
         }}
       />
       <Tabs.Screen
