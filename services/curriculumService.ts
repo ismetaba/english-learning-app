@@ -68,7 +68,36 @@ export interface LessonClip {
   lines: ClipLine[];
 }
 
+// ── POC video (Feynman video-first) ──────────────────────────────
+
+export interface PocStarterWord {
+  id: string;
+  word: string;
+  tr: string;
+  occurrences: number;
+}
+
+export interface PocVideo {
+  id: string;
+  youtube_video_id: string;
+  title: string;
+  movie_title: string;
+  difficulty: string;
+  wpm: number | null;
+  a2_ratio: number | null;
+  avg_sentence_len: number | null;
+  clip_count: number;
+  total_lines: number;
+  tagged_lines: number;
+  starter_words: PocStarterWord[];
+}
+
 // ── API calls with caching ───────────────────────────────────────
+
+export async function fetchPocVideos(): Promise<PocVideo[]> {
+  // No caching for now — POC is small and we want fresh data
+  return apiFetch<PocVideo[]>('/api/v1/poc-videos');
+}
 
 export async function fetchCurriculum(): Promise<CurriculumUnit[]> {
   const cached = await getCached<CurriculumUnit[]>('curriculum');

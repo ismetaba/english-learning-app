@@ -224,6 +224,53 @@ struct ClipWord: Codable, Equatable, Hashable, Identifiable {
     let word: String
     let startTime: Double
     let endTime: Double
+    /// Whitespace-tokenized index from word_timestamps.word_index. Nullable
+    /// for back-compat with existing endpoints (lessons routes don't return it).
+    let wordIndex: Int?
+    /// vocab_words.id (e.g. "a2-need") if this surface form matches an
+    /// inflection of a starter-set word; nil otherwise.
+    let starterId: String?
+    /// Turkish translation of the matched starter word, joined from
+    /// vocab_words.translation_tr at request time. Nil for non-starter
+    /// words. Used by the tap-to-learn banner so the player doesn't need
+    /// a separate lookup table.
+    let starterTr: String?
+    /// Best-effort base-form Turkish gloss for *any* word in the
+    /// dialogue (not just starter set), joined from word_translations.
+    /// Rendered as a small italic label under each English word so the
+    /// learner sees a word-by-word translation without needing to tap.
+    /// Nil when the surface form has no entry in the table.
+    let translationTr: String?
+
+    enum CodingKeys: String, CodingKey {
+        case word, startTime, endTime, wordIndex, starterId, starterTr, translationTr
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.word          = try c.decode(String.self, forKey: .word)
+        self.startTime     = try c.decode(Double.self, forKey: .startTime)
+        self.endTime       = try c.decode(Double.self, forKey: .endTime)
+        self.wordIndex     = try c.decodeIfPresent(Int.self, forKey: .wordIndex)
+        self.starterId     = try c.decodeIfPresent(String.self, forKey: .starterId)
+        self.starterTr     = try c.decodeIfPresent(String.self, forKey: .starterTr)
+        self.translationTr = try c.decodeIfPresent(String.self, forKey: .translationTr)
+    }
+}
+
+/// Sentence-structure tag for a subtitle line. Indices reference
+/// word_timestamps.word_index for that line. Subject and aux_verb may be
+/// empty (imperatives, fragments, no auxiliary).
+struct ClipLineStructure: Codable, Equatable, Hashable {
+    let subject: [Int]
+    let auxVerb: [Int]
+    let rest: [Int]
+
+    enum CodingKeys: String, CodingKey {
+        case subject
+        case auxVerb = "aux_verb"
+        case rest
+    }
 }
 
 struct ClipLine: Codable, Identifiable, Equatable, Hashable {
@@ -234,7 +281,25 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
     let startTime: Double
     let endTime: Double
     let isTarget: Bool?
+    let structure: ClipLineStructure?
     let words: [ClipWord]
+
+    enum CodingKeys: String, CodingKey {
+        case id, speaker, text, translationTr, startTime, endTime, isTarget, structure, words
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id            = try c.decode(Int.self, forKey: .id)
+        self.speaker       = try c.decode(String.self, forKey: .speaker)
+        self.text          = try c.decode(String.self, forKey: .text)
+        self.translationTr = try c.decodeIfPresent(String.self, forKey: .translationTr)
+        self.startTime     = try c.decode(Double.self, forKey: .startTime)
+        self.endTime       = try c.decode(Double.self, forKey: .endTime)
+        self.isTarget      = try c.decodeIfPresent(Bool.self, forKey: .isTarget)
+        self.structure     = try c.decodeIfPresent(ClipLineStructure.self, forKey: .structure)
+        self.words         = try c.decode([ClipWord].self, forKey: .words)
+    }
 }
 
 struct LessonClip: Codable, Identifiable, Equatable, Hashable {

@@ -14,19 +14,46 @@ import SwiftUI
 struct ClipPlayerView: View {
     let clips: [LessonClip]
     var onClipComplete: ((LessonClip) -> Void)? = nil
+    /// Fires when the LAST clip plays past its endTime — i.e. the
+    /// video has been watched through to natural completion. Parents
+    /// (SetPlayerView) use this to drive the "next video in the set"
+    /// transition. NOT fired by the back button — that uses `onExit`.
     var onFinish: (() -> Void)? = nil
+    /// Fires when the user taps the back button in the top chrome.
+    /// Separates "user wants out" from "video naturally ended", which
+    /// previously shared the same `onFinish` and made the back press
+    /// look indistinguishable from a finished video. Falls back to
+    /// `onFinish` for callers that haven't been updated yet.
+    var onExit: (() -> Void)? = nil
 
     @State private var index: Int = 0
     @State private var currentTime: Double = 0
     @State private var isPlaying = false
-    @State private var showTranslation = true
     @State private var command: YouTubePlayerView.PlayerCommand? = nil
-    @State private var pausedTargets: Set<Int> = []
-    @State private var targetBanner: ClipLine? = nil
+    /// Tracks which clip indices have already auto-advanced, so
+    /// reaching `clip.endTime` only fires `next()` once per clip.
+    /// currentTime callbacks come in at ~220ms cadence and a few
+    /// frames can land past endTime before the reload kicks in.
+    @State private var advancedFromClip: Set<Int> = []
+    /// Keys of starter-word occurrences we've already paused on, so the
+    /// player doesn't re-pause every time the same word loops. Format:
+    /// "clipId-lineId-wordIndex".
+    @State private var pausedStarters: Set<String> = []
+    @State private var starterBanner: StarterPause? = nil
     @State private var isLooping = false
-    @State private var speed: Double = 1.0
+    /// Defaults to 0.75× — comprehension over speed. Storks dialogue
+    /// (and most native conversational video) is too fast for an A2
+    /// learner at native rate, so we open slow and let the user dial up.
+    @State private var speed: Double = 0.75
     @State private var loopRange: (Double, Double)? = nil
     @EnvironmentObject var appState: AppState
+
+    /// Active line + the starter word we just paused on, used to render the
+    /// banner overlay and feed the replay/continue actions.
+    struct StarterPause: Equatable {
+        let line: ClipLine
+        let word: ClipWord
+    }
 
     private var clip: LessonClip { clips[index] }
     private var totalClips: Int { clips.count }
@@ -64,9 +91,17 @@ struct ClipPlayerView: View {
         .onChange(of: clip.id) { _, _ in
             currentTime = clip.startTime
             command = .reload
-            pausedTargets = []
-            targetBanner = nil
+            pausedStarters = []
+            starterBanner = nil
             loopRange = nil
+            advancedFromClip = []
+            // YouTube's loadVideoById resets playback rate to 1.0 — reapply
+            // the user's chosen speed once the new video is buffering.
+            if speed != 1.0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    command = .setSpeed(speed)
+                }
+            }
         }
     }
 
@@ -85,10 +120,40 @@ struct ClipPlayerView: View {
                     self.currentTime = t
                     if let loop = loopRange, t >= loop.1 {
                         command = .seek(loop.0)
+                        return
                     }
-                    checkTargetPause(at: t)
+                    // Auto-advance through the clip array. YouTube's
+                    // ENDED state never fires for an endTime-bounded
+                    // segment (the JS pauses at endTime instead), so
+                    // we trip the transition ourselves here. Fires
+                    // exactly once per clip via `advancedFromClip` —
+                    // currentTime callbacks come in faster than the
+                    // reload completes and would otherwise cascade.
+                    if t >= clip.endTime - 0.05,
+                       !advancedFromClip.contains(index),
+                       starterBanner == nil {
+                        advancedFromClip.insert(index)
+                        next()
+                    }
+                    // Auto-pause is intentionally disabled — the new flow
+                    // is tap-to-learn: starter words are highlighted in
+                    // the active line and only pause + show the banner
+                    // when the user explicitly taps them.
                 },
-                onReady: { isPlaying = true },
+                onReady: {
+                    isPlaying = true
+                    // Apply the current playback speed once the player is
+                    // live. YouTube's setPlaybackRate is rejected before
+                    // the player reaches the READY state, so we wait for
+                    // this hook rather than firing it immediately on view
+                    // build. Skipped at native rate to avoid a no-op JS
+                    // round-trip.
+                    if speed != 1.0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            command = .setSpeed(speed)
+                        }
+                    }
+                },
                 onEnded: { next() },
                 command: $command
             )
@@ -101,6 +166,17 @@ struct ClipPlayerView: View {
             }
             .allowsHitTesting(false)
 
+            // Tap to toggle play/pause. Stays UNDER the chrome layer so the
+            // back button and the rest of topChrome receive taps first —
+            // earlier this catch-all sat on top and ate every tap, leaving
+            // back/CC/expand inert.
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    Haptics.medium()
+                    command = isPlaying ? .pause : .play
+                }
+
             // Top chrome (back + title + CC + expand)
             VStack {
                 topChrome
@@ -108,15 +184,8 @@ struct ClipPlayerView: View {
                 // REC chip
                 recChip
                     .padding(.bottom, 14)
+                    .allowsHitTesting(false)
             }
-
-            // Tap to toggle play/pause (excluding the chrome zone)
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    Haptics.medium()
-                    command = isPlaying ? .pause : .play
-                }
 
             // Center play button — visible only when paused
             if !isPlaying {
@@ -149,10 +218,12 @@ struct ClipPlayerView: View {
 
     private var topChrome: some View {
         HStack(alignment: .center, spacing: 10) {
-            // Back button
+            // Back button — explicit exit, not a "video done" event.
+            // Falls back to onFinish for older callers that haven't
+            // wired up onExit yet.
             Button {
                 Haptics.light()
-                onFinish?()
+                (onExit ?? onFinish)?()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .bold))
@@ -177,21 +248,11 @@ struct ClipPlayerView: View {
 
             Spacer(minLength: 0)
 
-            // CC (captions) toggle
-            Button {
-                Haptics.selection()
-                showTranslation.toggle()
-            } label: {
-                Image(systemName: "captions.bubble\(showTranslation ? ".fill" : "")")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(showTranslation ? Color(hex: 0x06D6B0) : .white)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
-                    .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            }
-            .buttonStyle(.pressable)
-
-            // Expand icon (placeholder for future fullscreen)
+            // Expand icon (placeholder for future fullscreen). The CC
+            // captions toggle used to live just before this — removed
+            // along with sentence-level Turkish translations, since the
+            // Feynman flow leans on per-word tap-to-translate (the
+            // starter-word banner) rather than a full sentence gloss.
             Image(systemName: "arrow.up.left.and.arrow.down.right")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(.white.opacity(0.9))
@@ -235,8 +296,8 @@ struct ClipPlayerView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 10)
 
-            if let banner = targetBanner {
-                targetChoice(for: banner)
+            if let banner = starterBanner {
+                starterChoice(for: banner)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 14)
             } else {
@@ -312,20 +373,10 @@ struct ClipPlayerView: View {
                     .foregroundStyle(Color(hex: 0x5E6B8A))
                     .frame(width: 36, alignment: .leading)
                     .padding(.top, 3)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(line.text)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color(hex: 0x94A0C4))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    if showTranslation, let tr = line.translationTr, !tr.isEmpty {
-                        Text(tr)
-                            .font(.system(size: 12))
-                            .italic()
-                            .foregroundStyle(Color(hex: 0x5E6B8A))
-                            .lineLimit(1)
-                    }
-                }
+                Text(structureAttributed(for: line))
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
             .opacity(opacity)
@@ -354,44 +405,6 @@ struct ClipPlayerView: View {
         }
     }
 
-    private enum ContextPlacement { case previous, next }
-
-    private func contextLine(_ line: ClipLine, placement: ContextPlacement) -> some View {
-        Button(action: {
-            Haptics.selection()
-            command = .seek(line.startTime)
-            if !isPlaying { command = .play }
-        }) {
-            HStack(alignment: .top, spacing: 12) {
-                Text(formatTime(line.startTime - clip.startTime))
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color(hex: 0x5E6B8A))
-                    .frame(width: 36, alignment: .leading)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(line.text)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color(hex: 0x94A0C4))
-                        .lineLimit(2)
-                    if showTranslation, let tr = line.translationTr, !tr.isEmpty {
-                        Text(tr)
-                            .font(.system(size: 12))
-                            .italic()
-                            .foregroundStyle(Color(hex: 0x5E6B8A))
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-                Image(systemName: placement == .previous ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color(hex: 0x5E6B8A))
-            }
-            .opacity(0.55)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.pressable(scale: 0.99))
-    }
-
     private var dividerRule: some View {
         Rectangle()
             .fill(Color(hex: 0x1E2A42))
@@ -403,38 +416,14 @@ struct ClipPlayerView: View {
         if let i = currentLineIndex {
             let line = clip.lines[i]
             VStack(alignment: .leading, spacing: 10) {
-                if !line.speaker.isEmpty || line.isTarget == true {
-                    HStack(spacing: 8) {
-                        if !line.speaker.isEmpty {
-                            Text(line.speaker.uppercased())
-                                .font(.system(size: 10, weight: .heavy))
-                                .tracking(1.3)
-                                .foregroundStyle(Color(hex: 0x8577FF))
-                        }
-                        if line.isTarget == true {
-                            Text("TARGET")
-                                .font(.system(size: 9, weight: .heavy))
-                                .tracking(1.3)
-                                .foregroundStyle(Color(hex: 0x06D6B0))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Color(hex: 0x06D6B0, opacity: 0.15)))
-                        }
-                    }
+                if !line.speaker.isEmpty {
+                    Text(line.speaker.uppercased())
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(1.3)
+                        .foregroundStyle(Color(hex: 0x8577FF))
                 }
-                Text(karaokeAttributed(for: line))
-                    .font(.system(size: 20, weight: .bold))
-                    .lineSpacing(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .animation(.easeInOut(duration: 0.18), value: currentTime)
 
-                if showTranslation, let tr = line.translationTr, !tr.isEmpty {
-                    Text(tr)
-                        .font(.system(size: 13))
-                        .italic()
-                        .foregroundStyle(Color(hex: 0x94A0C4))
-                        .lineSpacing(2)
-                }
+                tappableWordsLine(for: line)
             }
             .padding(.leading, 14)
             .padding(.vertical, 14)
@@ -464,77 +453,515 @@ struct ClipPlayerView: View {
         }
     }
 
-    /// Karaoke line. Starts from line.text so no words are lost when the
-    /// word list is sparse, then mutes upcoming words and colors the active
-    /// word cyan with an underline.
-    private func karaokeAttributed(for line: ClipLine) -> AttributedString {
-        var out = AttributedString(line.text)
-        out.foregroundColor = Color(hex: 0xF1F3FF)
+    /// The active line rendered as wrapping rows of individual word views.
+    ///
+    /// Each word is colored by sentence-structure (subject blue / aux amber /
+    /// rest white). The currently-spoken word gets the cyan karaoke accent
+    /// and underline. Words yet to be spoken are muted gray.
+    ///
+    /// Starter-set words (those mapped to one of the active vocabulary
+    /// targets) get an amber underline as a tap affordance. Tapping a
+    /// starter word pauses the video and surfaces the meaning banner —
+    /// giving the learner full control over when to break the flow,
+    /// rather than auto-pausing on every starter encounter.
+    @ViewBuilder
+    private func tappableWordsLine(for line: ClipLine) -> some View {
+        let subjectIdx = Set(line.structure?.subject ?? [])
+        let auxIdx     = Set(line.structure?.auxVerb ?? [])
 
-        // Mute words that haven't been spoken yet (have a startTime > currentTime).
-        for w in line.words where currentTime < w.startTime {
-            if let r = out.range(of: w.word, options: .caseInsensitive) {
-                out[r].foregroundColor = Color(hex: 0x5E6B8A)
+        FlowLayout(spacing: 6, lineSpacing: 4) {
+            ForEach(Array(line.words.enumerated()), id: \.offset) { i, w in
+                wordView(
+                    word: w,
+                    line: line,
+                    index: w.wordIndex ?? i,
+                    subjectIdx: subjectIdx,
+                    auxIdx: auxIdx,
+                )
             }
         }
-        // Highlight the currently-spoken word, if any.
-        if let active = line.words.first(where: { currentTime >= $0.startTime && currentTime < $0.endTime }),
-           let r = out.range(of: active.word, options: .caseInsensitive) {
-            out[r].foregroundColor = Color(hex: 0x06D6B0)
-            out[r].underlineStyle = .single
+        // Slow karaoke transitions — opacity, color, and scale all glide
+        // between word states rather than snapping. ~0.28s feels
+        // unhurried but still tracks the speaker; spring on the value
+        // would overshoot the scale at fast playback rates.
+        .animation(.easeInOut(duration: 0.28), value: currentTime)
+    }
+
+    @ViewBuilder
+    private func wordView(
+        word w: ClipWord,
+        line: ClipLine,
+        index idx: Int,
+        subjectIdx: Set<Int>,
+        auxIdx: Set<Int>,
+    ) -> some View {
+        let isActive    = currentTime >= w.startTime && currentTime < w.endTime
+        let isUpcoming  = currentTime <  w.startTime
+        let isStarter   = w.starterId != nil
+
+        let bucketKind: BucketKind = {
+            if subjectIdx.contains(idx) { return .subject }
+            if auxIdx.contains(idx)     { return .auxVerb }
+            return .rest
+        }()
+
+        let baseColor = colorFor(bucket: bucketKind)
+        // Active and target now use entirely different visual languages
+        // so they never compete: active = COLOR + OPACITY + SCALE,
+        // target = UNDERLINE. The active word picks up the cyan accent
+        // and grows ~5% — the surrounding past words stay in their
+        // structure color at full opacity (re-readable), upcoming
+        // words sit at 55% opacity so the karaoke "wave" of brightness
+        // moves left-to-right naturally as the speaker progresses.
+        let textColor: Color = isActive ? Theme.Color.accent : baseColor
+        let wordOpacity: Double = isUpcoming ? 0.55 : 1.0
+        let wordScale: CGFloat = isActive ? 1.06 : 1.0
+
+        VStack(alignment: .center, spacing: 1) {
+            Text(displayText(for: w.word, bucket: bucketKind, activeColor: textColor))
+                .font(.system(size: 20, weight: .bold))
+                .scaleEffect(wordScale)
+                // Target-word marker — the ONLY underline in the active
+                // line. Active is signalled by color + scale instead, so
+                // this amber rule unambiguously means "this is a vocab
+                // target you can tap to learn". 1.5pt to feel like a
+                // pen-mark, not a button border.
+                .overlay(alignment: .bottom) {
+                    if isStarter {
+                        Rectangle()
+                            .fill(Color(hex: 0xFFB347))
+                            .frame(height: 1.5)
+                            .opacity(0.85)
+                            .offset(y: 2)
+                    }
+                }
+
+            // Word-by-word Turkish gloss. Quiet supporting layer — the
+            // English text is the primary read; the TR is a hint the
+            // eye picks up after.
+            if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
+                Text(tr)
+                    .font(.system(size: 10, weight: .regular))
+                    .italic()
+                    .foregroundStyle(Color(hex: 0x7C8BAE))
+                    .lineLimit(1)
+            }
+        }
+        .opacity(wordOpacity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard isStarter else { return }
+            Haptics.medium()
+            command = .pause
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                starterBanner = StarterPause(line: line, word: w)
+            }
+        }
+    }
+
+    private enum BucketKind { case subject, auxVerb, rest }
+
+    /// Static word-by-word rendering for places that show a line OUT of
+    /// the karaoke flow (the starter-tap banner today, potentially
+    /// review screens later). Each English word sits above its Turkish
+    /// gloss with the same 3-color sentence-structure tagging as the
+    /// active row, but no scale / opacity / tap behavior — it's a
+    /// reference rendering, not a live one.
+    @ViewBuilder
+    private func staticTranslatedLine(
+        for line: ClipLine,
+        fontSize: CGFloat = 15,
+        glossSize: CGFloat = 10,
+    ) -> some View {
+        let subjectIdx = Set(line.structure?.subject ?? [])
+        let auxIdx     = Set(line.structure?.auxVerb  ?? [])
+
+        FlowLayout(spacing: 6, lineSpacing: 6) {
+            ForEach(Array(line.words.enumerated()), id: \.offset) { i, w in
+                let idx = w.wordIndex ?? i
+                let bucketKind: BucketKind = {
+                    if subjectIdx.contains(idx) { return .subject }
+                    if auxIdx.contains(idx)     { return .auxVerb }
+                    return .rest
+                }()
+                let baseColor = colorFor(bucket: bucketKind)
+
+                VStack(alignment: .center, spacing: 1) {
+                    Text(displayText(for: w.word, bucket: bucketKind, activeColor: baseColor))
+                        .font(.system(size: fontSize, weight: .semibold))
+
+                    if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
+                        Text(tr)
+                            .font(.system(size: glossSize, weight: .regular))
+                            .italic()
+                            .foregroundStyle(Color(hex: 0x7C8BAE))
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+    }
+
+    /// 3-color sentence-structure palette. Designed as a balanced triad
+    /// at matched saturation (~50%) and luminance (~65%), so the line
+    /// reads as one deliberate palette rather than three random accents.
+    ///
+    /// Verb stays in a sage-green family rather than amber/orange so it
+    /// no longer collides with the amber target-word underline — the
+    /// previous caramel V kept reading as "this is a target" on every
+    /// verb. Each bucket now occupies its own corner of the wheel:
+    /// subject → cool blue, verb → green (action / movement), rest →
+    /// soft violet. The cyan karaoke accent (`Theme.Color.accent`) and
+    /// the warm amber target underline both sit clear of all three.
+    private func colorFor(bucket: BucketKind) -> Color {
+        switch bucket {
+        case .subject: return Color(hex: 0x5BA3DD)        // refined sky blue
+        case .auxVerb: return Color(hex: 0x6BC084)        // sage green
+        case .rest:    return Color(hex: 0xB093D2)        // refined lavender
+        }
+    }
+
+    /// Builds the rendered AttributedString for a word, expanding common
+    /// English contractions ("I'm" → "I am", "don't" → "do not") so the
+    /// hidden verb / aux is visible to the learner. Expansion is now
+    /// unconditional — earlier the active-word path skipped it, so the
+    /// karaoke moment briefly snapped from "I am" back to "I'm" and
+    /// then to "I am" again as the word entered and left the active
+    /// window. Always expanding keeps the visible form stable across
+    /// all karaoke states.
+    ///
+    /// First-half / second-half coloring:
+    /// - When NOT active: first half stays in the token's bucket color;
+    ///   for pronoun + aux contractions (subject bucket), the second
+    ///   half flips to the aux color so "I'm" shows "I"(subject) +
+    ///   "am"(aux). Aux + negation contractions ("don't") stay one
+    ///   color since both halves belong to the aux bucket.
+    /// - When ACTIVE: both halves take the cyan accent uniformly so
+    ///   the active-word treatment isn't visually broken in two.
+    private func displayText(for token: String, bucket: BucketKind, activeColor: Color) -> AttributedString {
+        let baseColor = colorFor(bucket: bucket)
+        let isOverridden = !areColorsEqual(activeColor, baseColor)
+
+        // Strip trailing punctuation so we can match against the lowercase
+        // contraction key while still preserving the original suffix on output.
+        let (core, suffix) = ClipPlayerView.splitTrailingPunctuation(token)
+
+        guard let parts = ClipPlayerView.contractionExpansion(of: core) else {
+            var out = AttributedString(token)
+            out.foregroundColor = activeColor
+            return out
+        }
+
+        let firstColor: Color
+        let secondColor: Color
+        if isOverridden {
+            // Active (or any non-base override): paint both halves the
+            // same so the contraction reads as one karaoke unit.
+            firstColor = activeColor
+            secondColor = activeColor
+        } else {
+            firstColor = baseColor
+            secondColor = (bucket == .subject) ? colorFor(bucket: .auxVerb) : baseColor
+        }
+
+        let firstWord  = ClipPlayerView.matchCase(of: parts.first, mirroring: core)
+        let secondWord = parts.second
+
+        var out = AttributedString()
+        var firstChunk = AttributedString(firstWord)
+        firstChunk.foregroundColor = firstColor
+        out.append(firstChunk)
+
+        out.append(AttributedString(" "))
+
+        var secondChunk = AttributedString(secondWord + suffix)
+        secondChunk.foregroundColor = secondColor
+        out.append(secondChunk)
+        return out
+    }
+
+    private func areColorsEqual(_ a: Color, _ b: Color) -> Bool {
+        // Cheap reference comparison via description — exact only when both
+        // are the same Color literal. Good enough to detect "is the active
+        // override in play?" because we always pass the same instances.
+        String(describing: a) == String(describing: b)
+    }
+
+    // MARK: - Contraction expansion
+
+    /// Common English contractions, lowercase keyed. Pronoun+verb
+    /// contractions reveal the hidden auxiliary in the second slot;
+    /// aux+negation contractions split into modal + "not".
+    private static let contractionMap: [String: (first: String, second: String)] = [
+        // pronoun + be
+        "i'm":      ("I", "am"),
+        "you're":   ("you", "are"),
+        "he's":     ("he", "is"),
+        "she's":    ("she", "is"),
+        "it's":     ("it", "is"),
+        "we're":    ("we", "are"),
+        "they're":  ("they", "are"),
+        "that's":   ("that", "is"),
+        "there's":  ("there", "is"),
+        "here's":   ("here", "is"),
+        "what's":   ("what", "is"),
+        "where's":  ("where", "is"),
+        "who's":    ("who", "is"),
+        "how's":    ("how", "is"),
+        // pronoun + will
+        "i'll":     ("I", "will"),
+        "you'll":   ("you", "will"),
+        "he'll":    ("he", "will"),
+        "she'll":   ("she", "will"),
+        "it'll":    ("it", "will"),
+        "we'll":    ("we", "will"),
+        "they'll":  ("they", "will"),
+        // pronoun + have
+        "i've":     ("I", "have"),
+        "you've":   ("you", "have"),
+        "we've":    ("we", "have"),
+        "they've":  ("they", "have"),
+        // pronoun + would (or had — would is more common)
+        "i'd":      ("I", "would"),
+        "you'd":    ("you", "would"),
+        "he'd":     ("he", "would"),
+        "she'd":    ("she", "would"),
+        "we'd":     ("we", "would"),
+        "they'd":   ("they", "would"),
+        // aux + not
+        "don't":     ("do", "not"),
+        "doesn't":   ("does", "not"),
+        "didn't":    ("did", "not"),
+        "isn't":     ("is", "not"),
+        "aren't":    ("are", "not"),
+        "wasn't":    ("was", "not"),
+        "weren't":   ("were", "not"),
+        "haven't":   ("have", "not"),
+        "hasn't":    ("has", "not"),
+        "hadn't":    ("had", "not"),
+        "won't":     ("will", "not"),
+        "wouldn't":  ("would", "not"),
+        "shouldn't": ("should", "not"),
+        "couldn't":  ("could", "not"),
+        "can't":     ("can", "not"),
+        "shan't":    ("shall", "not"),
+        "mustn't":   ("must", "not"),
+        // imperative-like
+        "let's":    ("let", "us"),
+    ]
+
+    private static func contractionExpansion(of core: String) -> (first: String, second: String)? {
+        contractionMap[core.lowercased()]
+    }
+
+    private static func splitTrailingPunctuation(_ token: String) -> (core: String, suffix: String) {
+        guard let lastLetterIdx = token.lastIndex(where: { $0.isLetter }) else {
+            return (token, "")
+        }
+        let after = token.index(after: lastLetterIdx)
+        return (String(token[..<after]), String(token[after...]))
+    }
+
+    /// Mirrors the original token's leading-capitalization onto the
+    /// expanded first word, so "I'm" → "I am" and "You're" → "You are"
+    /// both keep proper sentence-start casing.
+    private static func matchCase(of expanded: String, mirroring original: String) -> String {
+        guard let first = original.first, first.isUppercase else { return expanded }
+        guard let firstExp = expanded.first else { return expanded }
+        return String(firstExp).uppercased() + expanded.dropFirst()
+    }
+
+    /// Builds an AttributedString rendering the line with the same 3-color
+    /// sentence-structure tagging as the active row, but without the karaoke
+    /// active-word / muted-upcoming overrides. Used by the non-active context
+    /// rows so the structure coloring stays continuous across the whole
+    /// transcript instead of lighting up only while a line is being spoken.
+    ///
+    /// Contractions are split exactly like in the active path: the first half
+    /// keeps the token's bucket color, the second half flips to aux when the
+    /// original bucket is subject (so "I'm" → "I"(S) + "am"(AUX)). When the
+    /// line has no structure tag at all, every word falls back to the rest
+    /// (off-white) color so untagged data still renders cleanly.
+    private func structureAttributed(for line: ClipLine) -> AttributedString {
+        guard !line.words.isEmpty else {
+            var out = AttributedString(line.text)
+            out.foregroundColor = Theme.Color.textPrimary
+            return out
+        }
+
+        let subjectIdx = Set(line.structure?.subject ?? [])
+        let auxIdx     = Set(line.structure?.auxVerb  ?? [])
+
+        var out = AttributedString()
+        for (i, w) in line.words.enumerated() {
+            let idx = w.wordIndex ?? i
+            let bucket: BucketKind = {
+                if subjectIdx.contains(idx) { return .subject }
+                if auxIdx.contains(idx)     { return .auxVerb }
+                return .rest
+            }()
+            let baseColor = colorFor(bucket: bucket)
+            let token = w.word
+            let (core, suffix) = ClipPlayerView.splitTrailingPunctuation(token)
+
+            if let parts = ClipPlayerView.contractionExpansion(of: core) {
+                let secondColor: Color = (bucket == .subject)
+                    ? colorFor(bucket: .auxVerb)
+                    : baseColor
+                let firstWord = ClipPlayerView.matchCase(of: parts.first, mirroring: core)
+
+                var firstChunk = AttributedString(firstWord)
+                firstChunk.foregroundColor = baseColor
+                out.append(firstChunk)
+
+                out.append(AttributedString(" "))
+
+                var secondChunk = AttributedString(parts.second + suffix)
+                secondChunk.foregroundColor = secondColor
+                out.append(secondChunk)
+            } else {
+                var chunk = AttributedString(token)
+                chunk.foregroundColor = baseColor
+                out.append(chunk)
+            }
+
+            if i < line.words.count - 1 {
+                out.append(AttributedString(" "))
+            }
         }
         return out
     }
 
-    // MARK: - Target choice card
+    /// Karaoke line with three-color sentence-structure coloring.
+    ///
+    /// Base color (already-spoken / not-active state):
+    ///   • subject  → dusty sky blue (#7AB8DC) — pronouns, noun phrases
+    ///   • aux_verb → soft caramel   (#E0B07A) — modals + main verb + be/have/do
+    ///   • rest     → muted lavender (#B29AD6) — object, complement, modifier
+    ///
+    /// All three sit at matched saturation / luminance so the line reads as a
+    /// single hand-picked palette rather than three loud accent colors. The
+    /// hues are spaced ~120° apart on the wheel (triadic) for clean separation
+    /// without crossing into the cyan active-word accent or the muted-gray
+    /// upcoming color below.
+    ///
+    /// The base layer is overridden by:
+    ///   • upcoming words → muted gray (haven't been spoken yet)
+    ///   • currently-spoken word → cyan accent + underline (karaoke active)
+    ///
+    /// Builds the string by iterating `line.words` so the result lines up
+    /// 1:1 with the structure indices, rather than searching `line.text`
+    /// which can mis-locate repeated words. Falls back to `line.text` only
+    /// when the word list is empty (older or untagged data).
+    private func karaokeAttributed(for line: ClipLine) -> AttributedString {
+        guard !line.words.isEmpty else {
+            var out = AttributedString(line.text)
+            out.foregroundColor = Color(hex: 0xF1F3FF)
+            return out
+        }
 
-    private func targetChoice(for line: ClipLine) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let subjectIdx = Set(line.structure?.subject  ?? [])
+        let auxIdx     = Set(line.structure?.auxVerb  ?? [])
+        // Anything not in subject/aux is "rest". structure can be nil — in
+        // that case every word falls into the white path below.
+
+        var out = AttributedString()
+        for (i, w) in line.words.enumerated() {
+            let idx = w.wordIndex ?? i
+            let isActive   = currentTime >= w.startTime && currentTime < w.endTime
+            let isUpcoming = currentTime <  w.startTime
+
+            let baseColor: Color
+            if subjectIdx.contains(idx) {
+                baseColor = Color(hex: 0x5BA3DD)        // refined sky blue — subject
+            } else if auxIdx.contains(idx) {
+                baseColor = Color(hex: 0x6BC084)        // sage green — aux/verb
+            } else {
+                baseColor = Color(hex: 0xB093D2)        // refined lavender — rest
+            }
+
+            var chunk = AttributedString(w.word)
+            if isActive {
+                chunk.foregroundColor = Theme.Color.accent
+                chunk.underlineStyle  = .single
+            } else if isUpcoming {
+                chunk.foregroundColor = Theme.Color.textMuted
+            } else {
+                chunk.foregroundColor = baseColor
+            }
+            out.append(chunk)
+            if i < line.words.count - 1 {
+                out.append(AttributedString(" "))
+            }
+        }
+        return out
+    }
+
+    // MARK: - Starter-word pause card
+
+    /// Banner that pops up when an active starter word's endTime is reached.
+    /// Shows the word + (when available) its TR translation alongside the
+    /// containing line for context, plus the two repeat / continue actions
+    /// the Feynman flow specifies.
+    private func starterChoice(for pause: StarterPause) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "target")
+                Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Color(hex: 0x06D6B0))
-                Text("TARGET LINE")
+                    .foregroundStyle(Theme.Color.accent)
+                Text("YENI KELIME")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.3)
-                    .foregroundStyle(Color(hex: 0x06D6B0))
+                    .foregroundStyle(Theme.Color.accent)
             }
-            Text("\u{201C}\(line.text)\u{201D}")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Color(hex: 0xF1F3FF))
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-            if showTranslation, let tr = line.translationTr, !tr.isEmpty {
-                Text(tr)
-                    .font(.system(size: 13))
-                    .italic()
-                    .foregroundStyle(Color(hex: 0x94A0C4))
+
+            // The starter word + its Turkish translation — the learning unit.
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(pause.word.word.replacingOccurrences(of: "[^A-Za-z']", with: "", options: .regularExpression))
+                    .font(.system(size: 32, weight: .heavy))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                if let tr = pause.word.starterTr, !tr.isEmpty {
+                    Text(tr)
+                        .font(.system(size: 18, weight: .semibold))
+                        .italic()
+                        .foregroundStyle(Color(hex: 0xFFB347))
+                        .lineLimit(2)
+                }
             }
+            .padding(.top, 2)
+
+            // The line for context — same word-by-word rendering as the
+            // active row (structure colors + per-word Turkish gloss),
+            // just smaller and without karaoke / tap so the banner
+            // reads as a "frozen frame" of the line that contains the
+            // tapped word.
+            staticTranslatedLine(for: pause.line, fontSize: 16, glossSize: 10)
+
             HStack(spacing: 10) {
                 Button {
                     Haptics.medium()
-                    listenAgain(line)
+                    replayMinusThree(for: pause)
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 12, weight: .bold))
-                        Text("Listen again")
+                        Text("Tekrar (-3sn)")
                             .font(.system(size: 13, weight: .semibold))
                     }
-                    .foregroundStyle(Color(hex: 0xF1F3FF))
+                    .foregroundStyle(Theme.Color.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color(hex: 0x1A2238), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color(hex: 0x1E2A42), lineWidth: 1))
+                    .background(Theme.Color.backgroundElevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.Color.border, lineWidth: 1))
                 }
                 .buttonStyle(.pressable)
 
                 Button {
                     Haptics.medium()
-                    continueFromTarget()
+                    continueFromStarter()
                 } label: {
                     HStack(spacing: 6) {
-                        Text("Continue")
+                        Text("Devam")
                             .font(.system(size: 13, weight: .semibold))
                         Image(systemName: "arrow.right")
                             .font(.system(size: 12, weight: .bold))
@@ -542,8 +969,8 @@ struct ClipPlayerView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color(hex: 0x8577FF), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .shadow(color: Color(hex: 0x8577FF, opacity: 0.45), radius: 10, x: 0, y: 4)
+                    .background(Theme.Color.primary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .shadow(color: Theme.Color.primaryGlow, radius: 10, x: 0, y: 4)
                 }
                 .buttonStyle(.pressable)
             }
@@ -551,11 +978,11 @@ struct ClipPlayerView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: 0x111827))
+                .fill(Theme.Color.backgroundCard)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color(hex: 0x06D6B0, opacity: 0.35), lineWidth: 1)
+                .strokeBorder(Theme.Color.accent.opacity(0.35), lineWidth: 1)
         )
     }
 
@@ -588,7 +1015,7 @@ struct ClipPlayerView: View {
             // Play / Pause (primary)
             Button {
                 Haptics.medium()
-                if targetBanner != nil { targetBanner = nil }
+                if starterBanner != nil { starterBanner = nil }
                 command = isPlaying ? .pause : .play
             } label: {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
@@ -685,7 +1112,9 @@ struct ClipPlayerView: View {
     }
 
     private var speedLabel: String {
-        String(format: "%.2f×", speed)
+        // %g uses the shortest representation: 0.5 → "0.5",
+        // 0.75 → "0.75", 1.0 → "1" (no trailing ".00").
+        String(format: "%g×", speed)
     }
 
     private func chip(icon: String?, label: String, active: Bool, action: @escaping () -> Void) -> some View {
@@ -744,18 +1173,20 @@ struct ClipPlayerView: View {
     }
 
     private func cycleSpeed() {
+        // 0.75 → 1.0 → 0.5 → 0.75. Starts at 0.75 (the default), first
+        // tap goes up to native rate, next tap dives down to half-speed
+        // (slow study mode), then loops back to the comfortable default.
         switch speed {
-        case 1.0: speed = 1.25
-        case 1.25: speed = 0.75
-        default: speed = 1.0
+        case 0.75: speed = 1.0
+        case 1.0:  speed = 0.5
+        default:   speed = 0.75
         }
-        // Note: YouTube iframe API supports setPlaybackRate — wiring that is
-        // TODO; the chip reflects intent for now.
+        command = .setSpeed(speed)
     }
 
     private func next() {
         onClipComplete?(clip)
-        targetBanner = nil
+        starterBanner = nil
         if index < totalClips - 1 {
             Haptics.medium()
             withAnimation { index += 1 }
@@ -768,39 +1199,61 @@ struct ClipPlayerView: View {
     private func previous() {
         guard index > 0 else { return }
         Haptics.medium()
-        targetBanner = nil
+        starterBanner = nil
         withAnimation { index -= 1 }
     }
 
-    // MARK: - Target-line auto-pause
+    // MARK: - Starter-word auto-pause (Feynman pivot)
 
-    private func checkTargetPause(at t: Double) {
+    /// Pauses the player at the END of a line that contains an active
+    /// starter word, so the learner hears the full sentence in context
+    /// before the player stops to highlight the word. We require ≥1.5s
+    /// elapsed since the clip started so we don't fire on the first
+    /// frame, and a 0.6s detection window past the line's end so we
+    /// catch the trigger reliably without re-firing on tail seeks.
+    ///
+    /// Pause keys are line-scoped (`clipId-lineId`) — one pause per line,
+    /// not per starter word, so a line with multiple starters still shows
+    /// just one banner.
+    private func checkStarterPause(at t: Double) {
         let elapsed = t - clip.startTime
         guard elapsed >= 1.5 else { return }
-        guard let target = clip.lines.first(where: { line in
-            line.isTarget == true
-            && !pausedTargets.contains(line.id)
-            && (line.endTime - clip.startTime) >= 1.5
-            && t >= line.endTime
-            && t <= line.endTime + 0.6
-        }) else { return }
-        pausedTargets.insert(target.id)
-        Haptics.medium()
-        command = .pause
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            targetBanner = target
+        guard starterBanner == nil else { return }
+
+        for line in clip.lines {
+            let lineKey = "\(clip.id)-\(line.id)"
+            guard !pausedStarters.contains(lineKey) else { continue }
+            // Skip lines with no starter words at all — nothing to pause for.
+            guard let firstStarter = line.words.first(where: { $0.starterId != nil }) else { continue }
+            // Trigger only when the LINE finishes (not the individual word).
+            guard t >= line.endTime && t <= line.endTime + 0.6 else { continue }
+
+            pausedStarters.insert(lineKey)
+            Haptics.medium()
+            command = .pause
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                starterBanner = StarterPause(line: line, word: firstStarter)
+            }
+            return
         }
     }
 
-    private func listenAgain(_ line: ClipLine) {
-        pausedTargets.remove(line.id)
-        withAnimation(.easeOut(duration: 0.2)) { targetBanner = nil }
-        currentTime = line.startTime
-        command = .loop(line.startTime, line.endTime)
+    private func replayMinusThree(for pause: StarterPause) {
+        withAnimation(.easeOut(duration: 0.2)) { starterBanner = nil }
+        // Rewind ~3s before the word, clamped to the line's own start so we
+        // don't bleed into the previous speaker. Clamped further to the clip
+        // start so we stay within bounds.
+        let targetTime = max(
+            clip.startTime,
+            max(pause.line.startTime, pause.word.startTime - 3)
+        )
+        currentTime = targetTime
+        command = .seek(targetTime)
+        command = .play
     }
 
-    private func continueFromTarget() {
-        withAnimation(.easeOut(duration: 0.2)) { targetBanner = nil }
+    private func continueFromStarter() {
+        withAnimation(.easeOut(duration: 0.2)) { starterBanner = nil }
         command = .play
     }
 

@@ -207,6 +207,165 @@ export interface Video {
   clip_count?: number;
 }
 
+// ── POC video helpers (Feynman video-first) ─────────────────────
+
+export interface PocStarterWord {
+  id: string;
+  word: string;
+  tr: string;
+  occurrences: number;
+}
+
+export interface PocVideo {
+  id: string;
+  youtube_video_id: string;
+  title: string;
+  movie_title: string;
+  difficulty: string;
+  wpm: number | null;
+  a2_ratio: number | null;
+  avg_sentence_len: number | null;
+  clip_count: number;
+  total_lines: number;
+  tagged_lines: number;
+  starter_words: PocStarterWord[];
+}
+
+export function getPocVideos(): PocVideo[] {
+  const db = getDb();
+  // Aggregates over healthy clips only (the same band used in selection),
+  // line counts over all approved clips. Starter coverage is grouped per
+  // video, sorted by total occurrences so the UI can pick the most
+  // pedagogically loaded words first.
+  const videos = db
+    .prepare(
+      `SELECT
+         v.id,
+         v.youtube_video_id,
+         v.title,
+         v.movie_title,
+         v.difficulty,
+         (SELECT COUNT(*) FROM clips c WHERE c.video_id = v.id AND c.status = 'approved') AS clip_count,
+         (SELECT COUNT(*) FROM subtitle_lines sl JOIN clips c ON c.id = sl.clip_id
+          WHERE c.video_id = v.id AND c.status = 'approved'
+            AND sl.text IS NOT NULL AND length(trim(sl.text)) > 0) AS total_lines,
+         (SELECT COUNT(*) FROM subtitle_lines sl JOIN clips c ON c.id = sl.clip_id
+          WHERE c.video_id = v.id AND c.status = 'approved'
+            AND sl.structure IS NOT NULL) AS tagged_lines,
+         (SELECT AVG(c.wpm) FROM clips c
+          WHERE c.video_id = v.id AND c.status = 'approved'
+            AND c.wpm BETWEEN 80 AND 200
+            AND c.avg_sentence_len BETWEEN 3 AND 12) AS wpm,
+         (SELECT AVG(c.a2_ratio) FROM clips c
+          WHERE c.video_id = v.id AND c.status = 'approved'
+            AND c.wpm BETWEEN 80 AND 200
+            AND c.avg_sentence_len BETWEEN 3 AND 12) AS a2_ratio,
+         (SELECT AVG(c.avg_sentence_len) FROM clips c
+          WHERE c.video_id = v.id AND c.status = 'approved'
+            AND c.wpm BETWEEN 80 AND 200
+            AND c.avg_sentence_len BETWEEN 3 AND 12) AS avg_sentence_len
+       FROM videos v
+       WHERE v.poc = 1
+       ORDER BY v.movie_title, v.title`,
+    )
+    .all() as Omit<PocVideo, 'starter_words'>[];
+
+  const wordsStmt = db.prepare(
+    `SELECT vw.id, vw.word, vw.translation_tr AS tr, SUM(cv.occurrence_count) AS occurrences
+     FROM clip_vocab cv
+     JOIN clips c ON c.id = cv.clip_id
+     JOIN vocab_words vw ON vw.id = cv.word_id
+     WHERE c.video_id = ? AND c.status = 'approved' AND cv.word_id LIKE 'a2-%'
+     GROUP BY vw.id
+     ORDER BY occurrences DESC`,
+  );
+
+  return videos.map(v => ({
+    ...v,
+    starter_words: wordsStmt.all(v.id) as PocStarterWord[],
+  }));
+}
+
+export interface VideoSet {
+  id: string;
+  title: string;
+  title_tr: string | null;
+  description: string | null;
+  description_tr: string | null;
+  difficulty: string | null;
+  sort_order: number;
+  videos: PocVideo[];
+}
+
+/**
+ * Curated learning sets — a named, ordered group of POC videos that
+ * share a vocabulary footprint. Each set is one "unit" of progression
+ * in the Feynman flow: working through the videos exposes the learner
+ * to the same starter words across multiple contexts, driving them
+ * toward the 7-context mastery threshold without forcing extra reps
+ * of the same scene.
+ */
+export function getVideoSets(): VideoSet[] {
+  const db = getDb();
+
+  const sets = db
+    .prepare(
+      `SELECT id, title, title_tr, description, description_tr, difficulty, sort_order
+       FROM video_sets
+       ORDER BY sort_order, id`,
+    )
+    .all() as Omit<VideoSet, 'videos'>[];
+
+  const videoStmt = db.prepare(
+    `SELECT
+       v.id, v.youtube_video_id, v.title, v.movie_title, v.difficulty,
+       (SELECT COUNT(*) FROM clips c WHERE c.video_id = v.id AND c.status = 'approved') AS clip_count,
+       (SELECT COUNT(*) FROM subtitle_lines sl JOIN clips c ON c.id = sl.clip_id
+        WHERE c.video_id = v.id AND c.status = 'approved'
+          AND sl.text IS NOT NULL AND length(trim(sl.text)) > 0) AS total_lines,
+       (SELECT COUNT(*) FROM subtitle_lines sl JOIN clips c ON c.id = sl.clip_id
+        WHERE c.video_id = v.id AND c.status = 'approved'
+          AND sl.structure IS NOT NULL) AS tagged_lines,
+       (SELECT AVG(c.wpm) FROM clips c
+        WHERE c.video_id = v.id AND c.status = 'approved'
+          AND c.wpm BETWEEN 80 AND 200
+          AND c.avg_sentence_len BETWEEN 3 AND 12) AS wpm,
+       (SELECT AVG(c.a2_ratio) FROM clips c
+        WHERE c.video_id = v.id AND c.status = 'approved'
+          AND c.wpm BETWEEN 80 AND 200
+          AND c.avg_sentence_len BETWEEN 3 AND 12) AS a2_ratio,
+       (SELECT AVG(c.avg_sentence_len) FROM clips c
+        WHERE c.video_id = v.id AND c.status = 'approved'
+          AND c.wpm BETWEEN 80 AND 200
+          AND c.avg_sentence_len BETWEEN 3 AND 12) AS avg_sentence_len
+     FROM videos v
+     JOIN video_set_items vsi ON vsi.video_id = v.id
+     WHERE vsi.set_id = ?
+     ORDER BY vsi.sort_order`,
+  );
+
+  const wordsStmt = db.prepare(
+    `SELECT vw.id, vw.word, vw.translation_tr AS tr, SUM(cv.occurrence_count) AS occurrences
+     FROM clip_vocab cv
+     JOIN clips c ON c.id = cv.clip_id
+     JOIN vocab_words vw ON vw.id = cv.word_id
+     WHERE c.video_id = ? AND c.status = 'approved' AND cv.word_id LIKE 'a2-%'
+     GROUP BY vw.id
+     ORDER BY occurrences DESC`,
+  );
+
+  return sets.map(set => {
+    const videos = videoStmt.all(set.id) as Omit<PocVideo, 'starter_words'>[];
+    return {
+      ...set,
+      videos: videos.map(v => ({
+        ...v,
+        starter_words: wordsStmt.all(v.id) as PocStarterWord[],
+      })),
+    };
+  });
+}
+
 export function getAllVideos(): Video[] {
   const db = getDb();
   return db.prepare(`

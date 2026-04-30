@@ -22,6 +22,7 @@ struct YouTubePlayerView: UIViewRepresentable {
         case seek(Double)
         case loop(Double, Double)
         case reload
+        case setSpeed(Double)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -97,7 +98,8 @@ struct YouTubePlayerView: UIViewRepresentable {
         html += "else if(c.type==='pause')player.pauseVideo();"
         html += "else if(c.type==='seek')player.seekTo(c.t,true);"
         html += "else if(c.type==='loop'){player.seekTo(c.a,true);player.playVideo();}"
-        html += "else if(c.type==='reload'){\(endSetter)}}"
+        html += "else if(c.type==='reload'){\(endSetter)}"
+        html += "else if(c.type==='setSpeed'&&player.setPlaybackRate)player.setPlaybackRate(c.r);}"
         html += "window.__cmd=cmd;"
 
         html += "var tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);"
@@ -116,11 +118,12 @@ struct YouTubePlayerView: UIViewRepresentable {
             guard let web = webView else { return }
             let js: String
             switch cmd {
-            case .play:           js = "window.__cmd({ type: 'play' });"
-            case .pause:          js = "window.__cmd({ type: 'pause' });"
-            case .seek(let t):    js = "window.__cmd({ type: 'seek', t: \(t) });"
-            case .loop(let a, _): js = "window.__cmd({ type: 'loop', a: \(a) });"
-            case .reload:         js = "window.__cmd({ type: 'reload' });"
+            case .play:             js = "window.__cmd({ type: 'play' });"
+            case .pause:            js = "window.__cmd({ type: 'pause' });"
+            case .seek(let t):      js = "window.__cmd({ type: 'seek', t: \(t) });"
+            case .loop(let a, _):   js = "window.__cmd({ type: 'loop', a: \(a) });"
+            case .reload:           js = "window.__cmd({ type: 'reload' });"
+            case .setSpeed(let r):  js = "window.__cmd({ type: 'setSpeed', r: \(r) });"
             }
             web.evaluateJavaScript(js, completionHandler: nil)
         }

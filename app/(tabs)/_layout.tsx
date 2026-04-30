@@ -95,45 +95,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: t('learn'),
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'book' : 'book-outline'} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="courses"
-        options={{
           title: 'Video',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'film' : 'film-outline'} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="scenes"
-        options={{
-          title: ' ',
-          tabBarIcon: () => <CenterButton />,
-          tabBarLabelStyle: { fontSize: 0, height: 0 },
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? 'film' : 'film-outline'} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="vocab"
         options={{
-          title: 'Kelimeler',
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'language' : 'language-outline'} focused={focused} />,
+          title: 'Kelimelerim',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? 'language' : 'language-outline'} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: t('profile'),
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
+          title: 'Ben',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />
+          ),
         }}
       />
-      <Tabs.Screen
-        name="clips"
-        options={{
-          href: null,
-        }}
-      />
+      {/* Hidden — kept around so the routes still resolve while we
+          settle on the Feynman video-first model. Re-enable later if needed. */}
+      <Tabs.Screen name="courses" options={{ href: null }} />
+      <Tabs.Screen name="scenes" options={{ href: null }} />
+      <Tabs.Screen name="clips" options={{ href: null }} />
     </Tabs>
   );
 }

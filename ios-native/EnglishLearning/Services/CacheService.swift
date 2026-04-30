@@ -60,6 +60,27 @@ actor CacheService {
 actor CurriculumRepository {
     static let shared = CurriculumRepository()
 
+    // MARK: - POC videos (Feynman)
+
+    func pocVideos(forceRefresh: Bool = false) async throws -> [PocVideo] {
+        // No caching — POC list changes during dev (we swap which video is
+        // active) and a stale cache hides those swaps. Pull-to-refresh
+        // shouldn't be a prerequisite to see the latest set.
+        try await APIClient.shared.fetchPocVideos()
+    }
+
+    func pocVideoClips(videoId: String, forceRefresh: Bool = false) async throws -> [LessonClip] {
+        // No caching — structure tagging is still landing while we build, so
+        // the response shape can change on every refresh during Phase 1.
+        try await APIClient.shared.fetchPocVideoClips(videoId: videoId)
+    }
+
+    func videoSets(forceRefresh: Bool = false) async throws -> [VideoSet] {
+        // No caching for the same reason as pocVideos — set composition
+        // is being curated live, stale cache hides the latest layout.
+        try await APIClient.shared.fetchVideoSets()
+    }
+
     func curriculum(forceRefresh: Bool = false) async throws -> [CurriculumUnit] {
         let key = "curriculum"
         if !forceRefresh, let cached = await CacheService.shared.get([CurriculumUnit].self, for: key) {

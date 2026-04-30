@@ -20,17 +20,51 @@ enum APIError: LocalizedError {
 actor APIClient {
     static let shared = APIClient()
 
-    private let base: URL = URL(string: "https://english-learning-admin.fly.dev")!
+    private let base: URL
     private let session: URLSession
     private let decoder: JSONDecoder
 
     init() {
+        // DEBUG: hit the Mac running `npm run dev` from admin/. Simulator
+        // shares the host's loopback so localhost works there. A physical
+        // device on the same Wi-Fi needs the Mac's LAN IP — update the
+        // device-side default below if your IP changes, or set
+        // ADMIN_API_BASE_URL via the env / Info.plist to override.
+        // Release: always fly.dev.
+        #if DEBUG
+        let envBase = ProcessInfo.processInfo.environment["ADMIN_API_BASE_URL"]
+        let plistBase = Bundle.main.object(forInfoDictionaryKey: "ADMIN_API_BASE_URL") as? String
+        #if targetEnvironment(simulator)
+        let defaultBase = "http://localhost:3000"
+        #else
+        let defaultBase = "http://192.168.1.110:3000"
+        #endif
+        let baseString = envBase ?? plistBase ?? defaultBase
+        #else
+        let baseString = "https://english-learning-admin.fly.dev"
+        #endif
+        self.base = URL(string: baseString)!
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 20
         config.timeoutIntervalForResource = 40
         config.waitsForConnectivity = true
         self.session = URLSession(configuration: config)
         self.decoder = JSONDecoder()
+    }
+
+    // MARK: - POC videos (Feynman video-first)
+
+    func fetchPocVideos() async throws -> [PocVideo] {
+        try await get("/api/v1/poc-videos")
+    }
+
+    func fetchPocVideoClips(videoId: String) async throws -> [LessonClip] {
+        try await get("/api/v1/poc-videos/\(videoId)/clips")
+    }
+
+    func fetchVideoSets() async throws -> [VideoSet] {
+        try await get("/api/v1/video-sets")
     }
 
     // MARK: - Curriculum

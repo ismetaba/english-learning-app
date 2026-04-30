@@ -1,45 +1,50 @@
 import SwiftUI
 
 enum MainTab: Hashable, CaseIterable {
-    case home, courses, play, vocab, profile
+    // The Feynman pivot collapsed the tab set to three: a video feed
+    // (formerly the lessons home), the vocab review tab, and profile.
+    // `courses` and `play` (daily-tasks center button) cases stay around
+    // so any direct references compile, but they're no longer in
+    // `displayed` and never selected.
+    case home, vocab, profile
+    case courses, play // legacy — not surfaced
 
     var icon: String {
         switch self {
-        case .home:    return "house"
-        case .courses: return "film"
-        case .play:    return "play.fill"
+        case .home:    return "film"
         case .vocab:   return "character.book.closed"
         case .profile: return "person"
+        case .courses: return "film"
+        case .play:    return "play.fill"
         }
     }
 
     var iconFilled: String {
         switch self {
-        case .home:    return "house.fill"
-        case .courses: return "film.fill"
-        case .play:    return "play.fill"
+        case .home:    return "film.fill"
         case .vocab:   return "character.book.closed.fill"
         case .profile: return "person.fill"
+        case .courses: return "film.fill"
+        case .play:    return "play.fill"
         }
     }
 
     func label(t: Translations) -> String {
         switch self {
-        case .home:    return t.t("learn")
-        case .courses: return t.t("video")
-        case .play:    return ""
+        case .home:    return t.t("video")
         case .vocab:   return t.t("vocabulary")
         case .profile: return t.t("profile")
+        case .courses: return t.t("video")
+        case .play:    return ""
         }
     }
 
-    static var displayed: [MainTab] { [.home, .courses, .play, .vocab, .profile] }
+    static var displayed: [MainTab] { [.home, .vocab, .profile] }
 }
 
 struct MainTabView: View {
     @EnvironmentObject var appState: AppState
     @State private var selected: MainTab = .home
-    @State private var showDailyTasks = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -47,28 +52,32 @@ struct MainTabView: View {
 
             Group {
                 switch selected {
-                case .home:    HomeView()
-                case .courses: CoursesView()
-                case .play:    ScenesLandingView()
+                case .home:    VideoFeedView()
                 case .vocab:   VocabView()
                 case .profile: ProfileView()
+                // Legacy fall-through — never reached because these aren't
+                // in `MainTab.displayed`, but a switch must be exhaustive.
+                case .courses: VideoFeedView()
+                case .play:    VideoFeedView()
                 }
             }
             .transition(.opacity)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            FloatingTabBar(selected: $selected, onCenterTap: {
-                showDailyTasks = true
-            })
-            .environmentObject(appState)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 10)
+            // Hidden while an immersive ClipPlayer is showing — the video
+            // chrome owns the bottom band in that mode (gradient fade,
+            // transport row, scrubber). Animated so the bar slides out
+            // rather than disappearing instantly.
+            if !appState.isVideoPlayerActive {
+                FloatingTabBar(selected: $selected)
+                    .environmentObject(appState)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .animation(.easeInOut(duration: 0.24), value: selected)
-        .sheet(isPresented: $showDailyTasks) {
-            DailyTasksView()
-                .environmentObject(appState)
-        }
+        .animation(.easeInOut(duration: 0.22), value: appState.isVideoPlayerActive)
         .onAppear { appState.updateStreak() }
     }
 }
@@ -78,7 +87,6 @@ struct MainTabView: View {
 struct FloatingTabBar: View {
     @EnvironmentObject var appState: AppState
     @Binding var selected: MainTab
-    var onCenterTap: () -> Void
     @Namespace private var selection
 
     var body: some View {
@@ -124,8 +132,10 @@ struct FloatingTabBar: View {
 
     @ViewBuilder
     private func tabButton(tab: MainTab) -> some View {
+        // .play (center daily-tasks button) is no longer in `displayed`,
+        // so this branch is functionally dead — kept for future revival.
         if tab == .play {
-            centerPlayButton
+            EmptyView()
         } else {
             Button(action: {
                 Haptics.selection()
@@ -167,39 +177,7 @@ struct FloatingTabBar: View {
         }
     }
 
-    private var centerPlayButton: some View {
-        Button(action: {
-            Haptics.medium()
-            onCenterTap()
-        }) {
-            ZStack {
-                // Halo
-                Circle()
-                    .fill(Theme.Color.primary.opacity(0.25))
-                    .frame(width: 72, height: 72)
-                    .blur(radius: 14)
-
-                // Main
-                Circle()
-                    .fill(LinearGradient(
-                        colors: [Theme.Color.primary, Theme.Color.primaryDark],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ))
-                Circle()
-                    .stroke(
-                        LinearGradient(colors: [.white.opacity(0.5), .clear],
-                                       startPoint: .top, endPoint: .center),
-                        lineWidth: 1.5
-                    )
-                Image(systemName: "play.fill")
-                    .font(.system(size: 22, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .offset(x: 2)
-            }
-            .frame(width: 56, height: 56)
-            .offset(y: -10)
-            .shadow(color: Theme.Color.primary.opacity(0.6), radius: 18, y: 6)
-        }
-        .buttonStyle(.pressable)
-    }
+    // The center daily-tasks button was removed when we collapsed the tab
+    // bar to three tabs for the Feynman pivot. If we revive a `.play` tab
+    // later, restore `centerPlayButton` and route it from `tabButton`.
 }

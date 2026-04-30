@@ -19,6 +19,11 @@ final class AppState: ObservableObject {
     }
     @Published private(set) var t: Translations = Localization.bundle(for: .tr)
 
+    /// True while an immersive ClipPlayerView is on screen — MainTabView
+    /// reads this to hide the floating tab bar so the video can fill the
+    /// chrome-free space. Set by VideoWatchView's onAppear / onDisappear.
+    @Published var isVideoPlayerActive: Bool = false
+
     // MARK: - UserDefaults keys
     private enum Keys {
         static let nativeLanguage = "native_language"

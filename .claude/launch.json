@@ -2,17 +2,23 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "expo-web",
+      "name": "admin",
       "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": ["-c", "export PATH=/Users/ismetabaci/.nvm/versions/node/v20.17.0/bin:$PATH && npx expo start --web --port 8083"],
-      "port": 8083,
+      "runtimeArgs": [
+        "-c",
+        "export PATH=/opt/homebrew/bin:$PATH && npm run dev --prefix admin"
+      ],
+      "port": 3000,
       "autoPort": true
     },
     {
-      "name": "admin",
+      "name": "expo-web",
       "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": ["-c", "export PATH=/Users/ismetabaci/.nvm/versions/node/v20.17.0/bin:$PATH && npm run dev --prefix admin"],
-      "port": 3000,
+      "runtimeArgs": [
+        "-c",
+        "export PATH=/opt/homebrew/bin:$PATH && export EXPO_PUBLIC_ADMIN_API=http://localhost:3000 && npx expo start --web --port 8083"
+      ],
+      "port": 8083,
       "autoPort": true
     }
   ]
