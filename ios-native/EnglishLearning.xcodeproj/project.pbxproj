@@ -12,6 +12,7 @@
 		172E51659F7BF2C4354C2A76 /* SetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B63192DC0F7052D938A2BB96 /* SetDetailView.swift */; };
 		1CDD2DE0EED05CC1E58236E4 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F767D8BFC005C0839CC089 /* OnboardingView.swift */; };
 		228FBA847B52AC707407DD8F /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */; };
+		23CE4A67F788796449782EB9 /* CinemaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */; };
 		269D8452FFB7848C9731719B /* VideoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF80E3A472FA51BC62B9820 /* VideoSet.swift */; };
 		372E5562CDE0151EA3EC64CB /* VocabWordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */; };
 		3C50FC04CF0CF9A804E84DA4 /* YouTubePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73580C34736B5F98A0916DFA /* YouTubePlayerView.swift */; };
@@ -28,6 +29,7 @@
 		9697A2746C904AAFF9DE3653 /* LoadingStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A06CCE962B5E537FA2F22AF /* LoadingStates.swift */; };
 		9A476B0EF6D1D223D3EC586C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECC83A0DB154A5D98FBDF2E /* Theme.swift */; };
 		9B6CB645DC6FC31E1E95AE68 /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2267F6A923939D4F36866E6 /* ViewModifiers.swift */; };
+		AC19CF8434A80835DFA5D0A3 /* OrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA690E87E4214D984E567F7 /* OrientationLock.swift */; };
 		B19C0853ED3BEEB14690AD3F /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36BE3A80DC7932C2C14FB9AE /* SectionHeader.swift */; };
 		B88BC7E80260C0ED81DC0441 /* VocabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */; };
 		BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */; };
@@ -74,6 +76,7 @@
 		4FE92974ACB3DF1125BFD541 /* PocVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocVideo.swift; sourceTree = "<group>"; };
 		55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EnglishLearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabContext.swift; sourceTree = "<group>"; };
+		649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CinemaPlayerView.swift; sourceTree = "<group>"; };
 		6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerViewTests.swift; sourceTree = "<group>"; };
 		6DD7DB2DCE34DC861E71D58F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		71ACAFE06F340C436181393D /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -102,6 +105,7 @@
 		E838A54C77D3D01490201EEF /* VideoFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFeedView.swift; sourceTree = "<group>"; };
 		EDF80E3A472FA51BC62B9820 /* VideoSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSet.swift; sourceTree = "<group>"; };
 		F0AB6B24887081F6B7889177 /* LessonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonDetailView.swift; sourceTree = "<group>"; };
+		FCA690E87E4214D984E567F7 /* OrientationLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationLock.swift; sourceTree = "<group>"; };
 		FD2BF65F1AA5FA5AFA58E1CD /* VocabSetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabSetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -233,6 +237,7 @@
 		7EAD5D85E27DC9D7C4812DF2 /* ClipPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */,
 				1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */,
 				73580C34736B5F98A0916DFA /* YouTubePlayerView.swift */,
 			);
@@ -243,6 +248,7 @@
 			isa = PBXGroup;
 			children = (
 				294C12FF81F41CF119374B70 /* EnglishLearningApp.swift */,
+				FCA690E87E4214D984E567F7 /* OrientationLock.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -419,6 +425,7 @@
 				FA5AC3986F450AD504E98A0A /* APIClient.swift in Sources */,
 				63277E5ADC90CBB30C6B9C33 /* AppState.swift in Sources */,
 				148AC92921ECF276DC1811AA /* CacheService.swift in Sources */,
+				23CE4A67F788796449782EB9 /* CinemaPlayerView.swift in Sources */,
 				C79B50704A7D1171F6E5B5ED /* ClipPlayerView.swift in Sources */,
 				F2BDD1DD313750013C4A72B1 /* CoursesView.swift in Sources */,
 				44EA3429A3544B775FF9AB6A /* Curriculum.swift in Sources */,
@@ -432,6 +439,7 @@
 				3E50BABA940C2D2A3AB0208F /* Localization.swift in Sources */,
 				82C20889F40BF7CAA5883637 /* MainTabView.swift in Sources */,
 				1CDD2DE0EED05CC1E58236E4 /* OnboardingView.swift in Sources */,
+				AC19CF8434A80835DFA5D0A3 /* OrientationLock.swift in Sources */,
 				EEF742AA95323128D4E523D1 /* PocVideo.swift in Sources */,
 				228FBA847B52AC707407DD8F /* PrimaryButton.swift in Sources */,
 				C3857CCB1EC084802DD74058 /* ProfileView.swift in Sources */,

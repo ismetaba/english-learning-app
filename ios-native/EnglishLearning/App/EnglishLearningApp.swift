@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct EnglishLearningApp: App {
     @StateObject private var appState = AppState()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
         Theme.configureGlobalAppearance()

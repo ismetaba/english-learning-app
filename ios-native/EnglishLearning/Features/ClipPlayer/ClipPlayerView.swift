@@ -25,9 +25,32 @@ struct ClipPlayerView: View {
     /// look indistinguishable from a finished video. Falls back to
     /// `onFinish` for callers that haven't been updated yet.
     var onExit: (() -> Void)? = nil
+    /// When set, the cinema toggle button delegates to this callback
+    /// instead of presenting the cinema fullScreenCover internally.
+    /// SetPlayerView uses this so cinema mode can persist across
+    /// video changes (the cover lives at SetPlayerView level there).
+    var onCinemaRequest: (() -> Void)? = nil
+    /// Resume position when remounting at a non-zero clip / mid-clip
+    /// time (e.g. coming back from cinema mode at the position cinema
+    /// left off). Applied only on first mount via `@State` init —
+    /// subsequent advances follow the natural clip.startTime.
+    var initialClipIndex: Int = 0
+    var initialTime: Double? = nil
+    /// Fires every player tick with the current clip index + absolute
+    /// video time. Lets the parent keep portrait/cinema in sync.
+    var onTick: ((Int, Double) -> Void)? = nil
+    /// One-shot seek request from the parent. When set non-nil, the
+    /// player seeks there and we clear the binding back to nil.
+    /// Used by SetPlayerView to seek portrait to wherever cinema
+    /// left off when the user toggles cinema off.
+    @Binding var resumeAt: Double?
+    /// True while another player (typically cinema mode at the
+    /// SetPlayerView level) owns audio. Pauses this player on rising
+    /// edge so the two video views don't fight over playback.
+    var isPaused: Bool = false
 
-    @State private var index: Int = 0
-    @State private var currentTime: Double = 0
+    @State private var index: Int
+    @State private var currentTime: Double
     @State private var isPlaying = false
     @State private var command: YouTubePlayerView.PlayerCommand? = nil
     /// Tracks which clip indices have already auto-advanced, so
@@ -35,6 +58,13 @@ struct ClipPlayerView: View {
     /// currentTime callbacks come in at ~220ms cadence and a few
     /// frames can land past endTime before the reload kicks in.
     @State private var advancedFromClip: Set<Int> = []
+    /// Internal cinema state — only used when `onCinemaRequest` is nil.
+    /// Hosts that hoist cinema (SetPlayerView) bypass this entirely.
+    @State private var showCinema = false
+    /// True after the first internal advance away from the initial
+    /// clip — flips us off the `initialTime` resume override and onto
+    /// each clip's natural `startTime`.
+    @State private var didAdvance = false
     /// Keys of starter-word occurrences we've already paused on, so the
     /// player doesn't re-pause every time the same word loops. Format:
     /// "clipId-lineId-wordIndex".
@@ -48,6 +78,40 @@ struct ClipPlayerView: View {
     @State private var loopRange: (Double, Double)? = nil
     @EnvironmentObject var appState: AppState
 
+    init(
+        clips: [LessonClip],
+        onClipComplete: ((LessonClip) -> Void)? = nil,
+        onFinish: (() -> Void)? = nil,
+        onExit: (() -> Void)? = nil,
+        onCinemaRequest: (() -> Void)? = nil,
+        initialClipIndex: Int = 0,
+        initialTime: Double? = nil,
+        onTick: ((Int, Double) -> Void)? = nil,
+        resumeAt: Binding<Double?> = .constant(nil),
+        isPaused: Bool = false,
+    ) {
+        self.clips = clips
+        self.onClipComplete = onClipComplete
+        self.onFinish = onFinish
+        self.onExit = onExit
+        self.onCinemaRequest = onCinemaRequest
+        self.initialClipIndex = initialClipIndex
+        self.initialTime = initialTime
+        self.onTick = onTick
+        self._resumeAt = resumeAt
+        self.isPaused = isPaused
+
+        let safeIdx = max(0, min(initialClipIndex, max(0, clips.count - 1)))
+        self._index = State(initialValue: safeIdx)
+        let resumeStart: Double
+        if clips.indices.contains(safeIdx) {
+            resumeStart = initialTime ?? clips[safeIdx].startTime
+        } else {
+            resumeStart = initialTime ?? 0
+        }
+        self._currentTime = State(initialValue: resumeStart)
+    }
+
     /// Active line + the starter word we just paused on, used to render the
     /// banner overlay and feed the replay/continue actions.
     struct StarterPause: Equatable {
@@ -57,6 +121,16 @@ struct ClipPlayerView: View {
 
     private var clip: LessonClip { clips[index] }
     private var totalClips: Int { clips.count }
+
+    /// Effective YouTube `startTime` for the currently-rendered clip.
+    /// Honors `initialTime` only on the very first clip, before we've
+    /// auto-advanced — that's the resume-from-cinema case. Once the
+    /// player advances, every subsequent clip starts at its natural
+    /// `clip.startTime`.
+    private var effectiveStartTime: Double {
+        if !didAdvance, let t = initialTime { return t }
+        return clip.startTime
+    }
 
     /// The line to keep "selected" in the UI. Strictly-active while a line is
     /// playing, and during the silent gaps between lines we keep the previous
@@ -103,6 +177,34 @@ struct ClipPlayerView: View {
                 }
             }
         }
+        // Pause the portrait player while Cinema is on so we don't
+        // double up on audio. Hosts that hoist cinema externally
+        // (SetPlayerView) signal via `isPaused`; the legacy in-view
+        // cinema cover signals via `showCinema`.
+        .onChange(of: showCinema) { _, on in
+            if on { command = .pause }
+        }
+        .onChange(of: isPaused) { _, on in
+            if on { command = .pause }
+        }
+        // One-shot seek triggered by the parent — used to resume
+        // portrait playback at the position cinema mode left off.
+        .onChange(of: resumeAt) { _, t in
+            guard let t else { return }
+            currentTime = t
+            command = .seek(t)
+            DispatchQueue.main.async {
+                if isPaused == false { command = .play }
+                resumeAt = nil
+            }
+        }
+        .fullScreenCover(isPresented: $showCinema) {
+            CinemaPlayerView(
+                clips: clips,
+                onExit: { showCinema = false },
+            )
+            .environmentObject(appState)
+        }
     }
 
     // MARK: - Video block
@@ -112,12 +214,13 @@ struct ClipPlayerView: View {
             // YouTube embed
             YouTubePlayerView(
                 videoId: clip.youtubeVideoId,
-                startTime: clip.startTime,
+                startTime: effectiveStartTime,
                 endTime: clip.endTime,
                 autoplay: true,
                 isPlaying: $isPlaying,
                 currentTime: { t in
                     self.currentTime = t
+                    onTick?(index, t)
                     if let loop = loopRange, t >= loop.1 {
                         command = .seek(loop.0)
                         return
@@ -248,17 +351,26 @@ struct ClipPlayerView: View {
 
             Spacer(minLength: 0)
 
-            // Expand icon (placeholder for future fullscreen). The CC
-            // captions toggle used to live just before this — removed
-            // along with sentence-level Turkish translations, since the
-            // Feynman flow leans on per-word tap-to-translate (the
-            // starter-word banner) rather than a full sentence gloss.
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white.opacity(0.9))
-                .frame(width: 34, height: 34)
-                .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
-                .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            // Cinema-mode toggle — drops the user into a landscape
+            // full-bleed player with the karaoke strip docked at the
+            // bottom of the frame. Same clips array, same auto-advance,
+            // just rotated and stripped of the side transcript.
+            Button {
+                Haptics.medium()
+                if let onCinemaRequest {
+                    onCinemaRequest()
+                } else {
+                    showCinema = true
+                }
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            }
+            .buttonStyle(.pressable)
         }
         .padding(.horizontal, 12)
         .padding(.top, 20)
@@ -291,11 +403,6 @@ struct ClipPlayerView: View {
 
     private var subtitlePanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            subtitleHeader
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 10)
-
             // Transcript stays mounted at all times so the scroll
             // position survives a starter-tap → "Devam" round trip.
             // Earlier the banner replaced transcriptScroll entirely;
@@ -323,15 +430,16 @@ struct ClipPlayerView: View {
     /// Scrollable transcript that fills the remaining screen space. Each line
     /// renders either as a dimmed context line or, when active, as the
     /// "currentLineBlock" with accent rail + karaoke. Scroll position
-    /// auto-tracks the active line, placing it at ~40% from the top of the
-    /// scrollable area (just above center) so upcoming lines dominate the view.
+    /// auto-tracks the active line, anchoring it to the top of the
+    /// scrollable area so upcoming lines fill the rest of the panel.
     private var transcriptScroll: some View {
         GeometryReader { geo in
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Top padding so the first line can scroll to the anchor position.
-                        Color.clear.frame(height: geo.size.height * 0.15)
+                        // Small top padding so the first line has breathing room
+                        // from the video block above without pushing it down.
+                        Color.clear.frame(height: 12)
                         ForEach(Array(clip.lines.enumerated()), id: \.element.id) { idx, line in
                             VStack(alignment: .leading, spacing: 0) {
                                 if currentLineIndex == idx {
@@ -353,8 +461,6 @@ struct ClipPlayerView: View {
                 }
                 .mask(
                     VStack(spacing: 0) {
-                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                            .frame(height: 20)
                         Rectangle().fill(.black)
                         LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
                             .frame(height: 140)
@@ -363,7 +469,7 @@ struct ClipPlayerView: View {
                 .onChange(of: currentLineIndex) { _, newValue in
                     guard let i = newValue else { return }
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
-                        proxy.scrollTo("line-\(i)", anchor: UnitPoint(x: 0.5, y: 0.4))
+                        proxy.scrollTo("line-\(i)", anchor: UnitPoint(x: 0.5, y: 0.0))
                     }
                 }
             }
@@ -397,25 +503,6 @@ struct ClipPlayerView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.pressable(scale: 0.99))
-    }
-
-    private var subtitleHeader: some View {
-        HStack(alignment: .center) {
-            HStack(spacing: 4) {
-                Text("SUBTITLES")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.5)
-                    .foregroundStyle(Color(hex: 0x06D6B0))
-                Text("· line \((currentLineIndex ?? 0) + 1) / \(clip.lines.count)")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(0.5)
-                    .foregroundStyle(Color(hex: 0x5E6B8A))
-            }
-            Spacer(minLength: 0)
-            Text(formatTime(currentTime - clip.startTime))
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color(hex: 0x5E6B8A))
-        }
     }
 
     private var dividerRule: some View {
@@ -1202,6 +1289,7 @@ struct ClipPlayerView: View {
     private func next() {
         onClipComplete?(clip)
         starterBanner = nil
+        didAdvance = true
         if index < totalClips - 1 {
             Haptics.medium()
             withAnimation { index += 1 }

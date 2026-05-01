@@ -295,6 +295,22 @@ struct SetPlayerView: View {
     @State private var errorMessage: String? = nil
     @State private var phase: Phase = .loading
 
+    /// Cinema-mode flag is hoisted here so the landscape player can
+    /// stay mounted across video advances. If it lived inside
+    /// ClipPlayerView, the `.id(currentVideo.id)` remount on advance
+    /// would also dismount the cinema cover, kicking the user back
+    /// to portrait every time a video finished.
+    @State private var showCinema: Bool = false
+    /// Shared playback position so portrait↔cinema toggles resume
+    /// at the same spot. Updated continuously by whichever player
+    /// is on screen via its `onTick` callback.
+    @State private var sharedClipIdx: Int = 0
+    @State private var sharedTime: Double? = nil
+    /// One-shot seek payload — when cinema dismisses, we hand the
+    /// last known time to ClipPlayerView so portrait can pick up
+    /// where cinema left off.
+    @State private var portraitResumeAt: Double? = nil
+
     init(set: VideoSet, startAtIndex: Int = 0) {
         self.set = set
         self.startAtIndex = startAtIndex
@@ -352,6 +368,39 @@ struct SetPlayerView: View {
         .task(id: index) { await load() }
         .onAppear { appState.isVideoPlayerActive = true }
         .onDisappear { appState.isVideoPlayerActive = false }
+        .fullScreenCover(isPresented: $showCinema) {
+            // Cinema mounts at the SetPlayerView level so it survives
+            // the inner ClipPlayerView remount on video advance. The
+            // `.id(currentVideo.id)` on the inner view means cinema
+            // gets fresh state when the video changes — fresh clips,
+            // fresh start time — but the cover (and therefore the
+            // landscape orientation lock at the container level) stay
+            // on screen across the transition gap when `clips` is
+            // momentarily empty.
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if !clips.isEmpty,
+                   clips.first?.youtubeVideoId == currentVideo.youtubeVideoId {
+                    CinemaPlayerView(
+                        clips: clips,
+                        initialTime: sharedTime,
+                        initialClipIndex: sharedClipIdx,
+                        onTick: { idx, t in
+                            sharedClipIdx = idx
+                            sharedTime = t
+                        },
+                        onFinish: { onVideoFinished() },
+                        onExit: {
+                            portraitResumeAt = sharedTime
+                            showCinema = false
+                        },
+                    )
+                    .id(currentVideo.id)
+                    .environmentObject(appState)
+                }
+            }
+            .lockToLandscape()
+        }
     }
 
     private var currentVideo: PocVideo {
@@ -374,6 +423,15 @@ struct SetPlayerView: View {
                 clips: clips,
                 onFinish: { onVideoFinished() },
                 onExit: { dismiss() },
+                onCinemaRequest: { showCinema = true },
+                initialClipIndex: sharedClipIdx,
+                initialTime: sharedTime,
+                onTick: { idx, t in
+                    sharedClipIdx = idx
+                    sharedTime = t
+                },
+                resumeAt: $portraitResumeAt,
+                isPaused: showCinema,
             )
             .id(currentVideo.id)
             .environmentObject(appState)
@@ -385,10 +443,20 @@ struct SetPlayerView: View {
     private func onVideoFinished() {
         Haptics.success()
         if index < set.videos.count - 1 {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                phase = .transitioning
+            if showCinema {
+                // In cinema we skip the next-up overlay entirely —
+                // it would render under the cover anyway, and the
+                // landscape flow is meant to feel uninterrupted.
+                advanceNow()
+            } else {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    phase = .transitioning
+                }
             }
         } else {
+            // Last video done — drop out of cinema so the completion
+            // overlay is visible (it's portrait-only).
+            if showCinema { showCinema = false }
             withAnimation(.easeInOut(duration: 0.5)) {
                 phase = .completed
             }
@@ -404,6 +472,11 @@ struct SetPlayerView: View {
         let next = index + 1
         guard next < self.set.videos.count else { return }
         Haptics.medium()
+        // Reset the shared playback position so the new video starts
+        // at its own clip.startTime rather than inheriting the previous
+        // video's tail-of-clip time.
+        sharedClipIdx = 0
+        sharedTime = nil
         withAnimation(.easeInOut(duration: 0.3)) {
             clips = []
             phase = .loading

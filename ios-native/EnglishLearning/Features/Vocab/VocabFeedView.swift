@@ -14,7 +14,7 @@ final class VocabFeedViewModel: ObservableObject {
         do {
             let response = try await CurriculumRepository.shared.vocabFeed(
                 poolIds: poolIds,
-                includeDiscovery: true,
+                includeDiscovery: false,
                 limit: 80,
             )
             self.items = response.items
@@ -189,7 +189,11 @@ struct VocabReelCard: View {
                 bottomBlock
             }
             .padding(.horizontal, 18)
-            .padding(.bottom, 100)
+            // The MainTabView's FloatingTabBar covers roughly the
+            // bottom 122pt (78pt bar + 10pt padding + ~34pt safe-area).
+            // Lift content above it so the sentence + meta stay
+            // readable instead of getting clipped behind the bar.
+            .padding(.bottom, 140)
             .padding(.trailing, 76) // keep clear of right action stack
 
             // Right-side TikTok-style stack
@@ -198,7 +202,7 @@ struct VocabReelCard: View {
                 actionStack
             }
             .padding(.trailing, 14)
-            .padding(.bottom, 110)
+            .padding(.bottom, 150)
 
             // Pause indicator overlay (center)
             if manuallyPaused {
@@ -222,9 +226,14 @@ struct VocabReelCard: View {
                 manuallyPaused = false
                 // The lazy mount might have started invisibly — kick
                 // it into the right state when the card becomes
-                // visible.
+                // visible. Sending both commands in the same render
+                // tick collapses to just the last one (SwiftUI
+                // coalesces @Binding writes), so the play has to land
+                // on the next runloop turn for the seek to take.
                 command = .seek(loopStart)
-                command = .play
+                DispatchQueue.main.async {
+                    command = .play
+                }
             } else {
                 command = .pause
             }
@@ -269,6 +278,12 @@ struct VocabReelCard: View {
                 )
                 .frame(height: videoHeight)
                 .clipped()
+                // The WKWebView under YouTubePlayerView captures all
+                // touches inside its bounds, which previously ate the
+                // tap-to-pause gesture on the video frame. Disabling
+                // hit-testing routes those taps back to SwiftUI so the
+                // outer .onTapGesture can fire over the video too.
+                .allowsHitTesting(false)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
@@ -338,12 +353,12 @@ struct VocabReelCard: View {
                     .multilineTextAlignment(.leading)
             }
 
-            // Sentence — colored by structure, target word emphasized.
-            Text(structureAttributed())
-                .font(.system(size: 15, weight: .semibold))
-                .lineSpacing(3)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
+            // Sentence — each word stacks its English form over its
+            // Turkish gloss, matching the cinema player's layout. The
+            // target starter word is white + heavy + underlined so the
+            // eye lands on it first; the rest follow the structure
+            // colors (subject sky / verb sage / rest lavender).
+            sentenceFlow
                 .padding(.top, 4)
 
             HStack(spacing: 8) {
@@ -380,7 +395,9 @@ struct VocabReelCard: View {
                 action: {
                     Haptics.light()
                     command = .seek(loopStart)
-                    command = .play
+                    DispatchQueue.main.async {
+                        command = .play
+                    }
                     if manuallyPaused {
                         manuallyPaused = false
                     }
@@ -436,39 +453,64 @@ struct VocabReelCard: View {
 
     // MARK: - Sentence rendering
 
-    /// Builds the colored AttributedString — same triadic palette as
-    /// the rest of the app (subject sky / verb sage / rest lavender),
-    /// with the target starter word painted in white + heavy weight +
-    /// underlined so the eye lands on it first.
-    private func structureAttributed() -> AttributedString {
+    /// Per-word stacked layout — English form on top, Turkish gloss
+    /// underneath, with karaoke-style highlighting that follows the
+    /// player. The currently-spoken word lights up in accent + scales
+    /// up subtly; upcoming words dim. Mirrors CinemaKaraokeLine so the
+    /// reels card feels like the same player just framed differently.
+    private var sentenceFlow: some View {
         let subjectIdx = Set(item.context.structure?.subject ?? [])
         let auxIdx     = Set(item.context.structure?.auxVerb  ?? [])
 
-        var out = AttributedString()
-        for (i, w) in item.context.words.enumerated() {
-            let idx = w.wordIndex ?? i
-            let baseColor: Color
-            if subjectIdx.contains(idx) {
-                baseColor = Color(hex: 0x5BA3DD)
-            } else if auxIdx.contains(idx) {
-                baseColor = Color(hex: 0x6BC084)
-            } else {
-                baseColor = Color(hex: 0xB093D2)
-            }
-
-            var chunk = AttributedString(w.word)
-            if w.starterId == item.wordId {
-                chunk.font = .system(size: 16, weight: .heavy)
-                chunk.foregroundColor = .white
-                chunk.underlineStyle = .single
-            } else {
-                chunk.foregroundColor = baseColor
-            }
-            out.append(chunk)
-            if i < item.context.words.count - 1 {
-                out.append(AttributedString(" "))
+        return FlowLayout(spacing: 8, lineSpacing: 8) {
+            ForEach(Array(item.context.words.enumerated()), id: \.offset) { i, w in
+                wordCell(
+                    word: w,
+                    index: w.wordIndex ?? i,
+                    subjectIdx: subjectIdx,
+                    auxIdx: auxIdx,
+                )
             }
         }
-        return out
+        .animation(.easeInOut(duration: 0.22), value: currentTime)
+    }
+
+    @ViewBuilder
+    private func wordCell(
+        word w: ClipWord,
+        index idx: Int,
+        subjectIdx: Set<Int>,
+        auxIdx: Set<Int>,
+    ) -> some View {
+        let isTarget = (w.starterId == item.wordId)
+        let isActive = currentTime >= w.startTime && currentTime < w.endTime
+        let isUpcoming = currentTime < w.startTime
+
+        let baseColor: Color = {
+            if isTarget { return .white }
+            if subjectIdx.contains(idx) { return Color(hex: 0x5BA3DD) }
+            if auxIdx.contains(idx)     { return Color(hex: 0x6BC084) }
+            return Color(hex: 0xB093D2)
+        }()
+        let textColor: Color = isActive ? Theme.Color.accent : baseColor
+        let scale: CGFloat   = isActive ? 1.10 : 1.0
+        let opacity: Double  = isUpcoming ? 0.55 : 1.0
+
+        VStack(alignment: .center, spacing: 2) {
+            Text(w.word)
+                .font(.system(size: isTarget ? 17 : 15, weight: isTarget ? .heavy : .semibold))
+                .foregroundStyle(textColor)
+                .underline(isTarget)
+                .scaleEffect(scale)
+
+            if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
+                Text(tr)
+                    .font(.system(size: 11, weight: .medium))
+                    .italic()
+                    .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.85))
+                    .lineLimit(1)
+            }
+        }
+        .opacity(opacity)
     }
 }
