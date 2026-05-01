@@ -25,24 +25,17 @@ actor APIClient {
     private let decoder: JSONDecoder
 
     init() {
-        // DEBUG: hit the Mac running `npm run dev` from admin/. Simulator
-        // shares the host's loopback so localhost works there. A physical
-        // device on the same Wi-Fi needs the Mac's LAN IP — update the
-        // device-side default below if your IP changes, or set
-        // ADMIN_API_BASE_URL via the env / Info.plist to override.
-        // Release: always fly.dev.
-        #if DEBUG
+        // Default to the deployed admin on fly.dev for ALL builds —
+        // both simulator and physical-device DEBUG hit production now.
+        // The set + structure + per-word TR pipeline lives on the
+        // remote DB so a phone on cellular can use the app without
+        // needing the Mac running. Set `ADMIN_API_BASE_URL` (env var
+        // for simulator, Info.plist for the device) to override —
+        // useful when iterating on local backend changes.
         let envBase = ProcessInfo.processInfo.environment["ADMIN_API_BASE_URL"]
         let plistBase = Bundle.main.object(forInfoDictionaryKey: "ADMIN_API_BASE_URL") as? String
-        #if targetEnvironment(simulator)
-        let defaultBase = "http://localhost:3000"
-        #else
-        let defaultBase = "http://192.168.1.110:3000"
-        #endif
+        let defaultBase = "https://english-learning-admin.fly.dev"
         let baseString = envBase ?? plistBase ?? defaultBase
-        #else
-        let baseString = "https://english-learning-admin.fly.dev"
-        #endif
         self.base = URL(string: baseString)!
 
         let config = URLSessionConfiguration.default
@@ -65,6 +58,28 @@ actor APIClient {
 
     func fetchVideoSets() async throws -> [VideoSet] {
         try await get("/api/v1/video-sets")
+    }
+
+    func fetchStarterWordContexts(id: String) async throws -> StarterWordContexts {
+        try await get("/api/v1/starter-words/\(id)/contexts")
+    }
+
+    func fetchStarterWordSummaries(ids: [String]) async throws -> [StarterWordSummary] {
+        guard !ids.isEmpty else { return [] }
+        return try await get(
+            "/api/v1/starter-words",
+            query: [URLQueryItem(name: "ids", value: ids.joined(separator: ","))],
+        )
+    }
+
+    func fetchVocabFeed(poolIds: [String], includeDiscovery: Bool = true, limit: Int = 80) async throws -> VocabFeedResponse {
+        var query: [URLQueryItem] = []
+        if !poolIds.isEmpty {
+            query.append(URLQueryItem(name: "ids", value: poolIds.joined(separator: ",")))
+        }
+        query.append(URLQueryItem(name: "discovery", value: includeDiscovery ? "1" : "0"))
+        query.append(URLQueryItem(name: "limit", value: String(limit)))
+        return try await get("/api/v1/vocab-feed", query: query)
     }
 
     // MARK: - Curriculum

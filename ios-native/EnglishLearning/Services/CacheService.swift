@@ -81,6 +81,38 @@ actor CurriculumRepository {
         try await APIClient.shared.fetchVideoSets()
     }
 
+    func starterWordContexts(id: String, forceRefresh: Bool = false) async throws -> StarterWordContexts {
+        // 24h cache — context list for a given starter only changes
+        // when the corpus is re-tagged, which is rare. Pull-to-refresh
+        // on the detail screen forces a fresh fetch.
+        let key = "starter-contexts:\(id)"
+        if !forceRefresh,
+           let cached = await CacheService.shared.get(StarterWordContexts.self, for: key) {
+            return cached
+        }
+        let data = try await APIClient.shared.fetchStarterWordContexts(id: id)
+        await CacheService.shared.set(data, for: key, ttl: 60 * 60 * 24)
+        return data
+    }
+
+    func starterWordSummaries(ids: [String], forceRefresh: Bool = false) async throws -> [StarterWordSummary] {
+        // No caching — `ids` varies per call (whatever the user has in
+        // their pool right now), and the underlying counts can shift
+        // when the corpus is updated; safer to refetch.
+        try await APIClient.shared.fetchStarterWordSummaries(ids: ids)
+    }
+
+    func vocabFeed(poolIds: [String], includeDiscovery: Bool = true, limit: Int = 80) async throws -> VocabFeedResponse {
+        // Never cache — the feed is intentionally re-shuffled on every
+        // pull, so each visit feels fresh. Also lets the user pull
+        // down to swap the rotation.
+        try await APIClient.shared.fetchVocabFeed(
+            poolIds: poolIds,
+            includeDiscovery: includeDiscovery,
+            limit: limit,
+        )
+    }
+
     func curriculum(forceRefresh: Bool = false) async throws -> [CurriculumUnit] {
         let key = "curriculum"
         if !forceRefresh, let cached = await CacheService.shared.get([CurriculumUnit].self, for: key) {

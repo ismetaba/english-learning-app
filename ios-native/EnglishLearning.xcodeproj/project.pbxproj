@@ -13,12 +13,14 @@
 		1CDD2DE0EED05CC1E58236E4 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F767D8BFC005C0839CC089 /* OnboardingView.swift */; };
 		228FBA847B52AC707407DD8F /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */; };
 		269D8452FFB7848C9731719B /* VideoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF80E3A472FA51BC62B9820 /* VideoSet.swift */; };
+		372E5562CDE0151EA3EC64CB /* VocabWordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */; };
 		3C50FC04CF0CF9A804E84DA4 /* YouTubePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73580C34736B5F98A0916DFA /* YouTubePlayerView.swift */; };
 		3E50BABA940C2D2A3AB0208F /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 480EBA7F8952FC952B0F60F6 /* Localization.swift */; };
 		44EA3429A3544B775FF9AB6A /* Curriculum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 026131E29DF8E3DAD68F443D /* Curriculum.swift */; };
 		5276AF3856DE85E3EC654669 /* VocabReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF6F523CFB9DA6B3CE1C345 /* VocabReviewView.swift */; };
 		5800CD0C28ED66E9D62E278E /* Progress.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1FAFED55839850EBD82E6A /* Progress.swift */; };
 		5EE2F2A0F844D5C7200E27A1 /* LessonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AB6B24887081F6B7889177 /* LessonDetailView.swift */; };
+		5F3210C9BB03EFCB55537181 /* VocabContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */; };
 		63277E5ADC90CBB30C6B9C33 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898D883E553A0F54A8112D89 /* AppState.swift */; };
 		7FFFD36AC649B6160340FAA8 /* Vocab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E5E036D9B7957EC0F15AE1 /* Vocab.swift */; };
 		805DB3D255E629401691F168 /* DailyTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C1C7DD782B63C6BFA39036 /* DailyTasksView.swift */; };
@@ -43,6 +45,7 @@
 		F15BEF240300C9701451EE3D /* VideoFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E838A54C77D3D01490201EEF /* VideoFeedView.swift */; };
 		F2BDD1DD313750013C4A72B1 /* CoursesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8AD28F480946D6F3919D9C /* CoursesView.swift */; };
 		F73FB5B550CBEBD4A4F8EA69 /* LessonClipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FD576AE33C2C20A38A04F3 /* LessonClipsView.swift */; };
+		F81F4F7F971FB6AEBE8D223E /* VocabFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49279260F980A2348278F95 /* VocabFeedView.swift */; };
 		FA5AC3986F450AD504E98A0A /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71ACAFE06F340C436181393D /* APIClient.swift */; };
 /* End PBXBuildFile section */
 
@@ -69,7 +72,8 @@
 		480EBA7F8952FC952B0F60F6 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		4E5A9767244D65F74709188D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		4FE92974ACB3DF1125BFD541 /* PocVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocVideo.swift; sourceTree = "<group>"; };
-		55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishLearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EnglishLearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabContext.swift; sourceTree = "<group>"; };
 		6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerViewTests.swift; sourceTree = "<group>"; };
 		6DD7DB2DCE34DC861E71D58F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		71ACAFE06F340C436181393D /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -82,8 +86,10 @@
 		87B512AFDD31F6CCC073DB36 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
 		898D883E553A0F54A8112D89 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		8FA05CB9673702CC47B3F2DB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabWordDetailView.swift; sourceTree = "<group>"; };
 		9ECC83A0DB154A5D98FBDF2E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A25540F8B535DAF9E129ED01 /* LearningPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathView.swift; sourceTree = "<group>"; };
+		A49279260F980A2348278F95 /* VocabFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabFeedView.swift; sourceTree = "<group>"; };
 		A6CC9EEA658DDF432920728B /* ScenesLandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenesLandingView.swift; sourceTree = "<group>"; };
 		B63192DC0F7052D938A2BB96 /* SetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDetailView.swift; sourceTree = "<group>"; };
 		BC1FAFED55839850EBD82E6A /* Progress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Progress.swift; sourceTree = "<group>"; };
@@ -141,6 +147,7 @@
 				BC1FAFED55839850EBD82E6A /* Progress.swift */,
 				EDF80E3A472FA51BC62B9820 /* VideoSet.swift */,
 				71E5E036D9B7957EC0F15AE1 /* Vocab.swift */,
+				56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -215,8 +222,10 @@
 		7E97C07F01BDDEF1AF99E561 /* Vocab */ = {
 			isa = PBXGroup;
 			children = (
+				A49279260F980A2348278F95 /* VocabFeedView.swift */,
 				FD2BF65F1AA5FA5AFA58E1CD /* VocabSetView.swift */,
 				1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */,
+				99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */,
 			);
 			path = Vocab;
 			sourceTree = "<group>";
@@ -363,7 +372,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					67C3B6551CEE3A42FBF9B5D4 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					E552FE5ED7A073982AA86A97 = {
@@ -438,9 +446,12 @@
 				019F60C2540884767A54913F /* VideoWatchView.swift in Sources */,
 				9B6CB645DC6FC31E1E95AE68 /* ViewModifiers.swift in Sources */,
 				7FFFD36AC649B6160340FAA8 /* Vocab.swift in Sources */,
+				5F3210C9BB03EFCB55537181 /* VocabContext.swift in Sources */,
+				F81F4F7F971FB6AEBE8D223E /* VocabFeedView.swift in Sources */,
 				5276AF3856DE85E3EC654669 /* VocabReviewView.swift in Sources */,
 				DC9419DFC2A2D5399F66050D /* VocabSetView.swift in Sources */,
 				B88BC7E80260C0ED81DC0441 /* VocabView.swift in Sources */,
+				372E5562CDE0151EA3EC64CB /* VocabWordDetailView.swift in Sources */,
 				3C50FC04CF0CF9A804E84DA4 /* YouTubePlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -471,6 +482,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = HJ9ZP4QLTL;
 				INFOPLIST_FILE = EnglishLearning/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "English Learning";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -644,6 +656,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = HJ9ZP4QLTL;
 				INFOPLIST_FILE = EnglishLearning/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "English Learning";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

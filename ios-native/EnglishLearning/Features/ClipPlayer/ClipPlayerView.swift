@@ -296,12 +296,25 @@ struct ClipPlayerView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 10)
 
-            if let banner = starterBanner {
-                starterChoice(for: banner)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 14)
-            } else {
+            // Transcript stays mounted at all times so the scroll
+            // position survives a starter-tap → "Devam" round trip.
+            // Earlier the banner replaced transcriptScroll entirely;
+            // closing the banner re-mounted ScrollView from the top
+            // and the active line snapped back to line 1. Now the
+            // banner overlays on top, transcript keeps its anchor.
+            ZStack(alignment: .top) {
                 transcriptScroll
+                    .opacity(starterBanner == nil ? 1 : 0.08)
+                    .allowsHitTesting(starterBanner == nil)
+
+                if let banner = starterBanner {
+                    starterChoice(for: banner)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+                        .padding(.bottom, 14)
+                        .background(Theme.Color.background.opacity(0.85))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -375,8 +388,8 @@ struct ClipPlayerView: View {
                     .padding(.top, 3)
                 Text(structureAttributed(for: line))
                     .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .opacity(opacity)
@@ -544,7 +557,8 @@ struct ClipPlayerView: View {
                     .font(.system(size: 10, weight: .regular))
                     .italic()
                     .foregroundStyle(Color(hex: 0x7C8BAE))
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .opacity(wordOpacity)
@@ -595,7 +609,8 @@ struct ClipPlayerView: View {
                             .font(.system(size: glossSize, weight: .regular))
                             .italic()
                             .foregroundStyle(Color(hex: 0x7C8BAE))
-                            .lineLimit(1)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -939,13 +954,13 @@ struct ClipPlayerView: View {
 
             HStack(spacing: 10) {
                 Button {
-                    Haptics.medium()
-                    replayMinusThree(for: pause)
+                    Haptics.success()
+                    addStarterToVocab(pause: pause)
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("Tekrar (-3sn)")
+                        Image(systemName: alreadyLearned(pause) ? "checkmark" : "plus")
+                            .font(.system(size: 12, weight: .heavy))
+                        Text(alreadyLearned(pause) ? "Eklendi" : "Ekle")
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundStyle(Theme.Color.textPrimary)
@@ -1238,18 +1253,22 @@ struct ClipPlayerView: View {
         }
     }
 
-    private func replayMinusThree(for pause: StarterPause) {
-        withAnimation(.easeOut(duration: 0.2)) { starterBanner = nil }
-        // Rewind ~3s before the word, clamped to the line's own start so we
-        // don't bleed into the previous speaker. Clamped further to the clip
-        // start so we stay within bounds.
-        let targetTime = max(
-            clip.startTime,
-            max(pause.line.startTime, pause.word.startTime - 3)
-        )
-        currentTime = targetTime
-        command = .seek(targetTime)
-        command = .play
+    /// Adds the tapped starter word to the user's vocab pool and closes
+    /// the banner. Idempotent — repeated taps don't re-record. The
+    /// player keeps its position so playback resumes from the same line
+    /// when the user follows up with "Devam".
+    private func addStarterToVocab(pause: StarterPause) {
+        if let id = pause.word.starterId {
+            appState.markVocabLearned(id)
+        }
+    }
+
+    /// True when the tapped starter is already in the user's pool, so
+    /// the button can switch its label / icon to a "checked" state
+    /// instead of presenting the add affordance again.
+    private func alreadyLearned(_ pause: StarterPause) -> Bool {
+        guard let id = pause.word.starterId else { return false }
+        return appState.progress.learnedWords.contains(id)
     }
 
     private func continueFromStarter() {

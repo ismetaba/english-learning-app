@@ -23,6 +23,7 @@ struct YouTubePlayerView: UIViewRepresentable {
         case loop(Double, Double)
         case reload
         case setSpeed(Double)
+        case setMuted(Bool)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -99,7 +100,8 @@ struct YouTubePlayerView: UIViewRepresentable {
         html += "else if(c.type==='seek')player.seekTo(c.t,true);"
         html += "else if(c.type==='loop'){player.seekTo(c.a,true);player.playVideo();}"
         html += "else if(c.type==='reload'){\(endSetter)}"
-        html += "else if(c.type==='setSpeed'&&player.setPlaybackRate)player.setPlaybackRate(c.r);}"
+        html += "else if(c.type==='setSpeed'&&player.setPlaybackRate)player.setPlaybackRate(c.r);"
+        html += "else if(c.type==='setMuted'){if(c.m){player.mute&&player.mute();}else{player.unMute&&player.unMute();}}}"
         html += "window.__cmd=cmd;"
 
         html += "var tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);"
@@ -124,6 +126,7 @@ struct YouTubePlayerView: UIViewRepresentable {
             case .loop(let a, _):   js = "window.__cmd({ type: 'loop', a: \(a) });"
             case .reload:           js = "window.__cmd({ type: 'reload' });"
             case .setSpeed(let r):  js = "window.__cmd({ type: 'setSpeed', r: \(r) });"
+            case .setMuted(let m):  js = "window.__cmd({ type: 'setMuted', m: \(m) });"
             }
             web.evaluateJavaScript(js, completionHandler: nil)
         }

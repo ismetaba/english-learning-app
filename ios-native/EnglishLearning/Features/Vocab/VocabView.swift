@@ -1,17 +1,25 @@
 import SwiftUI
 
+// MARK: - View model
+
 @MainActor
 final class VocabViewModel: ObservableObject {
-    @Published var sets: [VocabSet] = []
+    @Published var summaries: [StarterWordSummary] = []
     @Published var isLoading = true
     @Published var errorMessage: String? = nil
 
-    func load() async {
-        isLoading = true
+    /// Refetches summaries for the user's current `learnedWords`. New
+    /// words appear at the top because the API preserves request order
+    /// and we hand it `learnedWords` reversed (most-recent first).
+    func load(learnedWords: [String], forceRefresh: Bool = false) async {
+        if !forceRefresh { isLoading = true }
         errorMessage = nil
         do {
-            let data = try await APIClient.shared.fetchVocabSets()
-            self.sets = data
+            let recentFirst = Array(learnedWords.reversed())
+            self.summaries = try await CurriculumRepository.shared.starterWordSummaries(
+                ids: recentFirst,
+                forceRefresh: forceRefresh,
+            )
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -19,267 +27,387 @@ final class VocabViewModel: ObservableObject {
     }
 }
 
+// MARK: - Filter
+
+private enum VocabFilter: Hashable, CaseIterable {
+    case all, learning, nearMastery, mastered
+
+    var label: String {
+        switch self {
+        case .all:         return "Tümü"
+        case .learning:    return "Yeni"
+        case .nearMastery: return "Yakın"
+        case .mastered:    return "Mastered"
+        }
+    }
+
+    func filter(_ s: StarterWordSummary) -> Bool {
+        switch self {
+        case .all:         return true
+        case .learning:    return s.pocContextCount <= 3
+        case .nearMastery: return (4...6).contains(s.pocContextCount)
+        case .mastered:    return s.isMastered
+        }
+    }
+}
+
+// MARK: - Mode
+
+private enum VocabMode: Hashable, CaseIterable {
+    case feed, list
+
+    var label: String {
+        switch self {
+        case .feed: return "Akış"
+        case .list: return "Liste"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .feed: return "play.rectangle.on.rectangle.fill"
+        case .list: return "rectangle.grid.2x2.fill"
+        }
+    }
+}
+
+// MARK: - Main view
+
 struct VocabView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = VocabViewModel()
-    @State private var selectedSet: VocabSet? = nil
-    @State private var showReview = false
+    @State private var mode: VocabMode = .feed
+    @State private var filter: VocabFilter = .all
+    @State private var selectedWord: StarterWordSummary? = nil
 
     var body: some View {
         NavigationStack {
             ZStack {
-                BackgroundAmbience()
-                content
+                if mode == .feed {
+                    VocabFeedView()
+                        .environmentObject(appState)
+                        .ignoresSafeArea()
+                } else {
+                    BackgroundAmbience()
+                    listContent
+                }
+
+                // Floating mode switch — sits above whichever layer
+                // is showing so the user can flip without leaving.
+                VStack {
+                    HStack {
+                        Spacer(minLength: 0)
+                        modeSwitch
+                            .padding(.trailing, 16)
+                    }
+                    .padding(.top, 16)
+                    Spacer()
+                }
             }
-            .navigationDestination(item: $selectedSet) { set in
-                VocabSetView(setId: set.id, title: set.displayTitle)
+            .navigationDestination(item: $selectedWord) { word in
+                VocabWordDetailView(summary: word)
                     .environmentObject(appState)
             }
-            .navigationDestination(isPresented: $showReview) {
-                VocabReviewView().environmentObject(appState)
-            }
         }
-        .task { await vm.load() }
+        .task(id: appState.progress.learnedWords) {
+            await vm.load(learnedWords: appState.progress.learnedWords)
+        }
     }
 
-    private var content: some View {
+    private var modeSwitch: some View {
+        HStack(spacing: 4) {
+            ForEach(VocabMode.allCases, id: \.self) { m in
+                Button {
+                    Haptics.selection()
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                        mode = m
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: m.icon)
+                            .font(.system(size: 11, weight: .heavy))
+                        Text(m.label)
+                            .font(.system(size: 11, weight: .heavy))
+                            .tracking(0.4)
+                    }
+                    .foregroundStyle(mode == m ? .black : .white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule().fill(mode == m ? Theme.Color.accent : .clear),
+                    )
+                }
+                .buttonStyle(.pressable(scale: 0.94))
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .background(
+            Capsule().fill(.black.opacity(0.55)),
+        )
+        .overlay(
+            Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1),
+        )
+        .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+    }
+
+    private var listContent: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 22) {
-                header
-                reviewHero
-                statsStrip
-                setsSection
-                Spacer().frame(height: 120)
+            LazyVStack(alignment: .leading, spacing: 24) {
+                hero
+                    .padding(.horizontal, 20)
+                    .padding(.top, 56)
+
+                if appState.progress.learnedWords.isEmpty {
+                    emptyState
+                        .padding(.horizontal, 20)
+                        .padding(.top, 24)
+                } else if vm.isLoading && vm.summaries.isEmpty {
+                    LoadingState(label: "Kelimeler yükleniyor")
+                        .padding(.top, 64)
+                } else {
+                    filterStrip
+                        .padding(.horizontal, 20)
+                    grid
+                        .padding(.horizontal, 20)
+                }
+
+                Spacer().frame(height: 140)
             }
-            .padding(.top, 58)
         }
-        .refreshable { await vm.load() }
+        .refreshable {
+            await vm.load(learnedWords: appState.progress.learnedWords, forceRefresh: true)
+        }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Vocabulary")
-                .font(.system(size: 30, weight: .bold))
+    // MARK: Hero
+
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("KELİME HAZNEM")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .tracking(2)
+                .foregroundStyle(Theme.Color.accent)
+
+            Text("Eklediğin kelimeler")
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
                 .foregroundStyle(Theme.Color.textPrimary)
                 .tracking(-0.5)
-            Text("Your word bank · spaced repetition")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.Color.textSecondary)
+
+            HStack(spacing: 14) {
+                statColumn(value: "\(appState.progress.learnedWords.count)", label: "kelime")
+                divider
+                statColumn(value: "\(vm.summaries.filter { $0.isMastered }.count)", label: "mastered")
+                divider
+                statColumn(
+                    value: "\(vm.summaries.filter { (4...6).contains($0.pocContextCount) }.count)",
+                    label: "yakın",
+                )
+            }
+            .padding(.top, 4)
         }
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var reviewHero: some View {
-        let stats = SpacedRepetition.stats(Array(appState.vocabPool.values))
-        return Button {
-            Haptics.medium()
-            showReview = true
-        } label: {
-            HStack(alignment: .center, spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Theme.Color.accentSoft)
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Theme.Color.accent)
-                }
-                .frame(width: 52, height: 52)
+    private func statColumn(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.Color.textPrimary)
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(1.4)
+                .foregroundStyle(Theme.Color.textMuted)
+        }
+    }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Daily review")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.Color.textPrimary)
-                    Text("\(stats.dueToday) words due today")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.Color.textSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+    private var divider: some View {
+        Rectangle()
+            .fill(Theme.Color.border.opacity(0.6))
+            .frame(width: 1, height: 28)
+    }
+
+    // MARK: Empty state
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Theme.Color.backgroundSurface)
+                    .frame(width: 96, height: 96)
+                Circle()
+                    .strokeBorder(Theme.Color.border, lineWidth: 1)
+                    .frame(width: 96, height: 96)
+                Image(systemName: "character.book.closed")
+                    .font(.system(size: 36, weight: .medium))
                     .foregroundStyle(Theme.Color.textMuted)
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Theme.Color.backgroundCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Theme.Color.border, lineWidth: 1)
-            )
+            .padding(.top, 24)
+
+            Text("Henüz kelime eklemedin")
+                .font(.system(size: 18, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.Color.textPrimary)
+
+            Text("Bir set izle, altı çizili amber kelimelere dokun, Ekle'ye bas. Eklediklerin burada birikecek.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Theme.Color.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .padding(.horizontal, 24)
         }
-        .buttonStyle(.pressable(scale: 0.98))
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Theme.Color.backgroundCard.opacity(0.5)),
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Theme.Color.border.opacity(0.6), lineWidth: 1),
+        )
     }
 
-    private var statsStrip: some View {
-        let stats = SpacedRepetition.stats(Array(appState.vocabPool.values))
-        return HStack(spacing: 10) {
-            MasteryPill(
-                icon: "checkmark.seal.fill",
-                value: stats.byLevel[.mastered] ?? 0,
-                label: "MASTERED",
-                color: Theme.Color.success
-            )
-            MasteryPill(
-                icon: "star.fill",
-                value: stats.byLevel[.familiar] ?? 0,
-                label: "FAMILIAR",
-                color: Theme.Color.accent
-            )
-            MasteryPill(
-                icon: "sparkles",
-                value: stats.byLevel[.learning] ?? 0,
-                label: "LEARNING",
-                color: Theme.Color.warning
-            )
-        }
-        .padding(.horizontal, 20)
-    }
+    // MARK: Filter strip
 
-    @ViewBuilder
-    private var setsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 10) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Theme.Color.primary)
-                    .frame(width: 4, height: 28)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("VOCAB SETS")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .tracking(1.2)
-                        .foregroundStyle(Theme.Color.primary)
-                    Text("Themed collections")
-                        .font(.system(size: 18, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Theme.Color.textPrimary)
-                        .tracking(-0.3)
+    private var filterStrip: some View {
+        HStack(spacing: 6) {
+            ForEach(VocabFilter.allCases, id: \.self) { f in
+                let count = vm.summaries.filter(f.filter).count
+                Button(action: {
+                    Haptics.selection()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        filter = f
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Text(f.label)
+                            .font(.system(size: 12, weight: .heavy))
+                        if count > 0 {
+                            Text("\(count)")
+                                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                                .foregroundStyle(filter == f ? .black.opacity(0.6) : Theme.Color.textMuted)
+                        }
+                    }
+                    .foregroundStyle(filter == f ? .black : Theme.Color.textSecondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule().fill(filter == f ? Theme.Color.accent : Theme.Color.backgroundSurface.opacity(0.6)),
+                    )
+                    .overlay(
+                        Capsule().strokeBorder(
+                            filter == f ? .clear : Theme.Color.border.opacity(0.6),
+                            lineWidth: 1,
+                        ),
+                    )
                 }
-                Spacer()
-                if !vm.sets.isEmpty {
-                    Text("\(vm.sets.count)")
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Theme.Color.textMuted)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Theme.Color.backgroundCard))
+                .buttonStyle(.pressable(scale: 0.95))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: Grid
+
+    private var grid: some View {
+        let visible = vm.summaries.filter(filter.filter)
+        return LazyVGrid(
+            columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+            spacing: 12,
+        ) {
+            ForEach(visible) { s in
+                VocabTile(summary: s) {
+                    Haptics.medium()
+                    selectedWord = s
                 }
             }
-            .padding(.horizontal, 20)
+        }
+        .animation(.easeInOut(duration: 0.25), value: filter)
+    }
+}
 
-            if vm.isLoading && vm.sets.isEmpty {
-                LoadingState().frame(height: 220)
-            } else if vm.sets.isEmpty {
-                EmptyState(
-                    icon: "tray",
-                    title: "No vocab sets yet",
-                    subtitle: "Complete a lesson to build your word bank"
-                )
-                .padding(.top, 40)
-            } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
-                ], spacing: 12) {
-                    ForEach(Array(vm.sets.enumerated()), id: \.element.id) { idx, set in
-                        Button {
-                            Haptics.selection()
-                            selectedSet = set
-                        } label: {
-                            ModernVocabSetCard(set: set, tint: tintFor(idx))
-                        }
-                        .buttonStyle(.pressable(scale: 0.95))
+// MARK: - Tile
+
+private struct VocabTile: View {
+    let summary: StarterWordSummary
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(summary.word)
+                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                        .tracking(-0.4)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Spacer(minLength: 4)
+                    if summary.isMastered {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14, weight: .heavy))
+                            .foregroundStyle(Theme.Color.accent)
                     }
                 }
-                .padding(.horizontal, 20)
-            }
-        }
-    }
 
-    private func tintFor(_ idx: Int) -> Color {
-        let palette = [Theme.Color.primary, Theme.Color.accent, Theme.Color.warning,
-                       Theme.Color.levelElementary, Theme.Color.levelUpper]
-        return palette[idx % palette.count]
-    }
-}
-
-struct MasteryPill: View {
-    let icon: String
-    let value: Int
-    let label: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(color)
-                Text(label)
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
-                    .tracking(0.8)
-                    .foregroundStyle(color)
-            }
-            Text("\(value)")
-                .font(.system(size: 24, weight: .heavy, design: .rounded))
-                .foregroundStyle(Theme.Color.textPrimary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Theme.Color.backgroundCard.opacity(0.75))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(color.opacity(0.3), lineWidth: 1)
-        )
-    }
-}
-
-struct ModernVocabSetCard: View {
-    let set: VocabSet
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.4), tint.opacity(0.12)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-                Image(systemName: "character.book.closed.fill")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.95))
-            }
-            .frame(height: 90)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(set.displayTitle)
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.Color.textPrimary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                HStack(spacing: 4) {
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: 9, weight: .bold))
-                    Text("\(set.wordCount) words")
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                if let tr = summary.translationTr, !tr.isEmpty {
+                    Text(tr)
+                        .font(.system(size: 13, weight: .medium))
+                        .italic()
+                        .foregroundStyle(Color(hex: 0xE0B07A))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .foregroundStyle(tint)
+
+                Spacer(minLength: 6)
+
+                MasteryDots(filled: summary.pocContextCount, total: StarterWordSummary.masteryThreshold)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Theme.Color.backgroundCard),
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        summary.isMastered
+                            ? Theme.Color.accent.opacity(0.4)
+                            : Theme.Color.border.opacity(0.5),
+                        lineWidth: 1,
+                    ),
+            )
+        }
+        .buttonStyle(.pressable(scale: 0.97))
+    }
+}
+
+// MARK: - Mastery dots
+
+/// Row of small dots — filled count = how many distinct POC scenes
+/// the user has encountered the word in. Capped at the mastery
+/// threshold (7); extra dots beyond cap aren't drawn so the row
+/// reads as "progress toward mastery" rather than a running total.
+struct MasteryDots: View {
+    let filled: Int
+    let total: Int
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<total, id: \.self) { i in
+                Circle()
+                    .fill(i < filled ? Theme.Color.accent : Theme.Color.backgroundSurface)
+                    .frame(width: 7, height: 7)
+                    .overlay(
+                        Circle().strokeBorder(
+                            i < filled ? .clear : Theme.Color.border.opacity(0.8),
+                            lineWidth: 0.8,
+                        ),
+                    )
             }
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.Color.backgroundCard.opacity(0.75))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Theme.Color.border, lineWidth: 1)
-        )
     }
 }
