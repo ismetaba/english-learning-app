@@ -6,6 +6,18 @@ import Foundation
 /// it came from and the exact clip timestamp to seek to.
 ///
 /// Mirrors the JSON shape returned by /api/v1/starter-words/{id}/contexts.
+/// Multi-word translation span — a phrasal verb ("clean off", "look at")
+/// that should render as a single cell with one Turkish gloss instead
+/// of one cell per English word with separate per-word translations.
+/// Indexes match `ClipWord.wordIndex` so the frontend can fold the
+/// covered words into a merged display unit.
+struct PhraseSpan: Codable, Hashable {
+    let startIndex: Int
+    let endIndex: Int
+    let translationTr: String
+    let joinedText: String
+}
+
 struct VocabContext: Codable, Identifiable, Hashable {
     let lineId: Int
     let text: String
@@ -20,13 +32,14 @@ struct VocabContext: Codable, Identifiable, Hashable {
     let movieTitle: String
     let isPoc: Bool
     let words: [ClipWord]
+    let phrases: [PhraseSpan]?
 
     var id: Int { lineId }
 
     enum CodingKeys: String, CodingKey {
         case lineId, text, startTime, endTime, clipStartTime, clipEndTime,
              structure, videoId, youtubeVideoId, videoTitle, movieTitle,
-             isPoc, words
+             isPoc, words, phrases
     }
 
     /// Minimal stub used by VocabWordDetailView to drop the user into
@@ -127,6 +140,22 @@ struct VocabFeedItem: Codable, Identifiable, Hashable {
 struct VocabFeedResponse: Codable {
     let items: [VocabFeedItem]
     let total: Int
+}
+
+/// Map an English part-of-speech tag (as stored in the corpus —
+/// "verb"/"adj"/"noun" today, with room for "adv" later) to its
+/// Turkish equivalent. Returns nil for nil/empty input so callers
+/// can hide the badge when no POS is set, and falls back to the
+/// raw value for unknown tags rather than dropping them.
+func partOfSpeechTr(_ pos: String?) -> String? {
+    guard let raw = pos?.lowercased(), !raw.isEmpty else { return nil }
+    switch raw {
+    case "verb":             return "fiil"
+    case "adj", "adjective": return "sıfat"
+    case "noun":             return "isim"
+    case "adv", "adverb":    return "zarf"
+    default:                 return raw
+    }
 }
 
 /// Lightweight summary used by the Kelime Haznem grid. The full

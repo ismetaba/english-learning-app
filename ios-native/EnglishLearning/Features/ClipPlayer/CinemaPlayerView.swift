@@ -151,6 +151,23 @@ struct CinemaPlayerView: View {
             // canvas edge-to-edge. Slight crop on top/bottom is
             // acceptable in cinema mode — the karaoke strip masks
             // the bottom anyway.
+            //
+            // Modern iPhones in landscape are ~19.5:9, so a plain
+            // .frame(geo.size) hands the WebView a wider-than-16:9
+            // canvas and YouTube black-bars the 16:9 content with
+            // pillars on the left/right — the "shifted" look. We size
+            // the WebView itself at 16:9 (matched to the wider of the
+            // two screen dimensions) so the iframe's video content
+            // fills that 16:9 area, then the outer frame + .clipped()
+            // crops whatever overflows the actual screen rectangle.
+            let videoAspect: CGFloat = 16.0 / 9.0
+            let screenAspect = geo.size.width / max(1, geo.size.height)
+            let videoSize: CGSize = screenAspect > videoAspect
+                ? CGSize(width: geo.size.width,
+                         height: geo.size.width / videoAspect)
+                : CGSize(width: geo.size.height * videoAspect,
+                         height: geo.size.height)
+
             YouTubePlayerView(
                 videoId: clip.youtubeVideoId,
                 startTime: effectiveStartTime,
@@ -170,6 +187,7 @@ struct CinemaPlayerView: View {
                 onEnded: { next() },
                 command: $command,
             )
+            .frame(width: videoSize.width, height: videoSize.height)
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }

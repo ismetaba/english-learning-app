@@ -103,7 +103,7 @@ struct VocabWordRow: View {
                             Text(word.word)
                                 .font(Theme.Font.headline(17, weight: .bold))
                                 .foregroundStyle(Theme.Color.textPrimary)
-                            if let pos = word.partOfSpeech {
+                            if let pos = partOfSpeechTr(word.partOfSpeech) {
                                 Text(pos)
                                     .font(Theme.Font.caption(10, weight: .bold))
                                     .foregroundStyle(Theme.Color.textMuted)

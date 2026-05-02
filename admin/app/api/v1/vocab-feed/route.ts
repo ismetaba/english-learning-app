@@ -173,6 +173,12 @@ export function GET(req: NextRequest) {
            AND v.poc = 1
            AND sl.text IS NOT NULL
            AND length(trim(sl.text)) > 0
+           -- Drop pathological subtitle lines (a few "whoa whoa whoa…"
+           -- repeats and whole monologues). They render as a flowed wall
+           -- of words on the reels card, way past anything readable;
+           -- proper sentence-splitting + word_timestamps reassignment
+           -- needs a separate data migration pass.
+           AND length(sl.text) <= 120
          ORDER BY (sl.structure IS NULL), sl.id`,
       )
       .all() as RawRow[];
@@ -212,6 +218,50 @@ export function GET(req: NextRequest) {
        WHERE wt.line_id = ?
        ORDER BY wt.word_index`,
     );
+
+    // Load phrase translations once for the whole request — small dict
+    // (~30 entries) keyed by lowercased phrase; cheap to scan.
+    const phraseRows = db
+      .prepare(`SELECT phrase, translation_tr FROM phrase_translations`)
+      .all() as { phrase: string; translation_tr: string }[];
+    const phraseDict = new Map<string, string>(
+      phraseRows.map(r => [r.phrase.toLowerCase(), r.translation_tr]),
+    );
+
+    // Strip wrapping punctuation so "off." matches "off" in the dict.
+    const cleanWord = (w: string) => w.toLowerCase().replace(/^[^a-z']+|[^a-z']+$/g, '');
+
+    interface PhraseSpan {
+      startIndex: number;
+      endIndex: number;
+      translationTr: string;
+      joinedText: string;
+    }
+
+    function detectPhrases(
+      ws: { word: string; word_index: number }[],
+    ): PhraseSpan[] {
+      const out: PhraseSpan[] = [];
+      let i = 0;
+      while (i < ws.length - 1) {
+        const w1 = cleanWord(ws[i].word);
+        const w2 = cleanWord(ws[i + 1].word);
+        const bigram = `${w1} ${w2}`;
+        const tr = phraseDict.get(bigram);
+        if (tr) {
+          out.push({
+            startIndex: ws[i].word_index,
+            endIndex: ws[i + 1].word_index,
+            translationTr: tr,
+            joinedText: `${ws[i].word} ${ws[i + 1].word}`,
+          });
+          i += 2; // skip past the second word — already consumed
+        } else {
+          i += 1;
+        }
+      }
+      return out;
+    }
 
     const POOL_PER_WORD = 5;
     const DISCOVERY_PER_WORD = 1;
@@ -276,6 +326,7 @@ export function GET(req: NextRequest) {
               starterTr: w.starter_tr ?? null,
               translationTr: w.word_tr ?? null,
             })),
+            phrases: detectPhrases(wordRows),
           },
         });
       }

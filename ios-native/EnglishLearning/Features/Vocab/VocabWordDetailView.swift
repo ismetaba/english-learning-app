@@ -78,7 +78,7 @@ struct VocabWordDetailView: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                if let pos = summary.partOfSpeech, !pos.isEmpty {
+                if let pos = partOfSpeechTr(summary.partOfSpeech) {
                     metaBadge(text: pos.uppercased())
                 }
                 if let cefr = summary.cefrLevel, !cefr.isEmpty {

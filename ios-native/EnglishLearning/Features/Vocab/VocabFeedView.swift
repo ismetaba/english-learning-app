@@ -335,7 +335,7 @@ struct VocabReelCard: View {
                     .tracking(-0.8)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                if let pos = item.partOfSpeech {
+                if let pos = partOfSpeechTr(item.partOfSpeech) {
                     Text(pos.uppercased())
                         .font(.system(size: 10, weight: .heavy))
                         .tracking(1.4)
@@ -458,21 +458,74 @@ struct VocabReelCard: View {
     /// player. The currently-spoken word lights up in accent + scales
     /// up subtly; upcoming words dim. Mirrors CinemaKaraokeLine so the
     /// reels card feels like the same player just framed differently.
+    /// Phrasal verbs from `context.phrases` collapse into a single
+    /// merged cell with one shared Turkish translation instead of
+    /// translating each word in isolation.
     private var sentenceFlow: some View {
         let subjectIdx = Set(item.context.structure?.subject ?? [])
         let auxIdx     = Set(item.context.structure?.auxVerb  ?? [])
+        let cells = makeCells()
 
         return FlowLayout(spacing: 8, lineSpacing: 8) {
-            ForEach(Array(item.context.words.enumerated()), id: \.offset) { i, w in
-                wordCell(
-                    word: w,
-                    index: w.wordIndex ?? i,
-                    subjectIdx: subjectIdx,
-                    auxIdx: auxIdx,
-                )
+            ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
+                switch cell {
+                case .word(let w, let idx):
+                    wordCell(
+                        word: w,
+                        index: idx,
+                        subjectIdx: subjectIdx,
+                        auxIdx: auxIdx,
+                    )
+                case .phrase(let words, let translation, let idx):
+                    phraseCell(
+                        words: words,
+                        translation: translation,
+                        firstIndex: idx,
+                        subjectIdx: subjectIdx,
+                        auxIdx: auxIdx,
+                    )
+                }
             }
         }
         .animation(.easeInOut(duration: 0.22), value: currentTime)
+    }
+
+    /// One unit in the karaoke flow — either a standalone word or a
+    /// merged phrasal verb whose constituent words render together.
+    private enum SentenceCell {
+        case word(ClipWord, Int)                     // word + structure index
+        case phrase([ClipWord], String, Int)         // words + joined TR + first structure index
+    }
+
+    /// Folds `context.words` against `context.phrases` to produce a
+    /// flat cell list. Words covered by a phrase span are skipped on
+    /// the per-word emit; the phrase cell carries them all.
+    private func makeCells() -> [SentenceCell] {
+        let words = item.context.words
+        let phraseSpans = item.context.phrases ?? []
+
+        // Map each phrase by its starting wordIndex for O(1) lookup.
+        var byStart: [Int: PhraseSpan] = [:]
+        var coveredIndices: Set<Int> = []
+        for p in phraseSpans {
+            byStart[p.startIndex] = p
+            for idx in p.startIndex...p.endIndex { coveredIndices.insert(idx) }
+        }
+
+        var out: [SentenceCell] = []
+        for (i, w) in words.enumerated() {
+            let idx = w.wordIndex ?? i
+            if let span = byStart[idx] {
+                let group = words.filter { ($0.wordIndex ?? -1) >= span.startIndex
+                                        && ($0.wordIndex ?? -1) <= span.endIndex }
+                out.append(.phrase(group, span.translationTr, idx))
+            } else if coveredIndices.contains(idx) {
+                continue // already emitted as part of a phrase
+            } else {
+                out.append(.word(w, idx))
+            }
+        }
+        return out
     }
 
     @ViewBuilder
@@ -493,24 +546,71 @@ struct VocabReelCard: View {
             return Color(hex: 0xB093D2)
         }()
         let textColor: Color = isActive ? Theme.Color.accent : baseColor
-        let scale: CGFloat   = isActive ? 1.10 : 1.0
+        let scale: CGFloat   = isActive ? 1.14 : 1.0
         let opacity: Double  = isUpcoming ? 0.55 : 1.0
 
         VStack(alignment: .center, spacing: 2) {
             Text(w.word)
-                .font(.system(size: isTarget ? 17 : 15, weight: isTarget ? .heavy : .semibold))
+                .font(.system(size: isTarget ? 19 : 17, weight: isTarget ? .heavy : .semibold))
                 .foregroundStyle(textColor)
                 .underline(isTarget)
                 .scaleEffect(scale)
 
             if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                 Text(tr)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .italic()
                     .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.85))
                     .lineLimit(1)
             }
         }
         .opacity(opacity)
+    }
+
+    /// Render a phrasal verb as one cell — joined English words on top
+    /// (so they read as a unit, not two adjacent towers), single shared
+    /// Turkish gloss underneath. Karaoke state mirrors the constituent
+    /// words: active when ANY of them is being spoken, upcoming until
+    /// the first one starts.
+    @ViewBuilder
+    private func phraseCell(
+        words ws: [ClipWord],
+        translation tr: String,
+        firstIndex idx: Int,
+        subjectIdx: Set<Int>,
+        auxIdx: Set<Int>,
+    ) -> some View {
+        if let first = ws.first, let last = ws.last {
+            let containsTarget = ws.contains(where: { $0.starterId == item.wordId })
+            let isActive   = currentTime >= first.startTime && currentTime < last.endTime
+            let isUpcoming = currentTime < first.startTime
+
+            let baseColor: Color = {
+                if containsTarget { return .white }
+                if subjectIdx.contains(idx) { return Color(hex: 0x5BA3DD) }
+                if auxIdx.contains(idx)     { return Color(hex: 0x6BC084) }
+                return Color(hex: 0xB093D2)
+            }()
+            let textColor: Color = isActive ? Theme.Color.accent : baseColor
+            let scale: CGFloat   = isActive ? 1.14 : 1.0
+            let opacity: Double  = isUpcoming ? 0.55 : 1.0
+
+            let joined = ws.map(\.word).joined(separator: " ")
+
+            VStack(alignment: .center, spacing: 2) {
+                Text(joined)
+                    .font(.system(size: containsTarget ? 19 : 17, weight: containsTarget ? .heavy : .semibold))
+                    .foregroundStyle(textColor)
+                    .underline(containsTarget)
+                    .scaleEffect(scale)
+
+                Text(tr)
+                    .font(.system(size: 12, weight: .medium))
+                    .italic()
+                    .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.85))
+                    .lineLimit(1)
+            }
+            .opacity(opacity)
+        }
     }
 }

@@ -173,7 +173,49 @@ CREATE INDEX IF NOT EXISTS idx_videos_movie_title ON videos(movie_title);
 CREATE INDEX IF NOT EXISTS idx_videos_difficulty ON videos(difficulty);
 CREATE INDEX IF NOT EXISTS idx_clip_structures_lesson_id ON clip_structures(lesson_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_sentences_lesson_id ON lesson_sentences(lesson_id);
+
+CREATE TABLE IF NOT EXISTS phrase_translations (
+  phrase TEXT PRIMARY KEY COLLATE NOCASE,
+  translation_tr TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 `;
+
+/// Common phrasal verbs that show up in the POC corpus + a handful of
+/// likely-to-appear ones. Translations are casual / imperative-leaning
+/// to match how kids' movie dialogue actually uses them ("come on" =
+/// "haydi" not "geliyor"). Edit freely; the table is the source of
+/// truth and INSERT OR IGNORE keeps existing rows.
+const PHRASE_SEEDS: [string, string][] = [
+  ['come on',    'haydi'],
+  ['look at',    'bakmak'],
+  ['get out',    'çıkmak'],
+  ['clean off',  'temizlemek'],
+  ['shut up',    'sus'],
+  ['come in',    'içeri gir'],
+  ['go back',    'geri dön'],
+  ['slow down',  'yavaşla'],
+  ['get in',     'gir'],
+  ['go on',      'devam et'],
+  ['hold on',    'bekle'],
+  ['take off',   'çıkar'],
+  ['go out',     'dışarı çık'],
+  ['find out',   'öğren'],
+  ['stand up',   'ayağa kalk'],
+  ['come back',  'geri gel'],
+  ['check out',  'bak'],
+  ['look up',    'yukarı bak'],
+  ['look out',   'dikkat et'],
+  ['pick up',    'al'],
+  ['put on',     'giy'],
+  ['get up',     'kalk'],
+  ['give up',    'vazgeç'],
+  ['wake up',    'uyan'],
+  ['sit down',   'otur'],
+  ['watch out',  'dikkat et'],
+  ['calm down',  'sakin ol'],
+  ['look for',   'ara'],
+];
 
 export function getDb(): Database.Database {
   if (!_db) {
@@ -187,6 +229,16 @@ export function getDb(): Database.Database {
       _db.exec('ALTER TABLE curriculum_lessons ADD COLUMN sections TEXT');
     } catch {
       // Column already exists — ignore
+    }
+
+    // Seed phrase translations. INSERT OR IGNORE so existing entries
+    // (including any operator-edited ones) survive a redeploy; new
+    // additions to PHRASE_SEEDS just get added on next boot.
+    const seedStmt = _db.prepare(
+      'INSERT OR IGNORE INTO phrase_translations (phrase, translation_tr) VALUES (?, ?)',
+    );
+    for (const [phrase, tr] of PHRASE_SEEDS) {
+      seedStmt.run(phrase, tr);
     }
   }
   return _db;
