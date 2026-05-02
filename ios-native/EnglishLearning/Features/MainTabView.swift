@@ -5,41 +5,45 @@ enum MainTab: Hashable, CaseIterable {
     // (formerly the lessons home), the vocab review tab, and profile.
     // `courses` and `play` (daily-tasks center button) cases stay around
     // so any direct references compile, but they're no longer in
-    // `displayed` and never selected.
-    case home, vocab, profile
+    // `displayed` and never selected. `patterns` is the sentence-pattern
+    // teaching tab added on top of the Feynman set — small, opt-in.
+    case home, vocab, patterns, profile
     case courses, play // legacy — not surfaced
 
     var icon: String {
         switch self {
-        case .home:    return "film"
-        case .vocab:   return "character.book.closed"
-        case .profile: return "person"
-        case .courses: return "film"
-        case .play:    return "play.fill"
+        case .home:     return "film"
+        case .vocab:    return "character.book.closed"
+        case .patterns: return "puzzlepiece"
+        case .profile:  return "person"
+        case .courses:  return "film"
+        case .play:     return "play.fill"
         }
     }
 
     var iconFilled: String {
         switch self {
-        case .home:    return "film.fill"
-        case .vocab:   return "character.book.closed.fill"
-        case .profile: return "person.fill"
-        case .courses: return "film.fill"
-        case .play:    return "play.fill"
+        case .home:     return "film.fill"
+        case .vocab:    return "character.book.closed.fill"
+        case .patterns: return "puzzlepiece.fill"
+        case .profile:  return "person.fill"
+        case .courses:  return "film.fill"
+        case .play:     return "play.fill"
         }
     }
 
     func label(t: Translations) -> String {
         switch self {
-        case .home:    return t.t("video")
-        case .vocab:   return t.t("vocabulary")
-        case .profile: return t.t("profile")
-        case .courses: return t.t("video")
-        case .play:    return ""
+        case .home:     return t.t("video")
+        case .vocab:    return t.t("vocabulary")
+        case .patterns: return t.t("patterns")
+        case .profile:  return t.t("profile")
+        case .courses:  return t.t("video")
+        case .play:     return ""
         }
     }
 
-    static var displayed: [MainTab] { [.home, .vocab, .profile] }
+    static var displayed: [MainTab] { [.home, .vocab, .patterns, .profile] }
 }
 
 struct MainTabView: View {
@@ -52,13 +56,14 @@ struct MainTabView: View {
 
             Group {
                 switch selected {
-                case .home:    VideoFeedView()
-                case .vocab:   VocabView()
-                case .profile: ProfileView()
+                case .home:     VideoFeedView()
+                case .vocab:    VocabView()
+                case .patterns: PatternsView()
+                case .profile:  ProfileView()
                 // Legacy fall-through — never reached because these aren't
                 // in `MainTab.displayed`, but a switch must be exhaustive.
-                case .courses: VideoFeedView()
-                case .play:    VideoFeedView()
+                case .courses:  VideoFeedView()
+                case .play:     VideoFeedView()
                 }
             }
             .transition(.opacity)

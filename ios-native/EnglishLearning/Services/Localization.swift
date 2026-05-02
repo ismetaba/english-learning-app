@@ -28,6 +28,7 @@ enum Localization {
         "learn": "Learn",
         "video": "Video",
         "vocabulary": "Vocabulary",
+        "patterns": "Patterns",
         "scenes": "Scenes",
         "profile": "Profile",
         "words": "Words",
@@ -107,6 +108,7 @@ enum Localization {
         "learn": "Öğren",
         "video": "Video",
         "vocabulary": "Kelimeler",
+        "patterns": "Kalıplar",
         "scenes": "Sahneler",
         "profile": "Profil",
         "words": "Kelime",
@@ -177,6 +179,7 @@ enum Localization {
 
     static let es: [String: String] = [
         "learn": "Aprender", "video": "Video", "vocabulary": "Vocabulario",
+        "patterns": "Patrones",
         "scenes": "Escenas", "profile": "Perfil", "words": "Palabras",
         "structures": "Estructuras", "dayStreak": "Días seguidos",
         "totalExperience": "Experiencia total", "nativeLanguage": "Idioma nativo",
@@ -207,6 +210,7 @@ enum Localization {
 
     static let ar: [String: String] = [
         "learn": "تعلم", "video": "فيديو", "vocabulary": "مفردات",
+        "patterns": "أنماط",
         "scenes": "مشاهد", "profile": "الملف", "words": "كلمات", "structures": "قواعد",
         "dayStreak": "أيام متتالية", "totalExperience": "مجموع الخبرة", "nativeLanguage": "اللغة الأم",
         "continue": "متابعة", "start": "ابدأ", "next": "التالي", "back": "رجوع",
@@ -236,6 +240,7 @@ enum Localization {
 
     static let zh: [String: String] = [
         "learn": "学习", "video": "视频", "vocabulary": "词汇",
+        "patterns": "句型",
         "scenes": "场景", "profile": "个人", "words": "词汇", "structures": "结构",
         "dayStreak": "连续天数", "totalExperience": "总经验", "nativeLanguage": "母语",
         "continue": "继续", "start": "开始", "next": "下一步", "back": "返回",
@@ -265,6 +270,7 @@ enum Localization {
 
     static let pt: [String: String] = [
         "learn": "Aprender", "video": "Vídeo", "vocabulary": "Vocabulário",
+        "patterns": "Padrões",
         "scenes": "Cenas", "profile": "Perfil", "words": "Palavras", "structures": "Estruturas",
         "dayStreak": "Dias seguidos", "totalExperience": "Experiência total", "nativeLanguage": "Idioma nativo",
         "continue": "Continuar", "start": "Começar", "next": "Próximo", "back": "Voltar",

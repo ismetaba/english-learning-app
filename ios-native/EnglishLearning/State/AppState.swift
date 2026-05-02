@@ -17,6 +17,12 @@ final class AppState: ObservableObject {
     @Published private(set) var vocabPool: [String: VocabPoolEntry] = [:] {
         didSet { persistPool() }
     }
+    /// Set of `Pattern.id`s the user has finished the akış for. Stored in
+    /// its own UserDefaults key so adding it doesn't risk breaking the
+    /// `UserProgress` Codable decoder for users with existing data.
+    @Published private(set) var completedPatterns: Set<String> = [] {
+        didSet { persistCompletedPatterns() }
+    }
     @Published private(set) var t: Translations = Localization.bundle(for: .tr)
 
     /// True while an immersive ClipPlayerView is on screen — MainTabView
@@ -29,6 +35,7 @@ final class AppState: ObservableObject {
         static let nativeLanguage = "native_language"
         static let progress = "user_progress_v2"
         static let vocabPool = "vocab_pool_v2"
+        static let completedPatterns = "completed_patterns_v1"
     }
     private let defaults = UserDefaults.standard
     private let encoder = JSONEncoder()
@@ -53,6 +60,9 @@ final class AppState: ObservableObject {
            let parsed = try? decoder.decode([String: VocabPoolEntry].self, from: data) {
             vocabPool = parsed
         }
+        if let raw = defaults.array(forKey: Keys.completedPatterns) as? [String] {
+            completedPatterns = Set(raw)
+        }
         rebuildTranslations()
         isLoaded = true
     }
@@ -75,6 +85,22 @@ final class AppState: ObservableObject {
     private func persistPool() {
         guard let data = try? encoder.encode(vocabPool) else { return }
         defaults.set(data, forKey: Keys.vocabPool)
+    }
+
+    private func persistCompletedPatterns() {
+        defaults.set(Array(completedPatterns), forKey: Keys.completedPatterns)
+    }
+
+    // MARK: - Pattern progress
+
+    func isPatternCompleted(_ id: String) -> Bool {
+        completedPatterns.contains(id)
+    }
+
+    func markPatternComplete(_ id: String) {
+        guard !completedPatterns.contains(id) else { return }
+        completedPatterns.insert(id)
+        Haptics.success()
     }
 
     // MARK: - XP / level
