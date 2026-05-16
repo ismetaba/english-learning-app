@@ -21,6 +21,11 @@ struct PhraseSpan: Codable, Hashable {
 struct VocabContext: Codable, Identifiable, Hashable {
     let lineId: Int
     let text: String
+    /// Full-sentence Turkish translation, when the source row has one.
+    /// Optional because the older vocab-feed endpoint doesn't include
+    /// it (translation lives per-word there); the pattern scenes
+    /// endpoint always sets it.
+    let translationTr: String?
     let startTime: Double
     let endTime: Double
     let clipStartTime: Double
@@ -37,7 +42,8 @@ struct VocabContext: Codable, Identifiable, Hashable {
     var id: Int { lineId }
 
     enum CodingKeys: String, CodingKey {
-        case lineId, text, startTime, endTime, clipStartTime, clipEndTime,
+        case lineId, text, translationTr,
+             startTime, endTime, clipStartTime, clipEndTime,
              structure, videoId, youtubeVideoId, videoTitle, movieTitle,
              isPoc, words, phrases
     }
@@ -75,6 +81,7 @@ struct VocabContext: Codable, Identifiable, Hashable {
             "isTarget": true,
             "words": word_dicts,
         ]
+        if let tr = translationTr { lineDict["translationTr"] = tr }
         if let s = structure {
             lineDict["structure"] = [
                 "subject":  s.subject,
@@ -139,6 +146,17 @@ struct VocabFeedItem: Codable, Identifiable, Hashable {
 
 struct VocabFeedResponse: Codable {
     let items: [VocabFeedItem]
+    let total: Int
+}
+
+/// Pattern akış payload — a list of `VocabContext`s curated to start
+/// with a specific pattern (e.g. "I am ..."). The response carries the
+/// pattern id + a short label so the screen header can show "I AM
+/// KALIBI" without the iOS side needing its own copy of the mapping.
+struct PatternScenesResponse: Codable {
+    let patternId: String
+    let label: String
+    let items: [VocabContext]
     let total: Int
 }
 

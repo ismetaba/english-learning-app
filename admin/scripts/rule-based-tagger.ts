@@ -53,6 +53,14 @@ const ING_NOT_VING = new Set([
   "darling","sibling","earring","pudding",
 ]);
 
+// Hard-noun -ing words that should NEVER be re-classified as verbs even in
+// the verb-context lookup. (Pure nouns and adjectives.)
+const STRICT_ING_NOT_VING = new Set([
+  "nothing","something","anything","everything","king","ring","string","thing",
+  "morning","evening","ceiling","spring","wing","sting","darling","sibling",
+  "earring","pudding","amazing","interesting","exciting","boring","willing",
+]);
+
 // Pronouns that are reliably nominative (can almost always be subject when
 // they appear before a verb).
 const NOMINATIVE_PRONOUNS = new Set([
@@ -104,6 +112,57 @@ const AUX_NEG = new Set([
   "haven't","hasn't","hadn't",
 ]);
 
+// Words that act as auxiliary-style glue between an aux and the main verb:
+// "am gonna need", "is going to need" (we treat "going" + "to" as aux when
+// flanked by be + base verb).
+const GONNA_TOKENS = new Set(["gonna","wanna","gotta"]);
+
+// Wh-words that can be SENTENCE-INITIAL fronted material (REST when not the
+// subject — e.g. "Where do I buy …").
+const WH_FRONT = new Set(["where","when","why","how","what","who","which","whose"]);
+
+// Discourse markers / interjections / conjunctions that commonly appear at
+// the start of a sentence and are NOT the subject. Skip them as REST and
+// look for the main clause's subject after them.
+const LEADING_DISCOURSE = new Set([
+  "yeah","yes","no","oh","well","ok","okay","shh","hey","hi","hello",
+  "please","so","and","but","alright","right","huh","aw","ah","eh","uh",
+  "um","hmm","oof","wow","whoa","yo","nah","yep","nope","gosh","damn",
+  "dammit","jeez","sheesh","nevermind",
+]);
+
+// Discourse markers that are AMBIGUOUS with imperative verbs. Only skip
+// these when they're followed by a comma (vocative/interjection use).
+const LEADING_DISCOURSE_COMMA_ONLY = new Set([
+  "look","listen","wait","stop","watch","hold","come",
+]);
+
+// Multi-word discourse markers (lower-case stripped). Each entry is a
+// space-separated sequence; if the leading tokens match (with the LAST
+// token of the sequence ending in a comma in the sentence), the whole
+// phrase is skipped as a discourse opener.
+const MULTI_WORD_DISCOURSE = [
+  "all right",
+  "of course",
+  "you know",
+  "i mean",
+  "by the way",
+  "in fact",
+  "to be honest",
+  "in other words",
+  "for example",
+  "for instance",
+];
+
+// Subordinators — when a sentence STARTS with one of these and there is no
+// following comma + main clause, treat the whole sentence as a fragmentary
+// subordinate clause: drop the subordinator into REST and tag the rest as
+// if it were a normal main clause.
+const SUBORDINATORS = new Set([
+  "because","while","if","when","since","although","though","unless","until",
+  "whereas","whether","as",
+]);
+
 const PREPOSITIONS = new Set([
   "about","after","against","around","at","before","behind","below","beside",
   "between","beyond","by","during","except","for","from","in","into","like",
@@ -115,7 +174,7 @@ const PREPOSITIONS = new Set([
 const COMMON_BASE_VERBS = new Set([
   "go","come","get","make","take","see","know","think","say","tell","ask",
   "give","find","want","need","like","love","feel","look","seem","keep",
-  "leave","let","put","run","walk","talk","work","play","eat","drink","sleep",
+  "leave","let","put","run","walk","talk","work","play","eat","drink","sleep","hang",
   "live","stay","wait","watch","listen","hear","read","write","sing","dance",
   "stand","sit","fall","rise","drive","ride","fly","swim","cook","clean",
   "wash","buy","sell","pay","spend","save","help","stop","start","begin","end",
@@ -218,7 +277,9 @@ function looksLikeVerb(w: string): boolean {
   if (COMMON_BASE_VERBS.has(c)) return true;
   if (IRREGULAR_PAST_TENSES.has(c)) return true;
   if (isVing(w) || isPP(w)) return true;
-  // -s / -ed verb endings (heuristic; with caveats)
+  // -s / -ed verb endings (heuristic; with caveats). Possessive 's-ending
+  // tokens (e.g. "Scott's") are NOT verbs.
+  if (c.endsWith("'s")) return false;
   if (c.length > 3 && c.endsWith('s') && !c.endsWith('ss') && !c.endsWith('us') && !c.endsWith('is')) return true;
   if (c.length > 3 && c.endsWith('ed')) return true;
   return false;
@@ -337,155 +398,633 @@ function detectSubjectNPs(words: string[]): Set<number> {
   return out;
 }
 
+/** Token classification used by the main-clause finder. */
+type TokKind =
+  | 'aux_be'      // am/is/are/was/were/been/being  ('m,'re,'s also)
+  | 'aux_have'    // have/has/had  ('ve)
+  | 'aux_do'      // do/does/did
+  | 'aux_modal'   // can/will/etc, 'll, 'd
+  | 'aux_neg'     // don't/isn't/can't/etc
+  | 'aux_gonna'   // gonna/wanna/gotta — glue between aux and base verb
+  | 'verb'        // a finite/non-finite content verb (vs aux)
+  | 'subj_pron'   // I/you/he/she/it/we/they
+  | 'subj_cond'   // this/that/these/those/who/what/which/there/here
+  | 'subj_contr'  // I'm, you're, he's, ...
+  | 'det'         // the/a/my/...
+  | 'wh_front'    // where/when/why/how/what/who/which/whose (when fronted)
+  | 'adv'         // not/never/always/...
+  | 'prep'        // about/at/for/...
+  | 'np_term'     // and/or/but/because/...
+  | 'other';      // nouns, adjectives, anything we can't pin down
+
+function classify(w: string): TokKind {
+  const c = strip(w);
+  if (!c) return 'other';
+  if (SUBJECT_CONTRACTIONS.has(c)) return 'subj_contr';
+  if (AUX_NEG.has(c)) return 'aux_neg';
+  if (BE_FORMS.has(c)) return 'aux_be';
+  if (HAVE_FORMS.has(c)) return 'aux_have';
+  if (DO_FORMS.has(c)) return 'aux_do';
+  if (MODALS.has(c)) return 'aux_modal';
+  if (GONNA_TOKENS.has(c)) return 'aux_gonna';
+  if (NOMINATIVE_PRONOUNS.has(c)) return 'subj_pron';
+  if (CONDITIONAL_SUBJECT.has(c)) return 'subj_cond';
+  if (DETERMINERS.has(c)) return 'det';
+  if (WH_FRONT.has(c)) return 'wh_front';
+  if (ADVERBS.has(c)) return 'adv';
+  // Verb identification BEFORE prep/np_term so ambiguous tokens like "like"
+  // (prep vs base verb) and "since"/"that" (np_term vs none) get verb priority
+  // when they're clearly verbal forms.
+  if (COMMON_BASE_VERBS.has(c)) return 'verb';
+  if (IRREGULAR_PAST_TENSES.has(c)) return 'verb';
+  if (isVing(w) || isPP(w)) return 'verb';
+  if (PREPOSITIONS.has(c)) return 'prep';
+  if (NP_TERMINATORS.has(c)) return 'np_term';
+  // Heuristic: -ed / 3sg -s. Possessive 's-ending tokens (e.g. "Scott's",
+  // "Pam's") are nouns/dependents — never verbs.
+  if (c.length > 3 && c.endsWith('ed')) return 'verb';
+  if (c.endsWith("'s")) return 'other';
+  if (c.length > 3 && c.endsWith('s') && !c.endsWith('ss') && !c.endsWith('us') && !c.endsWith('is')) return 'verb';
+  return 'other';
+}
+
+/**
+ * Verb-position-aware classifier. Used INSIDE the verb chunk walker, where
+ * we know we're looking for a verb. Treats ambiguous tokens that COULD be
+ * Vings (e.g. "feeling", "meeting") as verbs even if the global blocklist
+ * usually rejects them.
+ */
+function classifyVerbContext(w: string): TokKind {
+  const k = classify(w);
+  if (k === 'verb' || isAuxKind(k)) return k;
+  const c = strip(w);
+  if (!c) return k;
+  // Re-allow blocklisted -ing words as verbs in this context, BUT keep out
+  // the pure nouns / adjectives (e.g. "everything", "amazing").
+  if (c.endsWith('ing') && c.length > 3 && !STRICT_ING_NOT_VING.has(c)) return 'verb';
+  return k;
+}
+
+function isAuxKind(k: TokKind): boolean {
+  return k === 'aux_be' || k === 'aux_have' || k === 'aux_do' ||
+         k === 'aux_modal' || k === 'aux_neg' || k === 'aux_gonna';
+}
+
+function isSubjectStartKind(k: TokKind): boolean {
+  return k === 'subj_pron' || k === 'subj_cond' || k === 'subj_contr' || k === 'det';
+}
+
+/** Skip leading punctuation/empty tokens. */
+function firstContentIdx(words: string[], from: number): number {
+  for (let i = from; i < words.length; i++) {
+    if (strip(words[i])) return i;
+  }
+  return -1;
+}
+
+/**
+ * Skip leading discourse markers, conjunctions, vocatives, and interjections
+ * before the main clause. Returns the index of the first content token of
+ * the main clause (or `from` if nothing was skipped).
+ *
+ * Skips:
+ *   - Tokens in LEADING_DISCOURSE (yeah, no, oh, well, and, but, ...).
+ *   - Tokens in LEADING_DISCOURSE_COMMA_ONLY when followed by a comma.
+ *   - At the very first position only: any single content token followed
+ *     immediately by a comma (vocative pattern, e.g. "Peter," / "Frank,").
+ *
+ * Each skipped token is REST. The returned index is where main-clause
+ * detection (subject + verb) should begin.
+ */
+function skipLeadingDiscourse(words: string[], from: number): number {
+  let i = firstContentIdx(words, from);
+  if (i < 0) return from;
+  let isFirst = true;
+
+  while (i < words.length) {
+    const raw = words[i];
+    const c = strip(raw);
+    if (!c) { i++; isFirst = false; continue; }
+
+    // Multi-word discourse phrases ("all right,", "of course,", ...)
+    const mw = tryMultiWordDiscourse(words, i);
+    if (mw > i) {
+      i = mw;
+      isFirst = false;
+      continue;
+    }
+
+    const endsWithComma = /,$/.test(raw);
+
+    // Discourse markers that we ALWAYS skip at clause start.
+    if (LEADING_DISCOURSE.has(c)) {
+      i++;
+      isFirst = false;
+      continue;
+    }
+    // Ambiguous (imperative or discourse): skip only with comma.
+    if (LEADING_DISCOURSE_COMMA_ONLY.has(c) && endsWithComma) {
+      i++;
+      isFirst = false;
+      continue;
+    }
+    // Vocative pattern: a single content token followed by a comma at the
+    // very first position (e.g. "Peter,", "Mom,"). Only fire on the first
+    // pass so we don't accidentally chew through every comma-ended token.
+    if (isFirst && endsWithComma) {
+      // Don't skip if this token is itself a likely subject-starter (we'd
+      // rather just keep it).
+      const k = classify(raw);
+      if (!isSubjectStartKind(k) && !isAuxKind(k) && k !== 'verb' && k !== 'wh_front') {
+        i++;
+        isFirst = false;
+        continue;
+      }
+    }
+    // Multi-token vocative pattern: starts with a capitalized title-ish word
+    // ("Mr.", "Mrs.", "Dr.", "Captain") and the next 1-2 capitalized tokens
+    // include a comma terminator. e.g. "Mr. Novarski, please follow me."
+    if (isFirst) {
+      const skip = tryMultiTokenVocative(words, i);
+      if (skip > i) {
+        i = skip;
+        isFirst = false;
+        continue;
+      }
+    }
+    break;
+  }
+  return i;
+}
+
+/** Try to match a leading multi-word discourse marker ("All right,",
+ *  "Of course,", ...). The phrase must be followed by a comma on its last
+ *  token. Returns the index just past the matched phrase (and its comma)
+ *  or `i` if no match. */
+function tryMultiWordDiscourse(words: string[], i: number): number {
+  const cFirst = strip(words[i]);
+  if (!cFirst) return i;
+  for (const phrase of MULTI_WORD_DISCOURSE) {
+    const parts = phrase.split(' ');
+    if (i + parts.length > words.length) continue;
+    let ok = true;
+    for (let k = 0; k < parts.length; k++) {
+      if (strip(words[i + k]) !== parts[k]) { ok = false; break; }
+    }
+    if (!ok) continue;
+    // The last token of the phrase must end with a comma in the sentence.
+    if (!/,$/.test(words[i + parts.length - 1])) continue;
+    return i + parts.length;
+  }
+  return i;
+}
+
+/** Detect a multi-token vocative-with-comma at the start of a sentence.
+ *  Returns the index just past the comma, or -1 if no match.
+ *  Conservative: only fires for capitalized leading sequences ending in a
+ *  comma within 4 tokens. Excludes when the first token is a known function
+ *  word or could be the subject of a finite verb. */
+function tryMultiTokenVocative(words: string[], i: number): number {
+  if (i >= words.length) return i;
+  const first = words[i];
+  const c0 = strip(first);
+  if (!c0) return i;
+  // Don't skip if first token is itself classifiable as subject/aux/verb/wh.
+  const k0 = classify(first);
+  if (isSubjectStartKind(k0) || isAuxKind(k0) || k0 === 'verb' || k0 === 'wh_front') return i;
+  // Must start with a capital letter (proper noun / title / vocative term).
+  if (!/^[A-Z]/.test(first)) return i;
+  // Walk up to 4 tokens, all capitalized, until we hit a comma terminator.
+  let j = i;
+  while (j < words.length && j - i < 4) {
+    const raw = words[j];
+    const cj = strip(raw);
+    if (!cj) { j++; continue; }
+    if (!/^[A-Z]/.test(raw) && !/^[A-Z]/.test(cj.charAt(0).toUpperCase())) {
+      // continuation must be capitalized
+      if (j > i) return i; // give up
+    }
+    if (!/^[A-Z]/.test(raw)) return i; // must stay capitalized
+    if (/,$/.test(raw)) {
+      // Found the comma — skip everything up to and including this token.
+      return j + 1;
+    }
+    j++;
+  }
+  return i;
+}
+
+/** True if the bare-form word `c` is plausibly a noun continuation in an NP
+ *  — i.e. not a function word, not an obvious verb, not a clause boundary. */
+function isNounContinuation(raw: string, c: string): boolean {
+  if (!c) return false;
+  if (DETERMINERS.has(c)) return false;
+  if (PREPOSITIONS.has(c)) return false;
+  if (NP_TERMINATORS.has(c)) return false;
+  if (ADVERBS.has(c)) return false;
+  if (BE_FORMS.has(c) || HAVE_FORMS.has(c) || MODALS.has(c) || DO_FORMS.has(c) || AUX_NEG.has(c)) return false;
+  if (SUBJECT_PRONOUNS.has(c) || SUBJECT_CONTRACTIONS.has(c)) return false;
+  if (COMMON_BASE_VERBS.has(c)) return false;
+  if (IRREGULAR_PAST_TENSES.has(c)) return false;
+  if (isVing(raw) || isPP(raw)) return false;
+  if (WH_FRONT.has(c)) return false;
+  return true;
+}
+
+/**
+ * Walk a bare-noun subject NP. Starts at `start` (a non-pronoun, non-det
+ * content noun like "Water" or "Republic"). Walks forward through:
+ *   - "of"-phrase continuations: "of Cricogia", "of the King"
+ *   - possessive-'s-attached chunks: "Sarah's mom"
+ *   - capitalized proper-noun continuations: "Mary Smith"
+ * Stops at the first verb-like token or sentence boundary.
+ *
+ * Returns null if no verb is found within ~6 tokens (so we don't run away).
+ */
+function walkBareNounSubjectNP(
+  words: string[], start: number, max: number,
+): { end: number } | null {
+  let j = start + 1;
+  let foundVerb = false;
+  let allowOf = true;
+
+  while (j < max && j - start <= 6) {
+    const raw = words[j];
+    const c = strip(raw);
+    if (!c) { j++; continue; }
+
+    // Punctuation that ends a clause stops the walk.
+    if (/[.,;:!?]$/.test(raw)) {
+      // Heuristic: if this token IS a verb (rare with trailing punct), keep it.
+      const kp = classify(raw);
+      if (kp === 'verb' || isAuxKind(kp)) {
+        foundVerb = true;
+      }
+      break;
+    }
+
+    const k = classify(raw);
+    if (isAuxKind(k) || k === 'verb') {
+      foundVerb = true;
+      break;
+    }
+    // Allow "of" exactly once, expecting a noun continuation right after.
+    if (c === 'of' && allowOf) {
+      allowOf = false;
+      j++;
+      continue;
+    }
+    // Allow possessive contractions like "Sarah's" — strip ends with "'s".
+    if (/['']s$/.test(raw) || /'s$/i.test(raw)) {
+      j++;
+      continue;
+    }
+    // Allow noun-ish continuation (proper nouns, common nouns, adjectives).
+    if (isNounContinuation(raw, c)) {
+      j++;
+      continue;
+    }
+    // Otherwise, this is the end of the NP. Don't include it.
+    break;
+  }
+
+  if (!foundVerb) return null;
+  return { end: j };
+}
+
+/** True if `cursor` is the start of a content word that could start a
+ *  bare-noun subject NP (capitalized proper noun OR a common noun). */
+function couldStartBareNounSubject(words: string[], cursor: number): boolean {
+  if (cursor >= words.length) return false;
+  const raw = words[cursor];
+  const c = strip(raw);
+  if (!c) return false;
+  if (NOMINATIVE_PRONOUNS.has(c) || CONDITIONAL_SUBJECT.has(c)) return false;
+  if (SUBJECT_CONTRACTIONS.has(c)) return false;
+  if (BE_FORMS.has(c) || HAVE_FORMS.has(c) || MODALS.has(c) || DO_FORMS.has(c) || AUX_NEG.has(c)) return false;
+  if (DETERMINERS.has(c)) return false;
+  if (PREPOSITIONS.has(c)) return false;
+  if (NP_TERMINATORS.has(c)) return false;
+  if (ADVERBS.has(c)) return false;
+  if (WH_FRONT.has(c)) return false;
+  if (COMMON_BASE_VERBS.has(c)) return false;
+  if (IRREGULAR_PAST_TENSES.has(c)) return false;
+  if (isVing(words[cursor]) || isPP(words[cursor])) return false;
+  // Anything left is a noun-ish content word.
+  return true;
+}
+
+/**
+ * If the sentence (starting at `cursor`) opens with a SUBORDINATOR (because,
+ * while, if, when, ...), figure out where the main clause starts.
+ *   - If there is no later comma, treat the whole sentence as a subordinate
+ *     fragment: drop the subordinator into REST and tag the rest as main.
+ *     Returns cursor + 1.
+ *   - If there IS a later comma, treat everything up to and including the
+ *     comma as REST (the subordinate clause) and run main-clause detection
+ *     on what follows. Returns the index just past the comma.
+ *   - Otherwise returns -1 (no change).
+ */
+function detectSubordinateOnlyOffset(words: string[], cursor: number): number {
+  if (cursor >= words.length) return -1;
+  const c = strip(words[cursor]);
+  if (!SUBORDINATORS.has(c)) return -1;
+  // Look for a comma later in the sentence.
+  for (let i = cursor + 1; i < words.length; i++) {
+    if (/,$/.test(words[i])) {
+      // Subordinate clause + main clause. Skip past the comma.
+      // Don't fire if the comma is at the very end (no main clause text).
+      if (i + 1 >= words.length) break;
+      return i + 1;
+    }
+  }
+  return cursor + 1;
+}
+
+/**
+ * Walk a subject NP starting at index `start`. Returns the [start, end)
+ * half-open range covering the NP. Stops at the first verb-like token,
+ * preposition, NP_TERMINATOR, or punctuation-ended token.
+ */
+function walkSubjectNP(words: string[], start: number, max: number): { end: number } {
+  // Subject contractions and pronouns are single-token NPs.
+  const startKind = classify(words[start]);
+  if (startKind === 'subj_pron' || startKind === 'subj_contr') {
+    return { end: start + 1 };
+  }
+  // Demonstratives (this/that/these/those) are pronoun OR determiner.
+  // If the NEXT token is verb/aux/punctuation, treat as pronoun (single token).
+  // If the next token is a noun-ish word, walk through it as det+noun NP.
+  if (startKind === 'subj_cond') {
+    const nextIdx = start + 1;
+    if (nextIdx >= max) return { end: nextIdx };
+    const nextRaw = words[nextIdx];
+    const nextK = classify(nextRaw);
+    // If next token is a verb/aux/prep/np_term/wh — single-token pronoun.
+    if (isAuxKind(nextK) || nextK === 'verb' || nextK === 'prep' ||
+        nextK === 'np_term' || nextK === 'wh_front') {
+      return { end: nextIdx };
+    }
+    if (/[,.;:!?]$/.test(words[start])) {
+      return { end: nextIdx };
+    }
+    // Otherwise fall through to NP-walk (this/that/these/those as determiner).
+  }
+  // Determiner-led NP: walk forward through descriptors until we hit a verb.
+  let j = start + 1;
+  while (j < max) {
+    const raw = words[j];
+    const k = classify(raw);
+    if (isAuxKind(k) || k === 'verb') break;
+    if (k === 'prep' || k === 'np_term') break;
+    if (k === 'wh_front') break;
+    if (/[,.;:!?]$/.test(raw)) {
+      // Include this token (e.g. trailing-comma noun) then stop.
+      j++;
+      break;
+    }
+    j++;
+  }
+  return { end: j };
+}
+
+/**
+ * Find the predicate verb chunk starting at the first aux/verb token at
+ * or after `from`. Walks through any combination of aux + adverb/neg + aux
+ * (e.g. "has not been working", "have always loved", "am gonna need"),
+ * ending at the first non-aux verb token (the main verb).
+ *
+ * Returns the indices of all tokens in the chunk, plus the index of the
+ * main verb (last verb in the chain). If no verb is found, returns null.
+ */
+function findVerbChunk(
+  words: string[], from: number, end: number,
+): { chunkIdx: number[]; mainVerbIdx: number } | null {
+  // Locate the first aux or verb at/after `from`.
+  let start = -1;
+  for (let i = from; i < end; i++) {
+    const k = classifyVerbContext(words[i]);
+    if (isAuxKind(k) || k === 'verb') { start = i; break; }
+    // Anything other than adverb breaks the search — but if it's a non-aux,
+    // non-verb, non-adverb token (e.g. "the", a noun), we have no verb.
+    if (k === 'adv') continue;
+    return null;
+  }
+  if (start < 0) return null;
+
+  const chunk: number[] = [];
+  let mainVerbIdx = -1;
+  let i = start;
+  let lastWasAux = false;
+
+  while (i < end) {
+    const raw = words[i];
+    const k = classifyVerbContext(raw);
+    if (isAuxKind(k)) {
+      chunk.push(i);
+      lastWasAux = true;
+      i++;
+      continue;
+    }
+    if (k === 'verb') {
+      // Main verb. Add it and stop.
+      chunk.push(i);
+      mainVerbIdx = i;
+      i++;
+      break;
+    }
+    if (k === 'adv' && lastWasAux) {
+      // Adverb sitting between aux and (eventual) main verb — include it.
+      chunk.push(i);
+      i++;
+      continue;
+    }
+    // Anything else terminates the chunk (the previous aux ends up being
+    // the linking/main verb itself, e.g. "She is happy").
+    break;
+  }
+
+  // If we never hit a 'verb' kind, the last aux IS the main verb (linking
+  // be/have/etc — "She is happy", "He has it").
+  if (mainVerbIdx < 0 && chunk.length > 0) {
+    mainVerbIdx = chunk[chunk.length - 1];
+  }
+  if (chunk.length === 0) return null;
+
+  // Trim trailing adverbs from the chunk (they only stay if BETWEEN aux
+  // and main verb, not after).
+  while (chunk.length > 0 && classifyVerbContext(words[chunk[chunk.length - 1]]) === 'adv') {
+    chunk.pop();
+  }
+  if (chunk.length === 0) return null;
+  if (mainVerbIdx > chunk[chunk.length - 1]) {
+    mainVerbIdx = chunk[chunk.length - 1];
+  }
+
+  return { chunkIdx: chunk, mainVerbIdx };
+}
+
 export function tagSentence(words: string[]): Structure {
   const subject = new Set<number>();
   const aux_verb = new Set<number>();
   const rest = new Set<number>();
-  const isImper = detectImperative(words);
-  const npSubjects = detectSubjectNPs(words);
-  const bareSubjects = detectBareNounSubjects(words);
+  const n = words.length;
 
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    const c = strip(w);
+  // Default everything to REST; we'll move tokens out as we identify them.
+  for (let i = 0; i < n; i++) rest.add(i);
 
-    if (!c) {
-      rest.add(i);
-      continue;
-    }
-
-    // NP subject (det + noun before a verb)
-    if (npSubjects.has(i)) {
-      subject.add(i);
-      continue;
-    }
-
-    // Bare-noun subject (e.g. "Water has memory")
-    if (bareSubjects.has(i)) {
-      subject.add(i);
-      continue;
-    }
-
-    // Subject contraction (always SUBJECT)
-    if (SUBJECT_CONTRACTIONS.has(c)) {
-      subject.add(i);
-      continue;
-    }
-
-    // Subject pronoun: skip when it's clearly an object
-    if (NOMINATIVE_PRONOUNS.has(c)) {
-      if (isImper && i === 0) {
-        rest.add(i);
-        continue;
-      }
-      // After a preposition or verb → object → REST
-      const prev = i > 0 ? strip(words[i - 1]) : '';
-      if (PREPOSITIONS.has(prev)) {
-        rest.add(i);
-        continue;
-      }
-      // After a content verb → could be OBJECT or subject of a subordinate
-      // clause. If the NEXT non-adverb token is a verb-form, this pronoun
-      // is the subject of that clause. Otherwise it's the verb's object.
-      const prevIsVerb = i > 0 && looksLikeVerb(words[i - 1]) &&
-        !BE_FORMS.has(prev) && !HAVE_FORMS.has(prev) && !MODALS.has(prev) &&
-        !DO_FORMS.has(prev) && !AUX_NEG.has(prev);
-      if (prevIsVerb) {
-        const next = lookForward(words, i + 1);
-        if (!next || !looksLikeVerb(next.word)) {
-          rest.add(i);
-          continue;
-        }
-      }
-      subject.add(i);
-      continue;
-    }
-
-    if (CONDITIONAL_SUBJECT.has(c)) {
-      // After a preposition → object → REST
-      const prev = i > 0 ? strip(words[i - 1]) : '';
-      if (PREPOSITIONS.has(prev)) {
-        rest.add(i);
-        continue;
-      }
-      // Only SUBJECT if followed by a verb-like token
-      const next = lookForward(words, i + 1);
-      if (next) {
-        const nc = strip(next.word);
-        const verbAfter =
-          BE_FORMS.has(nc) || HAVE_FORMS.has(nc) || MODALS.has(nc) ||
-          DO_FORMS.has(nc) || AUX_NEG.has(nc) ||
-          COMMON_BASE_VERBS.has(nc) || isVing(next.word) || isPP(next.word) ||
-          nc.endsWith('s') || nc.endsWith('ed');
-        if (verbAfter) {
-          subject.add(i);
-          continue;
-        }
-      }
-      rest.add(i);
-      continue;
-    }
-
-    // Modal
-    if (MODALS.has(c)) {
-      aux_verb.add(i);
-      continue;
-    }
-
-    // Aux+negation contraction
-    if (AUX_NEG.has(c)) {
-      aux_verb.add(i);
-      continue;
-    }
-
-    // Do-form: AUX if followed (past adverbs/subjects) by a main verb
-    if (DO_FORMS.has(c)) {
-      const next = lookForward(words, i + 1, { skipOneSubject: true });
-      if (next) {
-        const nc = strip(next.word);
-        // It's aux if the next non-adverb-non-subject content word looks like a verb
-        const isVerbAfter =
-          COMMON_BASE_VERBS.has(nc) || isVing(next.word) || isPP(next.word) ||
-          nc.endsWith('ed');
-        if (isVerbAfter) {
-          aux_verb.add(i);
-          continue;
-        }
-      }
-      // Otherwise pro-form/main-verb (do as verb) → REST
-      rest.add(i);
-      continue;
-    }
-
-    // Be-form
-    if (BE_FORMS.has(c)) {
-      const direct = lookForward(words, i + 1);
-      const inverted = lookForward(words, i + 1, { skipOneSubject: true });
-      const auxJustified =
-        (direct && (isVing(direct.word) || isPP(direct.word))) ||
-        (inverted && (isVing(inverted.word) || isPP(inverted.word)));
-      if (auxJustified) {
-        aux_verb.add(i);
-        continue;
-      }
-      rest.add(i);
-      continue;
-    }
-
-    // Have-form
-    if (HAVE_FORMS.has(c)) {
-      const next = lookForward(words, i + 1, { skipOneSubject: true });
-      if (next && isPP(next.word)) {
-        aux_verb.add(i);
-        continue;
-      }
-      rest.add(i);
-      continue;
-    }
-
-    // Default: REST
-    rest.add(i);
+  if (n === 0) {
+    return { subject: [], aux_verb: [], rest: [] };
   }
+
+  // ── Locate the start of the main clause's "subject zone" ────────────────
+  // Skip sentence-initial fronted material: wh-front words ("Where do I…"),
+  // pure adverbs at position 0 ("Today I went…"), or leading punctuation.
+  let cursor = firstContentIdx(words, 0);
+  if (cursor < 0) {
+    // Empty / punctuation only.
+    return {
+      subject: [],
+      aux_verb: [],
+      rest: [...rest].sort((a, b) => a - b),
+    };
+  }
+
+  // Skip leading discourse markers / interjections / vocatives. They stay
+  // in REST. ("Yeah,", "Well, yeah,", "Peter,", "And no,", ...)
+  cursor = skipLeadingDiscourse(words, cursor);
+  if (cursor >= n) {
+    return {
+      subject: [],
+      aux_verb: [],
+      rest: [...rest].sort((a, b) => a - b),
+    };
+  }
+
+  // Skip leading wh-front + leading adverbs; they stay in REST.
+  while (cursor < n) {
+    const k = classify(words[cursor]);
+    if (k === 'wh_front' || k === 'adv') {
+      cursor++;
+      continue;
+    }
+    break;
+  }
+  if (cursor >= n) {
+    return {
+      subject: [],
+      aux_verb: [],
+      rest: [...rest].sort((a, b) => a - b),
+    };
+  }
+
+  // Subordinate-clause-only fragment: sentence starts with a subordinator
+  // (because/while/if/...) and there's no later main clause. Drop the
+  // subordinator into REST and tag the rest as if it were a main clause.
+  const subOffset = detectSubordinateOnlyOffset(words, cursor);
+  if (subOffset > 0) {
+    cursor = subOffset;
+    if (cursor >= n) {
+      return {
+        subject: [],
+        aux_verb: [],
+        rest: [...rest].sort((a, b) => a - b),
+      };
+    }
+  }
+
+  const firstKind = classify(words[cursor]);
+
+  // ── Detect inversion (questions, "Do you …", "Did she …") ───────────────
+  // If first non-fronted token is an aux/modal/do-form, the SUBJECT comes
+  // AFTER it.
+  let subjStart = -1;
+  let subjEnd = -1;            // half-open
+  let leadingAuxIdx = -1;       // for inversion
+  let verbScanFrom = -1;
+
+  if (isAuxKind(firstKind)) {
+    // Inversion: aux + subject + (rest of verb chunk).
+    leadingAuxIdx = cursor;
+    // Subject = the next subject-starting token.
+    let sIdx = cursor + 1;
+    while (sIdx < n) {
+      const k = classify(words[sIdx]);
+      if (isSubjectStartKind(k)) break;
+      // Skip adverbs between aux and subject (rare).
+      if (k === 'adv') { sIdx++; continue; }
+      // Anything else: no subject found; bail.
+      sIdx = -1;
+      break;
+    }
+    if (sIdx >= 0 && sIdx < n) {
+      const np = walkSubjectNP(words, sIdx, n);
+      subjStart = sIdx;
+      subjEnd = np.end;
+      verbScanFrom = subjEnd;
+    } else {
+      // No subject after the aux — treat the aux as a normal main-clause
+      // start (no inversion); it'll be handled below.
+      verbScanFrom = cursor;
+    }
+  } else if (isSubjectStartKind(firstKind)) {
+    const np = walkSubjectNP(words, cursor, n);
+    subjStart = cursor;
+    subjEnd = np.end;
+    verbScanFrom = subjEnd;
+  } else if (couldStartBareNounSubject(words, cursor)) {
+    // Bare-noun subject NP — walk through "of"-phrases and proper-noun
+    // continuations until we hit a verb. ("Water has memory.",
+    // "Republic of Cricogia is …".)
+    const np = walkBareNounSubjectNP(words, cursor, n);
+    if (np) {
+      subjStart = cursor;
+      subjEnd = np.end;
+      verbScanFrom = subjEnd;
+    } else {
+      // No verb found — fragment. Still try the verb scan in case it's an
+      // imperative-ish line ("Hang in there." with "Hang" classified as
+      // 'verb' via COMMON_BASE_VERBS).
+      verbScanFrom = cursor;
+    }
+  } else {
+    // No clear subject — likely an imperative or fragment.
+    verbScanFrom = cursor;
+  }
+
+  // ── Find the main predicate verb chunk ──────────────────────────────────
+  const verb = findVerbChunk(words, verbScanFrom, n);
+
+  // If we found neither a leading aux (inversion) nor a verb chunk after
+  // the would-be subject, treat the whole line as REST — there's no finite
+  // clause to tag (e.g. "No, no.", "Cricogia!").
+  const haveAnyVerb = verb !== null || leadingAuxIdx >= 0;
+
+  // ── Mark subject tokens ─────────────────────────────────────────────────
+  if (subjStart >= 0 && haveAnyVerb) {
+    for (let i = subjStart; i < subjEnd; i++) {
+      subject.add(i);
+      rest.delete(i);
+    }
+  }
+
+  // ── Mark predicate verb chunk (including leading aux on inversion) ──────
+  if (verb) {
+    for (const idx of verb.chunkIdx) {
+      aux_verb.add(idx);
+      rest.delete(idx);
+    }
+  }
+  if (leadingAuxIdx >= 0) {
+    aux_verb.add(leadingAuxIdx);
+    rest.delete(leadingAuxIdx);
+  }
+
+  // ── Subject contractions: split-bucket — pronoun half stays SUBJECT,
+  // aux half stays in AUX_VERB. Our tokenization keeps "I'm" / "you're"
+  // as a single token, so we mark it as both? No — the spec says subject
+  // contractions are a single token labeled SUBJECT. Keep as SUBJECT.
+  // (This matches the existing SUBJECT_CONTRACTIONS handling.)
 
   return {
     subject: [...subject].sort((a, b) => a - b),

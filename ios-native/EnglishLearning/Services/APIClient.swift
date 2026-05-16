@@ -82,6 +82,15 @@ actor APIClient {
         return try await get("/api/v1/vocab-feed", query: query)
     }
 
+    /// Returns up to `limit` movie-clip scenes that open with the given
+    /// pattern (e.g. "be-adj-i" → sentences starting with "I am"). The
+    /// shape mirrors the Word Reels feed so the same karaoke card can
+    /// render it.
+    func fetchPatternScenes(patternId: String, limit: Int = 100) async throws -> PatternScenesResponse {
+        let query = [URLQueryItem(name: "limit", value: String(limit))]
+        return try await get("/api/v1/patterns/\(patternId)/scenes", query: query)
+    }
+
     // MARK: - Curriculum
 
     func fetchCurriculum() async throws -> [CurriculumUnit] {

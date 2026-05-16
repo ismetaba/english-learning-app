@@ -10,12 +10,20 @@ import SwiftUI
 // pattern in real movie clips. Last card is a finish state that
 // records completion via AppState.
 
+/// Lightweight nav payload — passed to navigationDestination so we
+/// push PatternReelsView on demand rather than always mounting it.
+private struct PatternReelsTarget: Hashable {
+    let patternId: String
+    let title: String
+}
+
 struct PatternFlowView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     let pattern: Pattern
 
     @State private var visibleIndex: Int = 0
+    @State private var openedReels: PatternReelsTarget? = nil
 
     /// Number of static example cards before the trailing meta cards.
     private var exampleCount: Int { pattern.examples.count }
@@ -48,6 +56,7 @@ struct PatternFlowView: View {
                         // Video akış intermission
                         PatternFlowVideoCard(
                             pattern: pattern,
+                            onOpenReels: openReels,
                             onContinue: { advance(to: finishCardIndex) }
                         )
                         .frame(width: geo.size.width, height: geo.size.height)
@@ -87,6 +96,16 @@ struct PatternFlowView: View {
         // Hide the floating tab bar via the same hook the video player uses.
         .onAppear { appState.isVideoPlayerActive = true }
         .onDisappear { appState.isVideoPlayerActive = false }
+        .navigationDestination(item: $openedReels) { target in
+            PatternReelsView(patternId: target.patternId, title: target.title)
+                .environmentObject(appState)
+        }
+    }
+
+    private func openReels() {
+        guard let id = pattern.videoStructureId else { return }
+        Haptics.medium()
+        openedReels = PatternReelsTarget(patternId: id, title: pattern.titleTr)
     }
 
     private func finish() {
@@ -236,13 +255,15 @@ struct PatternFlowCard: View {
 
 // MARK: - Video akış intermission card
 
-/// Bridges the static example cards to (eventually) real movie clips
-/// that contain this pattern. While the clip-fetching layer is being
-/// wired up the card lands in a "yakında" placeholder state — the
-/// `videoStructureId` field on `Pattern` is the seam where the future
-/// video-feed view will plug in.
+/// Bridges the static example cards to a vertical reel of movie
+/// clips that all open with this pattern. When the pattern has a
+/// `videoStructureId` (the route key on the patterns API), tapping
+/// "Video akışını aç" pushes `PatternReelsView`. Otherwise the
+/// card sits in a "yakında" placeholder and the button advances to
+/// the finish step.
 struct PatternFlowVideoCard: View {
     let pattern: Pattern
+    let onOpenReels: () -> Void
     let onContinue: () -> Void
 
     var body: some View {
@@ -303,14 +324,17 @@ struct PatternFlowVideoCard: View {
                         style: .primary,
                         fullWidth: true
                     ) {
-                        // TODO: when the clip fetcher is wired up, push a
-                        // `PatternVideoFeedView(structureId:)` here for
-                        // patterns that have `videoStructureId` set.
-                        Haptics.medium()
-                        onContinue()
+                        if pattern.videoStructureId != nil {
+                            onOpenReels()
+                        } else {
+                            Haptics.medium()
+                            onContinue()
+                        }
                     }
 
-                    Text("yukarı kaydırarak da bitir adımına geçebilirsin")
+                    Text(pattern.videoStructureId != nil
+                            ? "video akışından sonra bitir adımına geçeceksin"
+                            : "yukarı kaydırarak da bitir adımına geçebilirsin")
                         .font(.system(size: 11, weight: .heavy))
                         .tracking(0.4)
                         .foregroundStyle(.white.opacity(0.4))

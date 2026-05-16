@@ -113,6 +113,12 @@ actor CurriculumRepository {
         )
     }
 
+    func patternScenes(patternId: String, limit: Int = 100) async throws -> PatternScenesResponse {
+        // Same reasoning as vocabFeed — server reshuffles per request,
+        // pull-to-refresh swaps rotation. Stale cache would defeat that.
+        try await APIClient.shared.fetchPatternScenes(patternId: patternId, limit: limit)
+    }
+
     func curriculum(forceRefresh: Bool = false) async throws -> [CurriculumUnit] {
         let key = "curriculum"
         if !forceRefresh, let cached = await CacheService.shared.get([CurriculumUnit].self, for: key) {

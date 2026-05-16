@@ -139,6 +139,13 @@ struct PatternsPath: View {
 
             let state: PatternsPathNodeData.State = {
                 if isCompleted(pattern.id) { return .completed }
+                // Patterns wired up to a video akış are always entry-able
+                // — the user can dive into any of them in any order rather
+                // than having to grind through them sequentially. The
+                // sequential gate still applies to rows that don't have
+                // a video pool yet (videoStructureId == nil), so they
+                // stay locked until earlier ones are completed.
+                if pattern.videoStructureId != nil { return .available }
                 if idx == 0 { return .available }
                 let prev = patterns[idx - 1]
                 if isCompleted(prev.id) { return .available }

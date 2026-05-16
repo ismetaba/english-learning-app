@@ -1,9 +1,13 @@
 /**
- * Apply the deterministic rule-based tagger to every POC line that lacks
- * structure. No LLM. Sub-second per 1k lines.
+ * Apply the deterministic rule-based tagger to lines that lack structure.
+ * No LLM. Sub-second per 1k lines.
  *
- * Run: cd admin && npx tsx scripts/tag-rule-based.ts [--dry-run] [--all]
- *   --all overrides existing structure on POC lines (use with care)
+ * Run: cd admin && npx tsx scripts/tag-rule-based.ts [flags]
+ *   --dry-run               don't write
+ *   --all                   override existing structure (use with care)
+ *   --include-non-poc       also tag approved clips outside the POC set
+ *                           (ten-x larger pool — needed when the patterns
+ *                           akış is starved on the curated subset)
  */
 import Database from 'better-sqlite3';
 import path from 'path';
@@ -12,22 +16,25 @@ import { tagSentence } from './rule-based-tagger';
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const ALL = args.includes('--all');
+const INCLUDE_NON_POC = args.includes('--include-non-poc');
 
-const DB_PATH = path.join(__dirname, '..', '..', 'data.db');
+const DB_PATH = process.env.DATABASE_PATH ?? path.join(__dirname, '..', '..', 'data.db');
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 
+const pocFilter = INCLUDE_NON_POC ? '' : 'AND v.poc=1';
 const lines = db
   .prepare(
     `SELECT sl.id FROM subtitle_lines sl
      JOIN clips c ON c.id=sl.clip_id JOIN videos v ON v.id=c.video_id
-     WHERE v.poc=1 AND c.status='approved'
+     WHERE c.status='approved' ${pocFilter}
        AND sl.text IS NOT NULL AND length(trim(sl.text))>0
        ${ALL ? '' : 'AND sl.structure IS NULL'}`,
   )
   .all() as { id: number }[];
 
-console.log(`POC lines to tag: ${lines.length.toLocaleString()}${ALL ? ' (overriding existing)' : ''}`);
+const scopeLabel = INCLUDE_NON_POC ? 'all approved' : 'POC';
+console.log(`${scopeLabel} lines to tag: ${lines.length.toLocaleString()}${ALL ? ' (overriding existing)' : ''}`);
 
 const fetchTokens = db.prepare(
   `SELECT word_index, word FROM word_timestamps WHERE line_id = ? ORDER BY word_index`,
@@ -68,12 +75,12 @@ const cov = db
        SUM(CASE WHEN sl.structure IS NOT NULL THEN 1 ELSE 0 END) AS tagged
      FROM subtitle_lines sl
      JOIN clips c ON c.id=sl.clip_id JOIN videos v ON v.id=c.video_id
-     WHERE v.poc=1 AND c.status='approved'
+     WHERE c.status='approved' ${pocFilter}
        AND sl.text IS NOT NULL AND length(trim(sl.text))>0`,
   )
   .get() as { total: number; tagged: number };
 console.log(
-  `\nPOC structure coverage: ${cov.tagged.toLocaleString()}/${cov.total.toLocaleString()} (${((100 * cov.tagged) / cov.total).toFixed(1)}%)`,
+  `\n${scopeLabel} structure coverage: ${cov.tagged.toLocaleString()}/${cov.total.toLocaleString()} (${((100 * cov.tagged) / cov.total).toFixed(1)}%)`,
 );
 
 db.close();

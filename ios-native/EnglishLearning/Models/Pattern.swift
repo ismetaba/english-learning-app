@@ -65,9 +65,11 @@ struct Pattern: Identifiable, Hashable {
     let examples: [PatternExample]
     let tipTr: String?
     let icon: String
-    /// `lesson_id` in the existing `clip_structures` table, if any.
-    /// Leave nil for patterns that don't have movie-clip coverage yet —
-    /// the akış will show a "Video akışı yakında" placeholder instead.
+    /// Pattern key recognized by the backend's
+    /// `/api/v1/patterns/{id}/scenes` route. When set the akış card
+    /// pushes a vertical reel of movie scenes opening with this
+    /// pattern; nil shows a "yakında" placeholder until the backend
+    /// adds a filter for this pattern.
     let videoStructureId: String?
 
     static func == (lhs: Pattern, rhs: Pattern) -> Bool { lhs.id == rhs.id }
@@ -125,7 +127,7 @@ enum PatternCatalog {
         ],
         tipTr: "\"I am\" → \"I'm\" (konuşma dilinde): I'm happy.",
         icon: "person.fill",
-        videoStructureId: "lesson-05-to-be-adjective"
+        videoStructureId: "be-adj-i"
     )
 
     static let beAdjYou = Pattern(
@@ -162,7 +164,7 @@ enum PatternCatalog {
         ],
         tipTr: "\"You are\" → \"You're\" (konuşma dilinde): You're right.",
         icon: "person.fill.checkmark",
-        videoStructureId: "lesson-05-to-be-adjective"
+        videoStructureId: "be-adj-you"
     )
 
     static let beAdjHeSheIt = Pattern(
@@ -199,7 +201,7 @@ enum PatternCatalog {
         ],
         tipTr: "Konuşma dilinde: He's, She's, It's. He's busy.",
         icon: "person.2.fill",
-        videoStructureId: "lesson-05-to-be-adjective"
+        videoStructureId: "be-adj-hesheIt"
     )
 
     static let beAdjWeThey = Pattern(
@@ -236,7 +238,7 @@ enum PatternCatalog {
         ],
         tipTr: "Konuşma dilinde: We're, They're. We're friends.",
         icon: "person.3.fill",
-        videoStructureId: "lesson-05-to-be-adjective"
+        videoStructureId: "be-adj-wethey"
     )
 
     // MARK: Simple present (V1) ------------------------------------------

@@ -43,7 +43,7 @@ enum MainTab: Hashable, CaseIterable {
         }
     }
 
-    static var displayed: [MainTab] { [.home, .vocab, .patterns, .profile] }
+    static var displayed: [MainTab] { [.patterns, .home, .vocab, .profile] }
 }
 
 struct MainTabView: View {
