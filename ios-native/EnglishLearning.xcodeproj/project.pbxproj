@@ -16,6 +16,7 @@
 		23CE4A67F788796449782EB9 /* CinemaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */; };
 		269D8452FFB7848C9731719B /* VideoSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDF80E3A472FA51BC62B9820 /* VideoSet.swift */; };
 		299E8502FF005B3E894642AC /* Pattern.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C704EADA62B4C30D2CBE942 /* Pattern.swift */; };
+		A1B2C3D4E5F60123456789AB /* TurkishPhonetics.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF12 /* TurkishPhonetics.swift */; };
 		372E5562CDE0151EA3EC64CB /* VocabWordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */; };
 		3C50FC04CF0CF9A804E84DA4 /* YouTubePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73580C34736B5F98A0916DFA /* YouTubePlayerView.swift */; };
 		3E50BABA940C2D2A3AB0208F /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 480EBA7F8952FC952B0F60F6 /* Localization.swift */; };
@@ -44,6 +45,7 @@
 		C79B50704A7D1171F6E5B5ED /* ClipPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */; };
 		CBB9FED90FCFEE9CCBD5E6C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FA05CB9673702CC47B3F2DB /* Assets.xcassets */; };
 		D45BBBCF5E57E808438F4DBD /* YouTubePlayerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */; };
+		D46AB1234567890ABCDEF034 /* TurkishPhoneticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D47CD0123456789ABCDEF056 /* TurkishPhoneticsTests.swift */; };
 		D81D5F4B69FCCFFC79BC387C /* LearningPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25540F8B535DAF9E129ED01 /* LearningPathView.swift */; };
 		DC9419DFC2A2D5399F66050D /* VocabSetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2BF65F1AA5FA5AFA58E1CD /* VocabSetView.swift */; };
 		E7FF61B7A031602BB0FD78D8 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5A9767244D65F74709188D /* HomeView.swift */; };
@@ -83,6 +85,7 @@
 		56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabContext.swift; sourceTree = "<group>"; };
 		649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CinemaPlayerView.swift; sourceTree = "<group>"; };
 		6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerViewTests.swift; sourceTree = "<group>"; };
+		D47CD0123456789ABCDEF056 /* TurkishPhoneticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurkishPhoneticsTests.swift; sourceTree = "<group>"; };
 		6BEBB738C0935BB3950995BA /* PatternDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternDetailView.swift; sourceTree = "<group>"; };
 		6DD7DB2DCE34DC861E71D58F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		71ACAFE06F340C436181393D /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -98,6 +101,7 @@
 		8FA05CB9673702CC47B3F2DB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabWordDetailView.swift; sourceTree = "<group>"; };
 		9C704EADA62B4C30D2CBE942 /* Pattern.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pattern.swift; sourceTree = "<group>"; };
+		ABCDEF0123456789ABCDEF12 /* TurkishPhonetics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurkishPhonetics.swift; sourceTree = "<group>"; };
 		9ECC83A0DB154A5D98FBDF2E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A25540F8B535DAF9E129ED01 /* LearningPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathView.swift; sourceTree = "<group>"; };
 		A25E38A8A8039D1B93168804 /* PatternsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternsView.swift; sourceTree = "<group>"; };
@@ -158,6 +162,7 @@
 			children = (
 				026131E29DF8E3DAD68F443D /* Curriculum.swift */,
 				9C704EADA62B4C30D2CBE942 /* Pattern.swift */,
+				ABCDEF0123456789ABCDEF12 /* TurkishPhonetics.swift */,
 				4FE92974ACB3DF1125BFD541 /* PocVideo.swift */,
 				BC1FAFED55839850EBD82E6A /* Progress.swift */,
 				EDF80E3A472FA51BC62B9820 /* VideoSet.swift */,
@@ -336,6 +341,7 @@
 			isa = PBXGroup;
 			children = (
 				275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */,
+				D47CD0123456789ABCDEF056 /* TurkishPhoneticsTests.swift */,
 				6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */,
 			);
 			path = EnglishLearningTests;
@@ -464,6 +470,7 @@
 				1CDD2DE0EED05CC1E58236E4 /* OnboardingView.swift in Sources */,
 				AC19CF8434A80835DFA5D0A3 /* OrientationLock.swift in Sources */,
 				299E8502FF005B3E894642AC /* Pattern.swift in Sources */,
+				A1B2C3D4E5F60123456789AB /* TurkishPhonetics.swift in Sources */,
 				7D9367749EDFBD8284168A8C /* PatternDetailView.swift in Sources */,
 				41E59AE1DA772660CC049034 /* PatternFlowView.swift in Sources */,
 				B7C0E1234567890ABCDEF012 /* PatternReelsView.swift in Sources */,
@@ -497,6 +504,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */,
+				D46AB1234567890ABCDEF034 /* TurkishPhoneticsTests.swift in Sources */,
 				D45BBBCF5E57E808438F4DBD /* YouTubePlayerViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

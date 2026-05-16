@@ -550,10 +550,22 @@ struct PatternReelCard: View {
             Text(w.word)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(textColor)
-                .scaleEffect(scale)
-                // Lock the cell to the word's natural width so a wider
-                // sibling never causes "t..." style truncation.
+                // Capture the natural width BEFORE applying the visual
+                // scale — otherwise the active cell's 1.14x reports a
+                // wider frame, the FlowLayout snaps to that, and the
+                // unscaled cell next to it can end up "tired..." style
+                // truncated.
                 .fixedSize(horizontal: true, vertical: false)
+                .scaleEffect(scale)
+
+            if let okunus = TurkishPhonetics.reading(for: w.word) {
+                Text(okunus)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .italic()
+                    .foregroundStyle(.white.opacity(isUpcoming ? 0.55 : 0.75))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
 
             if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                 Text(tr)
@@ -561,8 +573,11 @@ struct PatternReelCard: View {
                     .italic()
                     .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.85))
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    // Force one line at natural width — same shape as
+                    // the English/okunuş rows so the VStack reports a
+                    // consistent unscaled cell width to FlowLayout.
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
         .opacity(opacity)
@@ -593,16 +608,25 @@ struct PatternReelCard: View {
             Text(en)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(textColor)
-                .scaleEffect(scale)
                 .fixedSize(horizontal: true, vertical: false)
+                .scaleEffect(scale)
+
+            if let okunus = TurkishPhonetics.reading(for: en) {
+                Text(okunus)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .italic()
+                    .foregroundStyle(.white.opacity(isUpcoming ? 0.55 : 0.75))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
 
             Text(tr)
                 .font(.system(size: 12, weight: .medium))
                 .italic()
                 .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.85))
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .opacity(opacity)
     }
@@ -634,16 +658,16 @@ struct PatternReelCard: View {
                 Text(joined)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(textColor)
-                    .scaleEffect(scale)
                     .fixedSize(horizontal: true, vertical: false)
+                    .scaleEffect(scale)
 
                 Text(tr)
                     .font(.system(size: 12, weight: .medium))
                     .italic()
                     .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.85))
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .opacity(opacity)
         }

@@ -191,14 +191,24 @@ struct PatternFlowCard: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 28) {
+            VStack(spacing: 26) {
                 Spacer(minLength: 0)
 
-                // Sentence — each chunk stacks English (color-coded) over Turkish gloss
-                FlowLayout(spacing: 14, lineSpacing: 14) {
-                    chunk(text: example.subject, tr: example.subjectTr, kind: .subject)
-                    chunk(text: example.verb,    tr: example.verbTr,    kind: .verb)
-                    chunk(text: example.rest,    tr: example.restTr,    kind: .rest)
+                // Sentence — each chunk stacks English (color-coded),
+                // Turkish-style okunuş (when present), then Turkish gloss.
+                FlowLayout(spacing: 14, lineSpacing: 18) {
+                    chunk(text: example.subject,
+                          phonetic: example.subjectPhonetic,
+                          tr: example.subjectTr,
+                          kind: .subject)
+                    chunk(text: example.verb,
+                          phonetic: example.verbPhonetic,
+                          tr: example.verbTr,
+                          kind: .verb)
+                    chunk(text: example.rest,
+                          phonetic: example.restPhonetic,
+                          tr: example.restTr,
+                          kind: .rest)
                 }
                 .padding(.horizontal, 20)
 
@@ -223,17 +233,26 @@ struct PatternFlowCard: View {
     }
 
     /// One subject/verb/rest chunk — English (color-coded) on top,
-    /// Turkish gloss in muted italic underneath.
-    private func chunk(text: String, tr: String, kind: PatternSlotKind) -> some View {
-        VStack(spacing: 4) {
+    /// Turkish-style okunuş (when set) directly under the word, then
+    /// the Turkish gloss in muted italic.
+    private func chunk(text: String, phonetic: String?, tr: String, kind: PatternSlotKind) -> some View {
+        VStack(spacing: 3) {
             Text(text)
                 .font(.system(size: 28, weight: .heavy, design: .rounded))
                 .foregroundStyle(kind.color)
                 .tracking(-0.4)
+            if let okunus = phonetic {
+                Text(okunus)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .italic()
+                    .foregroundStyle(.white.opacity(0.75))
+                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+            }
             Text(tr)
                 .font(.system(size: 12, weight: .semibold))
                 .italic()
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(.white.opacity(0.45))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
