@@ -47,6 +47,14 @@ jobs:
           # Fix runtime asset paths in the JS bundle (fonts, images loaded via fetch/XHR)
           find dist/_expo -name '*.js' -exec sed -i 's|"/assets/|"/english-learning-app/assets/|g' {} +
 
+      - name: Copy standalone static pages (privacy policy)
+        run: |
+          # docs/* gets dropped into the deployed site verbatim so we can
+          # serve a privacy policy URL App Store Connect can link to.
+          if [ -d docs ]; then
+            cp -R docs/. dist/
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
