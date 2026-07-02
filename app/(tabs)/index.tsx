@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { palette } from '@/constants/Colors';
-import LearningPath from '@/components/LearningPath/LearningPath';
+import VideoFeed from '@/components/VideoFeed/VideoFeed';
 
 export default function LearnScreen() {
   return (
     <View style={styles.container}>
-      <LearningPath />
+      <VideoFeed />
     </View>
   );
 }

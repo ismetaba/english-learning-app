@@ -3,7 +3,8 @@
  * Handles fetch, error handling, and retry logic.
  */
 
-const ADMIN_API = 'https://english-learning-admin.fly.dev';
+const ADMIN_API =
+  process.env.EXPO_PUBLIC_ADMIN_API ?? 'https://english-learning-admin.fly.dev';
 
 export class ApiError extends Error {
   constructor(
