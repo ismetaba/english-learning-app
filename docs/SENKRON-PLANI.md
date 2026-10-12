@@ -54,6 +54,7 @@ Saf (Foundation-only) çekirdek `EnglishLearning/Core/` altında; aynı testler 
 | 3 | Ekran entegrasyonu: tüm oynatıcı ekranları yeni çekirdeğe | ✅ |
 | 4 | Doğrulama: Linux testleri, oyuncu düzeneği, macOS simülatör derleme+test | ✅ |
 | 5 | Ekranların çekişmeli incelemesi (13 doğrulanmış hata) + UX denetimi (100 bulgu → `UX-YOL-HARITASI.md`); her ikisinin kod tarafı düzeltildi | ✅ |
+| 5b | İkinci inceleme turu: önceki 15 hatanın hepsinin kapandığı doğrulandı; UX değişikliklerinde 12 yeni hata bulundu (her biri iki şüpheci tarafından onaylandı) ve düzeltildi | ✅ |
 | 6 | Gerçek YouTube ile cihaz provası (aşağıdaki kontrol listesi) | ⏳ sizde |
 
 ## 4. Bilerek kapsam dışı bırakılanlar (sonraki adımlar)
@@ -79,6 +80,8 @@ Bunlar demoyu bozmaz ama yayından önce mutlaka yapılmalı (denetim raporunda 
 | "SPEAKER" yazan yer tutucu konuşmacı | `CurriculumDecodingTests` (3) | ✅ |
 | "Sahneyi aç" 0. saniyeden başlıyor | `ScenePlanTests` (6) | ✅ dokunulan cümleden açılıyor |
 | Yavaş klip uç noktası | `NetworkingTests` (12), `admin/tests/api-latency.test.ts` (6) | ✅ istemci: tek istek, ön yükleme, kayıtlı kopya hemen; sunucu: 15 ms (deploy bekliyor) |
+| "Kelimelerimi gör" eski reel'e / eski kelime sayfasına düşüyor; onboarding seviyesi hiçbir şeyi değiştirmiyor | `FeedOrderTests` (9), `OnboardingLevelTests` (3) | ✅ yeni kelimeye iniyor; "Orta" 1×, diğerleri 0,75× başlıyor |
+| Bazı kelimelerde okunuş satırı boş | `OkunusCoverageTests` (videolarda yakalanabilen 98 kelimenin hepsi) | ✅ |
 | İlerlemenin sessizce silinmesi | `ProgressPersistenceTests` (8, 1.0.1 sürümünün gerçek verisiyle) | ✅ çözülemeyen veri önce yedekleniyor |
 | Gün/seri saat dilimi hatası | `DayBoundaryTests` (7) | ✅ |
 | Video üstünde sekme çubuğu | `ImmersivePresenceTests` (2) | ✅ |

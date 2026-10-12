@@ -12,6 +12,8 @@ Ekranlar ana döngüyü (izle → dokun → ekle → başka sahnede tekrar gör)
 
 ## Demodan önce (bu iterasyonda yapılacaklar)
 
+> **Durum (12 Ekim 2026):** **B** bölümü uygulandı (yalnızca isteğe bağlı "açık sekmeye tekrar dokununca köke dön" yapılmadı) ve iki kez çekişmeli incelemeden geçti; iOS simülatörde derleniyor ve testleri geçiyor. B17'deki eksik okunuşlar da eklendi. **A** (canlı veride içerik düzeltmeleri) ve **C** (cihazda prova) sizde. Prova için `SENKRON-PLANI.md` bölüm 6'daki kontrol listesini kullanın.
+
 ### A. İçerik ve veri: demo engelleyiciler
 Bunlar veritabanı ve yönetim tarafında yapılacak işler, kod entegrasyonundan bağımsız. Uygulama içeriği canlı sunucudan okuduğu için bu düzeltmeler doğrudan canlı veride yapılmalı.
 
