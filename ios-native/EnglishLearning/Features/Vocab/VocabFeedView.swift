@@ -163,8 +163,8 @@ struct VocabFeedView: View {
             // while the learner is still here; reloading right then would
             // reshuffle the feed under them, so a changed pool is picked
             // up the next time the screen appears, keeping the card they
-            // are on when the response lands (@State reads live storage,
-            // so a swipe during the fetch counts).
+            // are on when the response lands (the binding reads live
+            // storage, so a swipe during the fetch counts).
             await vm.loadIfStale(poolIds: appState.progress.learnedWords, keepingThrough: { visibleId })
             landOnNewestWordIfAsked()
         }
