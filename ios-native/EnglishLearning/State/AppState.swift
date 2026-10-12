@@ -38,6 +38,18 @@ final class AppState: ObservableObject {
     /// list sends the learner to the sets, a finished set to their words).
     @Published var selectedTab: MainTab = .home
 
+    /// Bumped by `showMyWords()`. The Kelimeler tab stays alive behind the
+    /// others, so a jump to it from another tab must also bring it back to
+    /// its root (an old word card may still be pushed) and onto the newest
+    /// word; it watches this to know the jump was asked for.
+    @Published private(set) var wordsRoute = 0
+
+    /// Opens the Kelimeler tab at its root, on the word caught last.
+    func showMyWords() {
+        wordsRoute &+= 1
+        selectedTab = .vocab
+    }
+
     /// One playback speed for every player (portrait, cinema, reels), so a
     /// learner who slowed down doesn't snap back to native speed on the
     /// next video or in cinema mode. 0.75× by default: comprehension over

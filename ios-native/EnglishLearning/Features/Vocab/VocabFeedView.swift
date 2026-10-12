@@ -10,9 +10,6 @@ final class VocabFeedViewModel: ObservableObject {
     /// The pool `items` were fetched for; nil until a load succeeds.
     private(set) var loadedPool: [String]? = nil
 
-    /// The server deals a word again only this many cards later.
-    static let wordCooldown = 4
-
     /// The feed was never loaded, or the learner's pool changed since.
     func isStale(for poolIds: [String]) -> Bool {
         loadedPool != poolIds
@@ -58,69 +55,16 @@ final class VocabFeedViewModel: ObservableObject {
                 // A word added since the last load (in a scene opened from
                 // here, or on another tab) is the next card.
                 let added = poolIds.last.flatMap { previousPool?.contains($0) == false ? $0 : nil }
-                self.items = Self.splice(current: items, keepingThrough: keep, fresh: response.items,
-                                         leadingWord: added)
+                self.items = FeedOrder.splice(current: items, keepingThrough: keep, fresh: response.items,
+                                              leadingWord: added)
             } else {
-                self.items = Self.leadingWithNewest(response.items, newestWordId: poolIds.last)
+                self.items = FeedOrder.leadingWithNewest(response.items, newestWordId: poolIds.last)
             }
             self.loadedPool = poolIds
         } catch {
             self.errorMessage = error.localizedDescription
         }
         isLoading = false
-    }
-
-    /// `current` up to and including the card `keepId`, then the `fresh`
-    /// cards it doesn't already hold (led by `leadingWord`'s first card when
-    /// given); just `fresh` when there's nothing to keep.
-    static func splice(current: [VocabFeedItem], keepingThrough keepId: String?,
-                       fresh: [VocabFeedItem], leadingWord: String? = nil) -> [VocabFeedItem] {
-        guard let keepId, let lastKept = current.firstIndex(where: { $0.id == keepId }) else { return fresh }
-        let kept = Array(current[...lastKept])
-        let keptIds = Set(kept.map(\.id))
-        var upcoming = fresh.filter { !keptIds.contains($0.id) }
-        if let leadingWord, let first = upcoming.firstIndex(where: { $0.wordId == leadingWord }) {
-            let lead = upcoming.remove(at: first)
-            upcoming.insert(lead, at: 0)
-        }
-        // The server never deals the same word twice in a row; keep that
-        // true across the seam (the kept card anchors the pass).
-        let separated = separatingRepeats([current[lastKept]] + upcoming)
-        return kept + separated.dropFirst()
-    }
-
-    /// `fresh` starting with the newest word's first card, its next card
-    /// brought up to `wordCooldown` (seen again soon, never back to back).
-    /// `learnedWords` is append-only, so the pool's last id is the newest.
-    static func leadingWithNewest(_ fresh: [VocabFeedItem], newestWordId: String?) -> [VocabFeedItem] {
-        guard let newest = newestWordId,
-              let first = fresh.firstIndex(where: { $0.wordId == newest }) else { return fresh }
-        var out = fresh
-        let lead = out.remove(at: first)
-        var again: VocabFeedItem? = nil
-        if let second = out.firstIndex(where: { $0.wordId == newest }) {
-            again = out.remove(at: second)
-        }
-        out.insert(lead, at: 0)
-        if let again { out.insert(again, at: min(wordCooldown, out.count)) }
-        return separatingRepeats(out)
-    }
-
-    /// Moves cards forward so no word plays twice in a row, wherever a
-    /// different word is left to fill the gap. The first card stays first.
-    static func separatingRepeats(_ items: [VocabFeedItem]) -> [VocabFeedItem] {
-        var out = items
-        var k = 1
-        while k < out.count {
-            let previousWord = out[k - 1].wordId
-            if out[k].wordId == previousWord,
-               let other = out[(k + 1)...].firstIndex(where: { $0.wordId != previousWord }) {
-                let moved = out.remove(at: other)
-                out.insert(moved, at: k)
-            }
-            k += 1
-        }
-        return out
     }
 }
 

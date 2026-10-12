@@ -34,6 +34,11 @@ enum NativeLanguage: String, Codable, CaseIterable, Identifiable {
 enum OnboardingLevel: String, Codable, CaseIterable {
     case none = ""
     case beginner, elementary, intermediate
+
+    /// The playback speed a learner who picked this level starts with.
+    var suggestedPlaybackRate: Double {
+        0.75
+    }
 }
 
 enum LearningGoal: String, Codable, CaseIterable {
