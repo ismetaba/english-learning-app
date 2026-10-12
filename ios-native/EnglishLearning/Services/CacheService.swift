@@ -74,10 +74,15 @@ actor CurriculumRepository {
 
     func pocVideoClips(videoId: String, forceRefresh: Bool = false) async throws -> [LessonClip] {
         // Fetched once per session via ClipStore (the endpoint takes up to
-        // 33s), falling back to the last good disk copy when offline. Not a
-        // TTL cache — structure tagging still changes server-side, so every
-        // session starts from the network. Pull-to-refresh forces a refetch.
-        if forceRefresh { await ClipStore.shared.invalidate(videoId) }
+        // 60s): a saved disk copy is shown at once while the network copy
+        // replaces it in the background, and is the fallback when offline.
+        // Structure tagging still changes server-side, so every session
+        // still refetches. Pull-to-refresh waits for the network instead —
+        // answering with the saved copy would look like nothing happened.
+        if forceRefresh {
+            await ClipStore.shared.invalidate(videoId)
+            return try await ClipStore.shared.clips(for: videoId, preferSaved: false)
+        }
         return try await ClipStore.shared.clips(for: videoId)
     }
 
