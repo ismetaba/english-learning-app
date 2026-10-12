@@ -40,7 +40,7 @@ struct PatternExample: Identifiable {
     let subject: String     // "I" / "She" / "There"
     let subjectTr: String   // "Ben" / "O (kadın)" / "(orada)"
     let verb: String        // "am" / "is" / "wants to"
-    let verbTr: String      // "(-im eki)" / "-(d)ır" / "istiyor"
+    let verbTr: String      // "(-im)" / "(-dır)" / "istiyor"
     let rest: String        // "happy" / "two cats"
     let restTr: String      // "mutlu" / "iki kedi"
     let tr: String          // Full sentence translation
@@ -87,6 +87,10 @@ struct PatternExample: Identifiable {
 struct Pattern: Identifiable, Hashable {
     let id: String
     let familyTr: String         // "BE + sıfat" — short label shown on path
+    /// `familyTr` for the capitalised header labels, spelled out: it mixes
+    /// English and Turkish, so neither locale uppercases all of it right
+    /// ("THERE İS" under tr_TR, "FIIL" under en).
+    let familyTrCaps: String     // "BE + SIFAT"
     let titleTr: String          // "Ben + -im + sıfat"
     let titleEn: String          // "I + am + adjective"
     let summaryTr: String        // One-line tease
@@ -98,8 +102,8 @@ struct Pattern: Identifiable, Hashable {
     /// Pattern key recognized by the backend's
     /// `/api/v1/patterns/{id}/scenes` route. When set the akış card
     /// pushes a vertical reel of movie scenes opening with this
-    /// pattern; nil shows a "yakında" placeholder until the backend
-    /// adds a filter for this pattern.
+    /// pattern; nil leaves the video card out of the akış until the
+    /// backend adds a filter for this pattern.
     let videoStructureId: String?
 
     static func == (lhs: Pattern, rhs: Pattern) -> Bool { lhs.id == rhs.id }
@@ -126,6 +130,7 @@ enum PatternCatalog {
     static let beAdjI = Pattern(
         id: "be-adj-i",
         familyTr: "BE + sıfat",
+        familyTrCaps: "BE + SIFAT",
         titleTr: "I + am + sıfat",
         titleEn: "I + am + adjective",
         summaryTr: "Kendinden bahsederken: \"Ben mutluyum\".",
@@ -139,28 +144,28 @@ enum PatternCatalog {
         ],
         examples: [
             PatternExample(subject: "I", subjectTr: "Ben",
-                           verb: "am", verbTr: "(-im eki)",
+                           verb: "am", verbTr: "(-im)",
                            rest: "happy", restTr: "mutlu",
                            tr: "Ben mutluyum.",
                            subjectPhonetic: "ay",
                            verbPhonetic: "em",
                            restPhonetic: "hepi"),
             PatternExample(subject: "I", subjectTr: "Ben",
-                           verb: "am", verbTr: "(-im eki)",
+                           verb: "am", verbTr: "(-im)",
                            rest: "tired", restTr: "yorgun",
                            tr: "Ben yorgunum.",
                            subjectPhonetic: "ay",
                            verbPhonetic: "em",
                            restPhonetic: "tayırd"),
             PatternExample(subject: "I", subjectTr: "Ben",
-                           verb: "am", verbTr: "(-im eki)",
+                           verb: "am", verbTr: "(-im)",
                            rest: "ready", restTr: "hazır",
                            tr: "Hazırım.",
                            subjectPhonetic: "ay",
                            verbPhonetic: "em",
                            restPhonetic: "redi"),
             PatternExample(subject: "I", subjectTr: "Ben",
-                           verb: "am", verbTr: "(-im eki)",
+                           verb: "am", verbTr: "(-im)",
                            rest: "hungry", restTr: "aç",
                            tr: "Açım.",
                            subjectPhonetic: "ay",
@@ -175,6 +180,7 @@ enum PatternCatalog {
     static let beAdjYou = Pattern(
         id: "be-adj-you",
         familyTr: "BE + sıfat",
+        familyTrCaps: "BE + SIFAT",
         titleTr: "You + are + sıfat",
         titleEn: "You + are + adjective",
         summaryTr: "Karşındakine: \"Sen iyisin\".",
@@ -188,28 +194,28 @@ enum PatternCatalog {
         ],
         examples: [
             PatternExample(subject: "You", subjectTr: "Sen",
-                           verb: "are", verbTr: "(-sın eki)",
+                           verb: "are", verbTr: "(-sın)",
                            rest: "kind", restTr: "iyi (birisi)",
                            tr: "Sen iyi birisin.",
                            subjectPhonetic: "yu",
                            verbPhonetic: "ar",
                            restPhonetic: "kaynd"),
             PatternExample(subject: "You", subjectTr: "Sen",
-                           verb: "are", verbTr: "(-sın eki)",
+                           verb: "are", verbTr: "(-sın)",
                            rest: "late", restTr: "geç",
                            tr: "Geç kaldın.",
                            subjectPhonetic: "yu",
                            verbPhonetic: "ar",
                            restPhonetic: "leyt"),
             PatternExample(subject: "You", subjectTr: "Sen",
-                           verb: "are", verbTr: "(-sın eki)",
+                           verb: "are", verbTr: "(-sın)",
                            rest: "right", restTr: "haklı",
                            tr: "Haklısın.",
                            subjectPhonetic: "yu",
                            verbPhonetic: "ar",
                            restPhonetic: "rayt"),
             PatternExample(subject: "You", subjectTr: "Sen",
-                           verb: "are", verbTr: "(-sın eki)",
+                           verb: "are", verbTr: "(-sın)",
                            rest: "funny", restTr: "komik",
                            tr: "Komiksin.",
                            subjectPhonetic: "yu",
@@ -224,6 +230,7 @@ enum PatternCatalog {
     static let beAdjHeSheIt = Pattern(
         id: "be-adj-hesheIt",
         familyTr: "BE + sıfat",
+        familyTrCaps: "BE + SIFAT",
         titleTr: "He / She / It + is + sıfat",
         titleEn: "He / She / It + is + adjective",
         summaryTr: "Üçüncü kişi: \"O meşgul\".",
@@ -237,28 +244,28 @@ enum PatternCatalog {
         ],
         examples: [
             PatternExample(subject: "He", subjectTr: "O (erkek)",
-                           verb: "is", verbTr: "-dır",
+                           verb: "is", verbTr: "(-dır)",
                            rest: "busy", restTr: "meşgul",
                            tr: "O meşgul.",
                            subjectPhonetic: "hi",
                            verbPhonetic: "iz",
                            restPhonetic: "bizi"),
             PatternExample(subject: "She", subjectTr: "O (kadın)",
-                           verb: "is", verbTr: "-dır",
+                           verb: "is", verbTr: "(-dır)",
                            rest: "beautiful", restTr: "güzel",
                            tr: "O güzel.",
                            subjectPhonetic: "şi",
                            verbPhonetic: "iz",
                            restPhonetic: "biyutıful"),
             PatternExample(subject: "It", subjectTr: "O (nesne)",
-                           verb: "is", verbTr: "-dır",
+                           verb: "is", verbTr: "(-dır)",
                            rest: "cold", restTr: "soğuk",
                            tr: "(Hava) soğuk.",
                            subjectPhonetic: "it",
                            verbPhonetic: "iz",
                            restPhonetic: "kold"),
             PatternExample(subject: "He", subjectTr: "O (erkek)",
-                           verb: "is", verbTr: "-dır",
+                           verb: "is", verbTr: "(-dır)",
                            rest: "tall", restTr: "uzun (boylu)",
                            tr: "O uzun boylu.",
                            subjectPhonetic: "hi",
@@ -273,6 +280,7 @@ enum PatternCatalog {
     static let beAdjWeThey = Pattern(
         id: "be-adj-wethey",
         familyTr: "BE + sıfat",
+        familyTrCaps: "BE + SIFAT",
         titleTr: "We / They + are + sıfat",
         titleEn: "We / They + are + adjective",
         summaryTr: "Çoğul: \"Biz açız\", \"Onlar mutlu\".",
@@ -286,28 +294,28 @@ enum PatternCatalog {
         ],
         examples: [
             PatternExample(subject: "We", subjectTr: "Biz",
-                           verb: "are", verbTr: "(-ız eki)",
+                           verb: "are", verbTr: "(-ız)",
                            rest: "hungry", restTr: "aç",
                            tr: "Biz açız.",
                            subjectPhonetic: "vi",
                            verbPhonetic: "ar",
                            restPhonetic: "hangri"),
             PatternExample(subject: "They", subjectTr: "Onlar",
-                           verb: "are", verbTr: "(-lar eki)",
+                           verb: "are", verbTr: "(-lar)",
                            rest: "happy", restTr: "mutlu",
                            tr: "Onlar mutlu.",
                            subjectPhonetic: "dey",
                            verbPhonetic: "ar",
                            restPhonetic: "hepi"),
             PatternExample(subject: "We", subjectTr: "Biz",
-                           verb: "are", verbTr: "(-ız eki)",
+                           verb: "are", verbTr: "(-ız)",
                            rest: "friends", restTr: "arkadaş",
                            tr: "Biz arkadaşız.",
                            subjectPhonetic: "vi",
                            verbPhonetic: "ar",
                            restPhonetic: "frendz"),
             PatternExample(subject: "They", subjectTr: "Onlar",
-                           verb: "are", verbTr: "(-lar eki)",
+                           verb: "are", verbTr: "(-lar)",
                            rest: "ready", restTr: "hazır",
                            tr: "Onlar hazır.",
                            subjectPhonetic: "dey",
@@ -324,6 +332,7 @@ enum PatternCatalog {
     static let simplePresentI = Pattern(
         id: "v1-i",
         familyTr: "Geniş zaman (V1)",
+        familyTrCaps: "GENİŞ ZAMAN (V1)",
         titleTr: "I + fiil (V1)",
         titleEn: "I + verb (V1)",
         summaryTr: "Her zaman yaptığın şeyler: \"Ben çalışırım\".",
@@ -361,6 +370,7 @@ enum PatternCatalog {
     static let simplePresentWe = Pattern(
         id: "v1-we",
         familyTr: "Geniş zaman (V1)",
+        familyTrCaps: "GENİŞ ZAMAN (V1)",
         titleTr: "We + fiil (V1)",
         titleEn: "We + verb (V1)",
         summaryTr: "Birlikte yaptıklarımız: \"Biz seyahat ederiz\".",
@@ -398,6 +408,7 @@ enum PatternCatalog {
     static let simplePresentThey = Pattern(
         id: "v1-they",
         familyTr: "Geniş zaman (V1)",
+        familyTrCaps: "GENİŞ ZAMAN (V1)",
         titleTr: "They + fiil (V1)",
         titleEn: "They + verb (V1)",
         summaryTr: "Onların yaptıkları: \"Onlar bizi tanır\".",
@@ -435,6 +446,7 @@ enum PatternCatalog {
     static let simplePresentHeSheIt = Pattern(
         id: "v1-hesheIt",
         familyTr: "Geniş zaman (V1)",
+        familyTrCaps: "GENİŞ ZAMAN (V1)",
         titleTr: "He / She / It + fiil + s",
         titleEn: "He / She / It + verb (V1+s)",
         summaryTr: "Üçüncü tekil — fiile -s eklenir: \"He works\".",
@@ -476,6 +488,7 @@ enum PatternCatalog {
     static let thereIsAre = Pattern(
         id: "there-is-are",
         familyTr: "There is / are",
+        familyTrCaps: "THERE IS / ARE",
         titleTr: "There + is / are + isim",
         titleEn: "There + is / are + noun",
         summaryTr: "Bir şey \"var\" demek için: \"Odada bir kedi var\".",
@@ -521,6 +534,7 @@ enum PatternCatalog {
     static let wantToI = Pattern(
         id: "want-to-i",
         familyTr: "want to + fiil",
+        familyTrCaps: "WANT TO + FİİL",
         titleTr: "I + want to + fiil",
         titleEn: "I + want to + verb",
         summaryTr: "İsteğini söylersin: \"Pizza yemek istiyorum\".",
@@ -558,6 +572,7 @@ enum PatternCatalog {
     static let wantToYou = Pattern(
         id: "want-to-you",
         familyTr: "want to + fiil",
+        familyTrCaps: "WANT TO + FİİL",
         titleTr: "You + want to + fiil",
         titleEn: "You + want to + verb",
         summaryTr: "Karşındakinin isteği: \"Yardım etmek istiyorsun\".",
@@ -595,6 +610,7 @@ enum PatternCatalog {
     static let wantToWeThey = Pattern(
         id: "want-to-wethey",
         familyTr: "want to + fiil",
+        familyTrCaps: "WANT TO + FİİL",
         titleTr: "We / They + want to + fiil",
         titleEn: "We / They + want to + verb",
         summaryTr: "Çoğul: \"Seyahat etmek istiyoruz\".",
@@ -632,6 +648,7 @@ enum PatternCatalog {
     static let wantToHeSheIt = Pattern(
         id: "want-to-hesheIt",
         familyTr: "want to + fiil",
+        familyTrCaps: "WANT TO + FİİL",
         titleTr: "He / She / It + wants to + fiil",
         titleEn: "He / She / It + wants to + verb",
         summaryTr: "Üçüncü tekil — want değil \"wants\": \"O uyumak istiyor\".",

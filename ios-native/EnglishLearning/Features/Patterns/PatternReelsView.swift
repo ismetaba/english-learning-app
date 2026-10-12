@@ -10,7 +10,10 @@ final class PatternReelsViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
 
     func load(patternId: String, limit: Int = 100, forceRefresh: Bool = false) async {
-        if !forceRefresh { isLoading = true }
+        // A refresh over cards on screen stays quiet; with nothing on screen
+        // (a retry from the error state) the spinner shows, not the empty
+        // feed's message.
+        if !forceRefresh || items.isEmpty { isLoading = true }
         errorMessage = nil
         do {
             let response = try await CurriculumRepository.shared.patternScenes(
@@ -71,29 +74,36 @@ struct PatternReelsView: View {
             } else if vm.items.isEmpty {
                 emptyState
             } else {
-                GeometryReader { geo in
-                    let visibleIndex = vm.items.firstIndex(where: { $0.id == visibleId }) ?? 0
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(vm.items.enumerated()), id: \.element.id) { index, item in
-                                PatternReelCard(
-                                    context: item,
-                                    isActive: isOnScreen && visibleId == item.id,
-                                    isNear: abs(index - visibleIndex) <= 1,
-                                    isMuted: $isMuted,
-                                    onOpenScene: { openedScene = item },
-                                    onSkip: skipAction(after: index)
-                                )
-                                .frame(width: geo.size.width, height: geo.size.height)
-                                .id(item.id)
+                // Read before the feed ignores the safe area (inside it the
+                // inset is gone): the full-screen cards keep their text just
+                // clear of the home indicator. No tab bar here to clear.
+                GeometryReader { safeArea in
+                    let bottomInset = safeArea.safeAreaInsets.bottom
+                    GeometryReader { geo in
+                        let visibleIndex = vm.items.firstIndex(where: { $0.id == visibleId }) ?? 0
+                        ScrollView(.vertical, showsIndicators: false) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(vm.items.enumerated()), id: \.element.id) { index, item in
+                                    PatternReelCard(
+                                        context: item,
+                                        isActive: isOnScreen && visibleId == item.id,
+                                        isNear: abs(index - visibleIndex) <= 1,
+                                        isMuted: $isMuted,
+                                        onOpenScene: { openedScene = item },
+                                        onSkip: skipAction(after: index),
+                                        bottomInset: bottomInset
+                                    )
+                                    .frame(width: geo.size.width, height: geo.size.height)
+                                    .id(item.id)
+                                }
                             }
+                            .scrollTargetLayout()
                         }
-                        .scrollTargetLayout()
+                        .scrollTargetBehavior(.paging)
+                        .scrollPosition(id: $visibleId)
                     }
-                    .scrollTargetBehavior(.paging)
-                    .scrollPosition(id: $visibleId)
+                    .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
             }
 
             // Header chrome — title pill above the cards
@@ -219,14 +229,45 @@ struct PatternReelCard: View {
     let onOpenScene: () -> Void
     /// Scrolls the feed to the next card; nil on the last one.
     let onSkip: (() -> Void)?
+    /// The screen's bottom safe-area inset (home indicator). The card fills
+    /// the screen, so it keeps its bottom text clear of it itself.
+    let bottomInset: CGFloat
 
     @EnvironmentObject var appState: AppState
     @StateObject private var player = YouTubePlayerController()
     @StateObject private var sync = KaraokeSync()
+    /// The learner paused this card (their intent; what the player is
+    /// doing is `player.state`).
     @State private var manuallyPaused = false
+    /// The centred ▶, debounced so a seek, a loop wrap or the start of
+    /// playback doesn't flash it (`updatePausedCue`).
+    @State private var showsPausedCue = false
+    /// The centred spinner, debounced so a card that starts at once never
+    /// shows one (`updateLoadingCue`).
+    @State private var showsLoadingCue = false
 
     /// The sentence plus a beat of air on each side.
     private var window: PlaybackWindow { context.loopWindow() }
+
+    /// Playing, or about to (buffering): a tap pauses.
+    private var isPlaybackActive: Bool {
+        player.state == .playing || player.state == .buffering
+    }
+
+    /// The card on screen is up but not playing, whoever stopped it (the
+    /// learner, an interruption, a page rebuilt paused): a tap plays. A
+    /// ready player still `.unstarted` is loading its video (the page runs
+    /// the queued load only after 'ready'), not paused: spinner, not ▶.
+    private var wantsPausedCue: Bool {
+        isActive && player.isReady && player.state != .unstarted
+            && !isPlaybackActive && player.errorCode == nil
+    }
+
+    /// The card on screen has nothing to show yet; a tap has nothing to
+    /// pause or play.
+    private var isLoadingOnScreen: Bool {
+        isActive && showsPoster && player.errorCode == nil && !manuallyPaused && !showsPausedCue
+    }
 
     var body: some View {
         ZStack {
@@ -260,12 +301,14 @@ struct PatternReelCard: View {
             .padding(.horizontal, 18)
             .padding(.top, 160)
 
+            // The tab bar is hidden on this screen: only the home
+            // indicator to clear, not ~140pt of bar.
             VStack {
                 Spacer()
                 bottomBlock
             }
             .padding(.horizontal, 18)
-            .padding(.bottom, 140)
+            .padding(.bottom, bottomInset + 24)
             .padding(.trailing, 76)
 
             HStack {
@@ -273,14 +316,30 @@ struct PatternReelCard: View {
                 actionStack
             }
             .padding(.trailing, 14)
-            .padding(.bottom, 150)
+            .padding(.bottom, bottomInset + 34)
 
-            if manuallyPaused && player.errorCode == nil {
+            // Centre cue: when a ready player is slow to start, a chip
+            // saying so (it wins: the learner needs its skip); ▶ while
+            // stopped; a spinner while loading.
+            if isActive && player.isSlowStart && player.errorCode == nil {
+                slowStartChip
+                    .transition(.opacity)
+            } else if showsPausedCue && player.errorCode == nil {
                 Image(systemName: "play.circle.fill")
                     .font(.system(size: 76, weight: .bold))
                     .foregroundStyle(.white.opacity(0.85))
                     .shadow(color: .black.opacity(0.6), radius: 14)
+                    .allowsHitTesting(false)
+                    .accessibilityLabel("Oynat")
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            } else if showsLoadingCue && player.errorCode == nil {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+                    .padding(14)
+                    .background(Circle().fill(Color.black.opacity(0.55)))
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
             }
 
             if let code = player.errorCode {
@@ -289,6 +348,9 @@ struct PatternReelCard: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { togglePause() }
+        .animation(.easeOut(duration: 0.15), value: showsPausedCue)
+        .animation(.easeOut(duration: 0.2), value: showsLoadingCue)
+        .animation(.easeOut(duration: 0.2), value: player.isSlowStart)
         .onAppear { start() }
         .onChange(of: isActive) { _, nowActive in
             if nowActive {
@@ -300,6 +362,22 @@ struct PatternReelCard: View {
         .onChange(of: isNear) { _, nowNear in
             if !nowNear { park() }
         }
+        // A page rebuilt under the card (iOS reclaimed its web process
+        // while the app was away) comes back paused where it was: the card
+        // on screen asks for playback again unless the learner paused it.
+        // On a first load this repeats a play already asked for.
+        .onChange(of: player.isReady) { _, ready in
+            if ready && isActive && !manuallyPaused && player.errorCode == nil {
+                player.play()
+            }
+        }
+        // One speed for every player.
+        .onChange(of: appState.playbackRate) { _, rate in
+            player.setRate(rate)
+            sync.setRate(rate)
+        }
+        .task(id: wantsPausedCue) { await updatePausedCue() }
+        .task(id: isLoadingOnScreen) { await updateLoadingCue() }
     }
 
     // MARK: Playback
@@ -319,6 +397,9 @@ struct PatternReelCard: View {
             sync?.handle(event, hostTime: hostTime)
         }
         sync.setLines([context.syncLine])
+        // The learner's speed, as in every other player.
+        player.setRate(appState.playbackRate)
+        sync.setRate(appState.playbackRate)
         player.setMuted(isMuted)
         player.load(source(autoplay: isActive))
     }
@@ -342,27 +423,48 @@ struct PatternReelCard: View {
         player.load(source(autoplay: false))
     }
 
+    /// Pauses or plays by what the player is actually doing, so the first
+    /// tap always does what the screen shows. Ignored while loading.
     private func togglePause() {
-        guard player.errorCode == nil else { return }
+        guard player.errorCode == nil, !isLoadingOnScreen else { return }
         Haptics.light()
-        let pause = !manuallyPaused
-        withAnimation(.easeOut(duration: 0.15)) {
-            manuallyPaused = pause
-        }
-        if pause {
+        if isPlaybackActive {
+            manuallyPaused = true
             player.pause()
         } else {
+            manuallyPaused = false
             player.play()
         }
     }
 
+    /// Shows ▶ once the card has stayed stopped for a moment; at once when
+    /// the learner paused it themselves.
+    private func updatePausedCue() async {
+        guard wantsPausedCue else {
+            if showsPausedCue { showsPausedCue = false }
+            return
+        }
+        if !manuallyPaused {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+        }
+        showsPausedCue = true
+    }
+
+    /// Shows the spinner once loading has lasted a moment.
+    private func updateLoadingCue() async {
+        guard isLoadingOnScreen else {
+            if showsLoadingCue { showsLoadingCue = false }
+            return
+        }
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        guard !Task.isCancelled else { return }
+        showsLoadingCue = true
+    }
+
     private func replay() {
         Haptics.light()
-        if manuallyPaused {
-            withAnimation(.easeOut(duration: 0.15)) {
-                manuallyPaused = false
-            }
-        }
+        manuallyPaused = false
         player.seek(to: window.start)
         player.play()
         sync.jump(to: window.start)
@@ -384,6 +486,37 @@ struct PatternReelCard: View {
             manuallyPaused = false
             player.play()
         }
+    }
+
+    /// The player is up but the video hasn't started (slow network): not an
+    /// error, it usually starts; the learner may move on meanwhile.
+    private var slowStartChip: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .controlSize(.small)
+                .tint(.white)
+            Text("Video başlıyor…")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+            if let onSkip {
+                Button {
+                    Haptics.light()
+                    onSkip()
+                } label: {
+                    Text("Sonraki sahne")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.Color.accent)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.pressable)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 36)
+        .background(Capsule().fill(Color.black.opacity(0.8)))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
     }
 
     private func errorOverlay(code: Int) -> some View {
@@ -592,6 +725,12 @@ struct PatternReelCard: View {
         "there's": (subjEn: "There",subjTr: "(orada)", auxEn: "is",  auxTr: "var"),
     ]
 
+    /// The Turkish gloss under each word: one fixed colour, so an upcoming
+    /// word is dimmed once (by its cell), not twice.
+    private static let glossColor = Color(hex: 0x9CABCC)
+    /// Upcoming words stay readable before they're spoken.
+    private static let upcomingOpacity = 0.72
+
     private static func cleaned(_ s: String) -> String {
         let trim = CharacterSet(charactersIn: ".,!?;:\"")
         return s.trimmingCharacters(in: trim).lowercased()
@@ -614,7 +753,7 @@ struct PatternReelCard: View {
                 Text(okunus)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .italic()
-                    .foregroundStyle(.white.opacity(phase == .upcoming ? 0.55 : 0.75))
+                    .foregroundStyle(.white.opacity(0.75))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
@@ -622,8 +761,7 @@ struct PatternReelCard: View {
             if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                 Text(tr)
                     .font(.system(size: 12, weight: .medium))
-                    .italic()
-                    .foregroundStyle(Color(hex: 0x9CABCC).opacity(phase == .upcoming ? 0.55 : 0.85))
+                    .foregroundStyle(Self.glossColor)
                     .multilineTextAlignment(.center)
                     // Force one line at natural width — same shape as
                     // the English/okunuş rows so the VStack reports a
@@ -632,7 +770,7 @@ struct PatternReelCard: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
         }
-        .opacity(phase == .upcoming ? 0.55 : 1.0)
+        .opacity(phase == .upcoming ? Self.upcomingOpacity : 1.0)
     }
 
     /// One half of a split subject+aux contraction. Both halves take
@@ -661,20 +799,19 @@ struct PatternReelCard: View {
                 Text(okunus)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .italic()
-                    .foregroundStyle(.white.opacity(phase == .upcoming ? 0.55 : 0.75))
+                    .foregroundStyle(.white.opacity(0.75))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
 
             Text(tr)
                 .font(.system(size: 12, weight: .medium))
-                .italic()
-                .foregroundStyle(Color(hex: 0x9CABCC).opacity(phase == .upcoming ? 0.55 : 0.85))
+                .foregroundStyle(Self.glossColor)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
-        .opacity(phase == .upcoming ? 0.55 : 1.0)
+        .opacity(phase == .upcoming ? Self.upcomingOpacity : 1.0)
     }
 
     /// A phrasal verb as one cell: joined English words, one shared
@@ -694,12 +831,11 @@ struct PatternReelCard: View {
 
             Text(tr)
                 .font(.system(size: 12, weight: .medium))
-                .italic()
-                .foregroundStyle(Color(hex: 0x9CABCC).opacity(phase == .upcoming ? 0.55 : 0.85))
+                .foregroundStyle(Self.glossColor)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
-        .opacity(phase == .upcoming ? 0.55 : 1.0)
+        .opacity(phase == .upcoming ? Self.upcomingOpacity : 1.0)
     }
 }

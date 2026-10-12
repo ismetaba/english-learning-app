@@ -17,7 +17,7 @@ struct PatternsView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 56)
 
-                        legend
+                        StructureLegend(compact: false)
                             .padding(.horizontal, 20)
 
                         PatternsPath(
@@ -32,7 +32,9 @@ struct PatternsView: View {
                 }
             }
             .navigationDestination(item: $selected) { pattern in
-                PatternIntroView(pattern: pattern)
+                // "Bitir" at the end of the akış pops straight back here,
+                // where the node now shows its ✓.
+                PatternIntroView(pattern: pattern, onFinished: { selected = nil })
                     .environmentObject(appState)
             }
         }
@@ -58,38 +60,6 @@ struct PatternsView: View {
                 .lineSpacing(3)
                 .padding(.top, 2)
         }
-    }
-
-    // MARK: - Legend (3-color key)
-
-    private var legend: some View {
-        HStack(spacing: 10) {
-            legendChip("özne", color: PatternSlotKind.subject.color)
-            legendChip("fiil", color: PatternSlotKind.verb.color)
-            legendChip("tamamlayıcı", color: PatternSlotKind.rest.color)
-            Spacer(minLength: 0)
-        }
-    }
-
-    private func legendChip(_ label: String, color: Color) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-            Text(label)
-                .font(.system(size: 11, weight: .heavy))
-                .tracking(0.4)
-                .foregroundStyle(Theme.Color.textSecondary)
-                .textCase(.uppercase)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            Capsule().fill(Theme.Color.backgroundCard.opacity(0.7))
-        )
-        .overlay(
-            Capsule().strokeBorder(color.opacity(0.4), lineWidth: 1)
-        )
     }
 }
 
@@ -390,6 +360,8 @@ struct PatternsPathNodeView: View {
 
 // MARK: - Color-coded formula row (shared with intro / akış)
 
+/// Hugs its chips, so the parent places it: centred under the akış
+/// sentences, leading in the intro's hero card.
 struct FormulaRow: View {
     let tokens: [PatternToken]
     var size: CGFloat = 14
@@ -404,7 +376,6 @@ struct FormulaRow: View {
                         .foregroundStyle(Theme.Color.textMuted)
                 }
             }
-            Spacer(minLength: 0)
         }
     }
 }

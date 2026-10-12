@@ -3,21 +3,29 @@ import SwiftUI
 // MARK: - Pattern intro screen
 //
 // First step of a kalıp: short formula + brief Turkish hook + a couple
-// of preview examples (with per-word TR). The "Akış'a başla" CTA hands
+// of preview examples (with per-word TR). The "Akışa başla" CTA hands
 // off to `PatternFlowView`, where the user actually internalizes the
 // pattern by scrolling through example sentences and (later) movie clips.
 
 struct PatternIntroView: View {
     @EnvironmentObject var appState: AppState
     let pattern: Pattern
+    /// "Bitir" on the akış's last card: the path closes the intro and the
+    /// akış together. Nil: the akış just closes back to this screen.
+    var onFinished: (() -> Void)? = nil
 
     @State private var showFlow = false
+
+    private var isCompleted: Bool { appState.isPatternCompleted(pattern.id) }
 
     var body: some View {
         ZStack {
             Theme.Color.background.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
+                    if isCompleted {
+                        completedChip
+                    }
                     heroCard
                     introCard
                     if let tip = pattern.tipTr {
@@ -40,7 +48,7 @@ struct PatternIntroView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 1) {
-                    Text(pattern.familyTr.uppercased())
+                    Text(pattern.familyTrCaps)
                         .font(.system(size: 9, weight: .heavy))
                         .tracking(1.4)
                         .foregroundStyle(Theme.Color.textMuted)
@@ -53,8 +61,10 @@ struct PatternIntroView: View {
         }
         .toolbarBackground(Theme.Color.background, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+        // Back is a bare chevron, not the system's English "Back".
+        .toolbarRole(.editor)
         .navigationDestination(isPresented: $showFlow) {
-            PatternFlowView(pattern: pattern)
+            PatternFlowView(pattern: pattern, onFinished: onFinished)
                 .environmentObject(appState)
         }
     }
@@ -98,6 +108,24 @@ struct PatternIntroView: View {
         )
     }
 
+    /// Neutral record that the akış was finished once; no reward.
+    private var completedChip: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 9, weight: .heavy))
+            Text("TAMAMLANDI")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
+        }
+        .foregroundStyle(Theme.Color.success)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Theme.Color.success.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(Theme.Color.success.opacity(0.4), lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Tamamlandı")
+    }
+
     // MARK: - Short Turkish intro
 
     private var introCard: some View {
@@ -138,7 +166,7 @@ struct PatternIntroView: View {
                 Image(systemName: "lightbulb.fill")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Theme.Color.xp)
-                Text("DİKKAT")
+                Text("İPUCU")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.2)
                     .foregroundStyle(Theme.Color.xp)
@@ -166,6 +194,7 @@ struct PatternIntroView: View {
 
     private var stickyCTA: some View {
         let count = pattern.examples.count
+        let hasVideo = pattern.videoStructureId != nil
         return VStack(spacing: 0) {
             Rectangle()
                 .fill(LinearGradient(
@@ -176,19 +205,20 @@ struct PatternIntroView: View {
                 .allowsHitTesting(false)
             VStack(spacing: 8) {
                 PrimaryButton(
-                    title: "Akış'a başla",
-                    icon: "play.fill",
+                    title: isCompleted ? "Tekrar et" : "Akışa başla",
+                    icon: isCompleted ? "arrow.counterclockwise" : "play.fill",
                     style: .primary,
                     fullWidth: true
                 ) {
                     Haptics.medium()
                     showFlow = true
                 }
-                Text("\(count) örnek + video akışı")
+                // Capitals spelled out: `.textCase(.uppercase)` ignores
+                // Turkish casing ("ÖRNEK" fine, "VIDEO" wrong).
+                Text(hasVideo ? "\(count) ÖRNEK + VİDEO AKIŞI" : "\(count) ÖRNEK")
                     .font(.system(size: 11, weight: .heavy))
                     .tracking(0.6)
                     .foregroundStyle(Theme.Color.textMuted)
-                    .textCase(.uppercase)
             }
             .padding(.horizontal, 20)
             // Lift above MainTabView's floating tab bar (~88pt + safe area).
