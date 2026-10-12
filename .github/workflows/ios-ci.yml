@@ -50,6 +50,7 @@ jobs:
         run: swift test
 
       - name: Check project.yml and committed project agree
+        if: ${{ !cancelled() }}
         working-directory: ios-native
         run: |
           curl -sSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/download/2.44.1/xcodegen.zip
@@ -62,6 +63,7 @@ jobs:
           cp /tmp/committed.pbxproj EnglishLearning.xcodeproj/project.pbxproj
 
       - name: Build and test app (iOS simulator)
+        if: ${{ !cancelled() }}
         working-directory: ios-native
         run: |
           UDID=$(xcrun simctl list devices available -j | python3 -c '
@@ -95,6 +97,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Player bridge harness (Chromium, fake YouTube)
+        if: ${{ !cancelled() }}
         working-directory: ios-native/Tools/PlayerHarness
         run: |
           npm ci --no-audit --no-fund
