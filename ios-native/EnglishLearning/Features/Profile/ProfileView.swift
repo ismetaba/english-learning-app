@@ -199,19 +199,24 @@ struct ProfileView: View {
     }
 
     private func lastNDays(_ n: Int) -> [(label: String, minutes: Double)] {
-        let cal = Calendar(identifier: .iso8601)
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.timeZone = TimeZone(secondsFromGMT: 0)
-        let d = DateFormatter(); d.dateFormat = "E"
-        var out: [(String, Double)] = []
+        // Session days are the learner's LOCAL calendar days
+        // (`SpacedRepetition.isoDay`), so bucket by those, not GMT.
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        let weekday = DateFormatter()
+        weekday.locale = Locale(identifier: "tr_TR")
+        weekday.timeZone = calendar.timeZone
+        weekday.dateFormat = "EEE"
+        var out: [(label: String, minutes: Double)] = []
         for offset in stride(from: n - 1, through: 0, by: -1) {
-            guard let day = cal.date(byAdding: .day, value: -offset, to: Date()) else { continue }
-            let iso = f.string(from: day)
-            let label = d.string(from: day).prefix(1)
+            let iso = SpacedRepetition.isoDay(byAdding: -offset, to: now, calendar: calendar)
+            let day = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
             let total = appState.progress.sessionHistory.filter { $0.date == iso }
                 .reduce(0) { $0 + $1.minutesWatched }
-            out.append((String(label), total))
+            out.append((label: weekday.string(from: day), minutes: total))
         }
-        return out.map { (label: $0.0, minutes: $0.1) }
+        return out
     }
 
     // MARK: - Language section

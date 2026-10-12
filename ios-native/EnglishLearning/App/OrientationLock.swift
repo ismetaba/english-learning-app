@@ -13,6 +13,24 @@ final class OrientationLock {
     static let shared = OrientationLock()
 
     private(set) var mask: UIInterfaceOrientationMask = .portrait
+    /// Views currently asking for landscape (see `LandscapeLock`). Counted
+    /// rather than toggled: a cinema cover and the cinema player inside it
+    /// both hold the lock, and SwiftUI may deliver the inner view's
+    /// `onDisappear` (e.g. when the video changes) while the cover is still
+    /// up — dropping to portrait there would rotate the cinema away.
+    private var landscapeHolders = Set<UUID>()
+
+    /// Keeps the app in landscape until every holder has released.
+    func holdLandscape(_ token: UUID) {
+        let wasEmpty = landscapeHolders.isEmpty
+        landscapeHolders.insert(token)
+        if wasEmpty { set(.landscape) }
+    }
+
+    func releaseLandscape(_ token: UUID) {
+        guard landscapeHolders.remove(token) != nil else { return }
+        if landscapeHolders.isEmpty { set(.portrait) }
+    }
 
     func set(_ mask: UIInterfaceOrientationMask) {
         self.mask = mask
@@ -42,23 +60,26 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-/// Tiny SwiftUI helper: applies a landscape lock for the lifetime
-/// of the view, restores portrait on disappear. Used by Cinema mode.
+/// Tiny SwiftUI helper: holds the landscape lock for the lifetime of the
+/// view and releases it on disappear; the app returns to portrait once no
+/// view holds it. Used by Cinema mode.
 struct LandscapeLock: ViewModifier {
+    @State private var token = UUID()
+
     func body(content: Content) -> some View {
         content
             .onAppear {
-                OrientationLock.shared.set(.landscape)
+                OrientationLock.shared.holdLandscape(token)
             }
             .onDisappear {
-                OrientationLock.shared.set(.portrait)
+                OrientationLock.shared.releaseLandscape(token)
             }
     }
 }
 
 extension View {
     /// Hold the device in landscape while this view is on screen.
-    /// Restored to portrait when the view is removed.
+    /// Restored to portrait once no landscape view remains.
     func lockToLandscape() -> some View {
         modifier(LandscapeLock())
     }

@@ -48,6 +48,7 @@ enum MainTab: Hashable, CaseIterable {
 
 struct MainTabView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selected: MainTab = .home
 
     var body: some View {
@@ -84,6 +85,11 @@ struct MainTabView: View {
         .animation(.easeInOut(duration: 0.24), value: selected)
         .animation(.easeInOut(duration: 0.22), value: appState.isVideoPlayerActive)
         .onAppear { appState.updateStreak() }
+        // The app can sit in the background across midnight; count the
+        // day when the learner comes back, not only on launch.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { appState.updateStreak() }
+        }
     }
 }
 

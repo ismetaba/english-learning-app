@@ -372,27 +372,62 @@ private struct ContextCard: View {
 
 // MARK: - Context player
 
-/// Wraps ClipPlayerView for a single VocabContext — synthesizes a
-/// one-line clip from the context, drops the user into the existing
-/// player at exactly that line.
+/// Drops the learner back into the scene a VocabContext came from: the
+/// whole scene (every subtitle line) when the video's clips are at hand,
+/// otherwise just the sentence — starting at the sentence either way
+/// (`ScenePlan`).
 struct VocabContextPlayerView: View {
     let context: VocabContext
 
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @State private var plan: ScenePlan? = nil
+
+    /// How long to wait for the full scene before playing just the sentence.
+    private static let sceneTimeoutNanoseconds: UInt64 = 4_000_000_000
 
     var body: some View {
         ZStack {
             Theme.Color.background.ignoresSafeArea()
-            ClipPlayerView(
-                clips: [context.asLessonClip()],
-                onFinish: { dismiss() },
-                onExit: { dismiss() },
-            )
-            .environmentObject(appState)
+            if let plan {
+                ClipPlayerView(
+                    clips: [plan.clip],
+                    onFinish: { dismiss() },
+                    onExit: { dismiss() },
+                    initialTime: plan.startAt,
+                )
+                .environmentObject(appState)
+            } else {
+                LoadingState(label: "Sahne hazırlanıyor")
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .hidesTabBarWhileVisible()
+        .task { await preparePlan() }
+    }
+
+    /// Fetches the video's scenes (session cache / saved copy answer at
+    /// once) but never waits more than a few seconds for them: past that
+    /// the sentence alone plays.
+    private func preparePlan() async {
+        guard plan == nil else { return }
+        let context = self.context
+        guard context.isPoc else {
+            plan = ScenePlan.make(context: context, videoClips: nil)
+            return
+        }
+        let fetch = Task {
+            try? await CurriculumRepository.shared.pocVideoClips(videoId: context.videoId)
+        }
+        let fallback = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.sceneTimeoutNanoseconds)
+            guard !Task.isCancelled, plan == nil else { return }
+            plan = ScenePlan.make(context: context, videoClips: nil)
+        }
+        let clips = await fetch.value
+        fallback.cancel()
+        guard plan == nil else { return }
+        plan = ScenePlan.make(context: context, videoClips: clips)
     }
 }

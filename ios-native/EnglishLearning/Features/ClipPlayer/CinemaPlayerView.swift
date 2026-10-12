@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// Landscape "cinema mode" player. Full-bleed video; karaoke subtitle
@@ -6,41 +7,51 @@ import SwiftUI
 /// portrait clip player. Top chrome auto-hides after a few seconds
 /// of idle so the frame fills the device. Tapping the video toggles
 /// pause/play and brings the chrome back.
+///
+/// Owns its own `YouTubePlayerController` + `KaraokeSync`, like
+/// `ClipPlayerView`: the page ends each clip window itself (`clipEnded`)
+/// and the karaoke follows every player event.
 struct CinemaPlayerView: View {
-    let clips: [LessonClip]
+    /// Sanitized once (`ClipTiming.sanitize`).
+    private let clips: [LessonClip]
+    /// `ClipTiming.playbackWindow` of each clip.
+    private let windows: [PlaybackWindow]
     /// Resume position when the user just toggled in from portrait.
-    /// Applied only to the FIRST clip we render — once we advance via
-    /// `next()`, subsequent clips ignore it and use their natural
-    /// `clip.startTime`. nil = start at the clip's natural beginning.
-    var initialTime: Double? = nil
+    /// Applied only to the FIRST clip we render — later clips start at
+    /// the beginning of their window. nil = start at the window start.
+    let initialTime: Double?
     /// Initial clip within the `clips` array, for the same resume case.
-    var initialClipIndex: Int = 0
-    /// Fires every player tick with the current clip index + absolute
-    /// video time. Lets the parent keep portrait/cinema in sync so
-    /// toggling between modes doesn't restart the video.
-    var onTick: ((Int, Double) -> Void)? = nil
-    /// Fires when the LAST clip in `clips` plays past its endTime —
-    /// the cinema-mode equivalent of ClipPlayerView.onFinish. Parents
+    let initialClipIndex: Int
+    /// Fires on every playhead report with the current clip index +
+    /// absolute video time. Lets the parent keep portrait/cinema in sync
+    /// so toggling between modes doesn't restart the video.
+    let onTick: ((Int, Double) -> Void)?
+    /// Fires when the LAST clip in `clips` plays to its end — the
+    /// cinema-mode equivalent of ClipPlayerView.onFinish. Parents
     /// use this to advance to the next video while keeping cinema on
     /// screen. If nil, cinema falls back to dismissing itself.
-    var onFinish: (() -> Void)? = nil
-    var onExit: (() -> Void)? = nil
+    let onFinish: (() -> Void)?
+    let onExit: (() -> Void)?
+    /// Skip for a video that can't play when there is no further clip
+    /// here; falls back to `onFinish`, then to leaving cinema. Setting it
+    /// also enables the error overlay's auto-skip countdown.
+    let onUnplayable: (() -> Void)?
 
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
+    @StateObject private var player = YouTubePlayerController()
+    @StateObject private var sync = KaraokeSync()
+    /// Player events re-delivered through SwiftUI (`onReceive`) so they are
+    /// handled with this view's current properties.
+    @State private var playerEvents = PassthroughSubject<PlayerEvent, Never>()
+
     @State private var index: Int
-    @State private var isPlaying = false
-    @State private var currentTime: Double
-    @State private var command: YouTubePlayerView.PlayerCommand? = nil
+    @State private var didStart = false
+    @State private var hasFirstFrame = false
     @State private var chromeHidden = false
     @State private var showTranslations = true
-    @State private var advancedFromClip: Set<Int> = []
     @State private var hideChromeWorkItem: DispatchWorkItem? = nil
-    /// True after we've called `next()` at least once. Distinguishes
-    /// "first clip, may need to honor initialTime" from "subsequent
-    /// clip, always start at clip.startTime".
-    @State private var didAdvance = false
 
     init(
         clips: [LessonClip],
@@ -49,46 +60,44 @@ struct CinemaPlayerView: View {
         onTick: ((Int, Double) -> Void)? = nil,
         onFinish: (() -> Void)? = nil,
         onExit: (() -> Void)? = nil,
+        onUnplayable: (() -> Void)? = nil,
     ) {
-        self.clips = clips
+        let prepared = clips.map { ClipTiming.sanitize($0) }
+        self.clips = prepared
+        self.windows = prepared.map { ClipTiming.playbackWindow(for: $0) }
         self.initialTime = initialTime
         self.initialClipIndex = initialClipIndex
         self.onTick = onTick
         self.onFinish = onFinish
         self.onExit = onExit
+        self.onUnplayable = onUnplayable
 
-        let safeIdx = max(0, min(initialClipIndex, max(0, clips.count - 1)))
+        let safeIdx = max(0, min(initialClipIndex, max(0, prepared.count - 1)))
         self._index = State(initialValue: safeIdx)
-        let resumeStart: Double
-        if clips.indices.contains(safeIdx) {
-            resumeStart = initialTime ?? clips[safeIdx].startTime
-        } else {
-            resumeStart = initialTime ?? 0
-        }
-        self._currentTime = State(initialValue: resumeStart)
     }
 
-    private var clip: LessonClip { clips[index] }
+    private static let emptyClip = LessonClip(id: -1, youtubeVideoId: "", movieTitle: "",
+                                              startTime: 0, endTime: 0, lines: [])
 
-    /// Effective YouTube `startTime` for the currently-rendered clip.
-    /// Honors `initialTime` only on the very first clip, before we've
-    /// auto-advanced — this is the resume-from-portrait case.
-    private var effectiveStartTime: Double {
-        if !didAdvance, let t = initialTime { return t }
-        return clip.startTime
+    private var clip: LessonClip {
+        clips.indices.contains(index) ? clips[index] : Self.emptyClip
     }
 
-    private var currentLineIndex: Int? {
-        guard !clip.lines.isEmpty else { return nil }
-        if let active = clip.lines.firstIndex(where: {
-            currentTime >= $0.startTime && currentTime <= $0.endTime
-        }) {
-            return active
-        }
-        if let lastPlayed = clip.lines.lastIndex(where: { $0.endTime < currentTime }) {
-            return lastPlayed
-        }
+    private var hasNextClip: Bool { index < clips.count - 1 }
+
+    private var isPlaybackActive: Bool {
+        player.state == .playing || player.state == .buffering
+    }
+
+    private var playerErrorMessage: String? {
+        if let code = player.errorCode { return YouTubeError.message(forCode: code) }
+        if clips.isEmpty { return "Bu videonun altyazıları henüz hazır değil." }
         return nil
+    }
+
+    /// The chrome stays up while an error is shown so the way out is visible.
+    private var isChromeVisible: Bool {
+        !chromeHidden || playerErrorMessage != nil
     }
 
     var body: some View {
@@ -110,18 +119,44 @@ struct CinemaPlayerView: View {
                     }
                 }
 
+            if !hasFirstFrame && playerErrorMessage == nil {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.large)
+                    .tint(.white)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+
+            if let message = playerErrorMessage {
+                PlayerErrorOverlay(
+                    message: message,
+                    onRetry: retryAction,
+                    onSkip: skipAction,
+                    skipLabel: skipLabel,
+                    autoSkipAfter: onUnplayable != nil ? 5 : nil
+                )
+                .ignoresSafeArea()
+                .transition(.opacity)
+            }
+
             VStack(spacing: 0) {
                 topChrome
-                    .opacity(chromeHidden ? 0 : 1)
-                    .allowsHitTesting(!chromeHidden)
+                    .opacity(isChromeVisible ? 1 : 0)
+                    .allowsHitTesting(isChromeVisible)
                 Spacer(minLength: 0)
-                karaokeStrip
-                    .padding(.bottom, 18)
+                if playerErrorMessage == nil {
+                    karaokeStrip
+                        .padding(.bottom, 18)
+                }
             }
             .ignoresSafeArea()
             .animation(.easeInOut(duration: 0.25), value: chromeHidden)
+            .animation(.easeInOut(duration: 0.2), value: sync.position.lineIndex)
         }
         .background(Color.black.ignoresSafeArea())
+        .animation(.easeInOut(duration: 0.2), value: player.errorCode)
+        .animation(.easeInOut(duration: 0.22), value: hasFirstFrame)
         .preferredColorScheme(.dark)
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
@@ -131,14 +166,13 @@ struct CinemaPlayerView: View {
         .hidesTabBarWhileVisible()
         .onAppear {
             scheduleChromeHide()
+            startIfNeeded()
         }
         .onDisappear {
             hideChromeWorkItem?.cancel()
         }
-        .onChange(of: clip.id) { _, _ in
-            currentTime = clip.startTime
-            command = .reload
-            advancedFromClip = []
+        .onReceive(playerEvents) { event in
+            handle(event)
         }
     }
 
@@ -153,12 +187,11 @@ struct CinemaPlayerView: View {
             //
             // Modern iPhones in landscape are ~19.5:9, so a plain
             // .frame(geo.size) hands the WebView a wider-than-16:9
-            // canvas and YouTube black-bars the 16:9 content with
-            // pillars on the left/right — the "shifted" look. We size
+            // canvas and YouTube pillarboxes the 16:9 content. We size
             // the WebView itself at 16:9 (matched to the wider of the
-            // two screen dimensions) so the iframe's video content
-            // fills that 16:9 area, then the outer frame + .clipped()
-            // crops whatever overflows the actual screen rectangle.
+            // two screen dimensions) so the video fills that 16:9 area,
+            // then the outer frame + .clipped() crops whatever overflows
+            // the actual screen rectangle.
             let videoAspect: CGFloat = 16.0 / 9.0
             let screenAspect = geo.size.width / max(1, geo.size.height)
             let videoSize: CGSize = screenAspect > videoAspect
@@ -167,28 +200,10 @@ struct CinemaPlayerView: View {
                 : CGSize(width: geo.size.height * videoAspect,
                          height: geo.size.height)
 
-            YouTubePlayerView(
-                videoId: clip.youtubeVideoId,
-                startTime: effectiveStartTime,
-                endTime: clip.endTime,
-                autoplay: true,
-                isPlaying: $isPlaying,
-                currentTime: { t in
-                    self.currentTime = t
-                    onTick?(index, t)
-                    if t >= clip.endTime - 0.05,
-                       !advancedFromClip.contains(index) {
-                        advancedFromClip.insert(index)
-                        next()
-                    }
-                },
-                onReady: { isPlaying = true },
-                onEnded: { next() },
-                command: $command,
-            )
-            .frame(width: videoSize.width, height: videoSize.height)
-            .frame(width: geo.size.width, height: geo.size.height)
-            .clipped()
+            YouTubePlayerView(controller: player)
+                .frame(width: videoSize.width, height: videoSize.height)
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
         }
     }
 
@@ -265,12 +280,14 @@ struct CinemaPlayerView: View {
 
     @ViewBuilder
     private var karaokeStrip: some View {
-        if let i = currentLineIndex, !clip.lines.isEmpty {
+        let position = sync.position
+        if let i = position.lineIndex, clip.lines.indices.contains(i) {
             let line = clip.lines[i]
             VStack(spacing: 10) {
                 CinemaKaraokeLine(
                     line: line,
-                    currentTime: currentTime,
+                    lineIndex: i,
+                    position: position,
                     showTranslations: showTranslations,
                 )
             }
@@ -289,13 +306,100 @@ struct CinemaPlayerView: View {
         }
     }
 
+    // MARK: - Error overlay actions
+
+    private var retryAction: (() -> Void)? {
+        guard !clips.isEmpty else { return nil }
+        return {
+            hasFirstFrame = false
+            player.retry()
+        }
+    }
+
+    private var skipAction: (() -> Void)? {
+        if hasNextClip { return { switchToClip(index + 1) } }
+        if let skip = onUnplayable ?? onFinish { return skip }
+        return { exitCinema() }
+    }
+
+    private var skipLabel: String {
+        if hasNextClip { return "Sonraki sahne" }
+        return onUnplayable != nil || onFinish != nil ? "Sonrakine geç" : "Sinemadan çık"
+    }
+
+    // MARK: - Player plumbing
+
+    private func startIfNeeded() {
+        guard !didStart, clips.indices.contains(index) else { return }
+        didStart = true
+
+        let karaoke = sync
+        let events = playerEvents
+        player.onEvent = { [weak karaoke] event, hostTime in
+            karaoke?.handle(event, hostTime: hostTime)
+            events.send(event)
+        }
+        load(clipAt: index, startingAt: initialTime)
+    }
+
+    private func load(clipAt clipIndex: Int, startingAt time: Double?) {
+        guard clips.indices.contains(clipIndex) else { return }
+        let target = clips[clipIndex]
+        let window = windows[clipIndex]
+        let start = Self.startTime(time, in: window)
+        hasFirstFrame = false
+        sync.setLines(target.lines)
+        player.load(PlayerSource(videoId: target.youtubeVideoId, start: start, end: window.end, autoplay: true))
+        if start != window.start {
+            // Resumed mid-clip: a replay after the end still starts at the
+            // beginning of the clip.
+            player.setBounds(start: window.start, end: window.end, loop: false)
+        }
+        sync.jump(to: start)
+    }
+
+    /// `time` when it leaves something of the window to play, else the
+    /// window's start.
+    private static func startTime(_ time: Double?, in window: PlaybackWindow) -> Double {
+        guard let time, time.isFinite, time >= 0, time < window.end - 0.25 else { return window.start }
+        return time
+    }
+
+    private func handle(_ event: PlayerEvent) {
+        switch event {
+        case .state(let state):
+            switch state {
+            case .playing, .paused, .cued, .ended: markFirstFrame()
+            case .unstarted, .buffering: break
+            }
+        case .time(let t, let playing):
+            if playing { markFirstFrame() }
+            onTick?(index, t)
+        case .clipEnded:
+            markFirstFrame()
+            next()
+        case .bridgeReady, .ready, .error:
+            // Errors surface through `player.errorCode`.
+            break
+        }
+    }
+
+    private func markFirstFrame() {
+        if !hasFirstFrame { hasFirstFrame = true }
+    }
+
+    private func switchToClip(_ newIndex: Int) {
+        guard clips.indices.contains(newIndex) else { return }
+        withAnimation { index = newIndex }
+        load(clipAt: newIndex, startingAt: nil)
+    }
+
     // MARK: - Actions
 
     private func next() {
-        didAdvance = true
-        if index < clips.count - 1 {
+        if hasNextClip {
             Haptics.medium()
-            withAnimation { index += 1 }
+            switchToClip(index + 1)
         } else {
             Haptics.success()
             // Hand off to the parent so it can advance to the next video
@@ -318,7 +422,11 @@ struct CinemaPlayerView: View {
             revealChrome()
         } else {
             // Single tap with chrome visible = pause/play.
-            command = isPlaying ? .pause : .play
+            if isPlaybackActive {
+                player.pause()
+            } else {
+                player.play()
+            }
             scheduleChromeHide()
         }
     }
@@ -346,11 +454,15 @@ struct CinemaPlayerView: View {
 
 /// Renders one subtitle line for cinema mode — bigger fonts than the
 /// portrait player, centered, with the structure colors and per-word
-/// Turkish gloss. Active word lights up cyan + scales subtly so the
-/// karaoke moves visibly without ever fragmenting the line.
+/// Turkish gloss. Words are coloured by their karaoke phase in
+/// `position`: the active word lights up in the accent colour and scales
+/// subtly, upcoming words are dimmed, past words keep their structure
+/// colour.
 struct CinemaKaraokeLine: View {
     let line: ClipLine
-    let currentTime: Double
+    /// Index of `line` in its clip, as `SyncPosition.lineIndex` counts.
+    let lineIndex: Int
+    let position: SyncPosition
     let showTranslations: Bool
 
     var body: some View {
@@ -364,24 +476,28 @@ struct CinemaKaraokeLine: View {
                 cinemaWord(
                     word: w,
                     index: w.wordIndex ?? i,
+                    phase: position.phase(ofWord: i, inLine: lineIndex),
                     subjectIdx: subjectIdx,
                     auxIdx: auxIdx,
                 )
             }
         }
         .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.22), value: currentTime)
+        // Keyed on the karaoke position (a few changes a second), never
+        // on the clock.
+        .animation(.easeInOut(duration: 0.15), value: position)
     }
 
     @ViewBuilder
     private func cinemaWord(
         word w: ClipWord,
         index idx: Int,
+        phase: WordPhase,
         subjectIdx: Set<Int>,
         auxIdx: Set<Int>,
     ) -> some View {
-        let isActive = currentTime >= w.startTime && currentTime < w.endTime
-        let isUpcoming = currentTime < w.startTime
+        let isActive = phase == .active
+        let isUpcoming = phase == .upcoming
 
         let bucketKind: BucketKind = {
             if subjectIdx.contains(idx) { return .subject }

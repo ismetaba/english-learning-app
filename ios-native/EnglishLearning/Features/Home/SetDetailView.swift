@@ -82,17 +82,19 @@ struct SetDetailView: View {
             HStack(spacing: 8) {
                 MetaPill(icon: "film.stack", label: "\(set.videos.count) video")
                 MetaPill(icon: "character.book.closed", label: "\(set.distinctStarterWordCount) kelime")
+                WatchProgressPill(watched: watchedCount, total: set.videos.count)
             }
 
-            // Primary call-to-action — starts the set from video 1.
+            // Primary call-to-action — starts the set, picks up at the
+            // first unwatched video, or starts over once all are watched.
             Button(action: {
                 Haptics.success()
-                startIndex = 0
+                startIndex = primaryAction.startIndex
             }) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
+                    Image(systemName: primaryAction.icon)
                         .font(.system(size: 14, weight: .heavy))
-                    Text("Sete Başla")
+                    Text(primaryAction.title)
                         .font(.system(size: 16, weight: .heavy))
                 }
                 .foregroundStyle(.white)
@@ -130,6 +132,7 @@ struct SetDetailView: View {
                 SetVideoRow(
                     video: v,
                     position: i + 1,
+                    isWatched: appState.isVideoWatched(v.id),
                     onTap: {
                         Haptics.medium()
                         startIndex = i
@@ -137,6 +140,24 @@ struct SetDetailView: View {
                 )
             }
         }
+    }
+
+    private var watchedCount: Int {
+        set.videos.filter { appState.isVideoWatched($0.id) }.count
+    }
+
+    /// The hero button: start, continue at the first unwatched video, or
+    /// rewatch from the top.
+    private var primaryAction: (title: String, icon: String, startIndex: Int) {
+        let total = set.videos.count
+        let watched = watchedCount
+        if watched == 0 {
+            return ("Sete Başla", "play.fill", 0)
+        }
+        if let next = set.videos.firstIndex(where: { !appState.isVideoWatched($0.id) }) {
+            return ("Devam et · \(watched)/\(total)", "play.fill", next)
+        }
+        return ("Baştan izle", "arrow.counterclockwise", 0)
     }
 
     private var difficultyLabel: String {
@@ -193,6 +214,7 @@ struct ThumbnailMosaic: View {
 private struct SetVideoRow: View {
     let video: PocVideo
     let position: Int
+    let isWatched: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -200,14 +222,23 @@ private struct SetVideoRow: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(Theme.Color.backgroundSurface)
+                        .fill(isWatched ? Theme.Color.accent.opacity(0.18) : Theme.Color.backgroundSurface)
                         .overlay(
-                            Circle().strokeBorder(Theme.Color.border, lineWidth: 1),
+                            Circle().strokeBorder(
+                                isWatched ? Theme.Color.accent.opacity(0.6) : Theme.Color.border,
+                                lineWidth: 1,
+                            ),
                         )
                         .frame(width: 32, height: 32)
-                    Text(String(format: "%02d", position))
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Theme.Color.textSecondary)
+                    if isWatched {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(Theme.Color.accent)
+                    } else {
+                        Text(String(format: "%02d", position))
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Theme.Color.textSecondary)
+                    }
                 }
 
                 AsyncImage(url: video.thumbnailURL) { phase in
@@ -292,6 +323,8 @@ struct SetPlayerView: View {
 
     @State private var index: Int
     @State private var clips: [LessonClip] = []
+    /// The video `clips` were loaded for.
+    @State private var loadedVideoId: String? = nil
     @State private var errorMessage: String? = nil
     @State private var phase: Phase = .loading
 
@@ -301,11 +334,10 @@ struct SetPlayerView: View {
     /// would also dismount the cinema cover, kicking the user back
     /// to portrait every time a video finished.
     @State private var showCinema: Bool = false
-    /// Shared playback position so portrait↔cinema toggles resume
-    /// at the same spot. Updated continuously by whichever player
-    /// is on screen via its `onTick` callback.
-    @State private var sharedClipIdx: Int = 0
-    @State private var sharedTime: Double? = nil
+    /// Shared playback position so portrait↔cinema toggles resume at the
+    /// same spot. Updated continuously by whichever player is on screen
+    /// via its `onTick` callback.
+    @State private var playhead = SetPlayhead()
     /// One-shot seek payload — when cinema dismisses, we hand the
     /// last known time to ClipPlayerView so portrait can pick up
     /// where cinema left off.
@@ -328,17 +360,30 @@ struct SetPlayerView: View {
                 .opacity(phase == .playing ? 1 : 0)
 
             // Loading state.
-            if phase == .loading {
+            if phase == .loading && errorMessage == nil {
                 LoadingState(label: "\(index + 1) / \(set.videos.count) yükleniyor")
                     .transition(.opacity)
             }
 
             // Error state.
             if let err = errorMessage {
-                ErrorState(message: err) {
-                    Task { await load() }
-                }
+                ErrorState(
+                    message: err,
+                    onRetry: { Task { await load() } },
+                    secondary: skipVideoAction,
+                )
+                .background(Theme.Color.background.ignoresSafeArea())
                 .transition(.opacity)
+            }
+
+            // The player's own back button isn't on screen while a video
+            // loads or fails to; keep a way out.
+            if phase == .loading || errorMessage != nil {
+                closeButton
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.leading, 16)
+                    .padding(.top, 8)
+                    .transition(.opacity)
             }
 
             // Transition overlay (between videos).
@@ -382,17 +427,15 @@ struct SetPlayerView: View {
                    clips.first?.youtubeVideoId == currentVideo.youtubeVideoId {
                     CinemaPlayerView(
                         clips: clips,
-                        initialTime: sharedTime,
-                        initialClipIndex: sharedClipIdx,
-                        onTick: { idx, t in
-                            sharedClipIdx = idx
-                            sharedTime = t
-                        },
-                        onFinish: { onVideoFinished() },
+                        initialTime: playhead.resumeTime(for: currentVideo.id),
+                        initialClipIndex: playhead.resumeClipIndex(for: currentVideo.id),
+                        onTick: tickRecorder(for: currentVideo.id),
+                        onFinish: { [videoId = currentVideo.id] in onVideoFinished(videoId) },
                         onExit: {
-                            portraitResumeAt = sharedTime
+                            portraitResumeAt = playhead.resumeTime(for: currentVideo.id)
                             showCinema = false
                         },
+                        onUnplayable: { [videoId = currentVideo.id] in skipUnplayableVideo(videoId) },
                     )
                     .id(currentVideo.id)
                     .environmentObject(appState)
@@ -406,42 +449,73 @@ struct SetPlayerView: View {
         self.set.videos[index]
     }
 
+    private var hasNextVideo: Bool { index < set.videos.count - 1 }
+
     @ViewBuilder
     private var playerLayer: some View {
         // Only mount ClipPlayerView when the loaded clips actually
-        // belong to the current video. Without this guard, advancing
-        // re-mounts ClipPlayerView via `.id(currentVideo.id)` while
-        // `clips` still holds the previous video's data — the inner
-        // YouTubePlayerView gets initialized with the OLD videoId, and
-        // its UIViewRepresentable.updateUIView doesn't handle videoId
-        // changes, so the WebView keeps showing the just-finished
-        // video while the player UI says it's the new one.
+        // belong to the current video, so a remount never starts with
+        // the previous video's data.
         if !clips.isEmpty,
            clips.first?.youtubeVideoId == currentVideo.youtubeVideoId {
             ClipPlayerView(
                 clips: clips,
-                onFinish: { onVideoFinished() },
+                onFinish: { [videoId = currentVideo.id] in onVideoFinished(videoId) },
                 onExit: { dismiss() },
                 onCinemaRequest: { showCinema = true },
-                initialClipIndex: sharedClipIdx,
-                initialTime: sharedTime,
-                onTick: { idx, t in
-                    sharedClipIdx = idx
-                    sharedTime = t
-                },
+                initialClipIndex: playhead.resumeClipIndex(for: currentVideo.id),
+                initialTime: playhead.resumeTime(for: currentVideo.id),
+                onTick: tickRecorder(for: currentVideo.id),
                 resumeAt: $portraitResumeAt,
                 isPaused: showCinema,
+                onUnplayable: { [videoId = currentVideo.id] in skipUnplayableVideo(videoId) },
             )
             .id(currentVideo.id)
             .environmentObject(appState)
         }
     }
 
+    private var closeButton: some View {
+        Button {
+            Haptics.light()
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Theme.Color.textPrimary)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Theme.Color.backgroundCard))
+                .overlay(Circle().strokeBorder(Theme.Color.border, lineWidth: 1))
+        }
+        .buttonStyle(.pressable)
+    }
+
+    /// "Sonraki videoya geç" under the error, unless this is the last video.
+    private var skipVideoAction: (label: String, run: () -> Void)? {
+        guard hasNextVideo else { return nil }
+        return (label: "Sonraki videoya geç", run: { advanceNow() })
+    }
+
+    /// Records a player's position, tagged with the video it belongs to so
+    /// a late report from the previous video can't become the next one's
+    /// start time.
+    private func tickRecorder(for videoId: String) -> (Int, Double) -> Void {
+        let playhead = self.playhead
+        return { clipIndex, time in
+            playhead.record(videoId: videoId, clipIndex: clipIndex, time: time)
+        }
+    }
+
     // MARK: - Phase transitions
 
-    private func onVideoFinished() {
+    /// `videoId` is the video the reporting player was showing; reports
+    /// for any other video (a second player finishing the same video, a
+    /// late callback) are ignored.
+    private func onVideoFinished(_ videoId: String) {
+        guard videoId == currentVideo.id, phase == .playing else { return }
+        appState.markVideoWatched(videoId)
         Haptics.success()
-        if index < set.videos.count - 1 {
+        if hasNextVideo {
             if showCinema {
                 // In cinema we skip the next-up overlay entirely —
                 // it would render under the cover anyway, and the
@@ -453,29 +527,41 @@ struct SetPlayerView: View {
                 }
             }
         } else {
-            // Last video done — drop out of cinema so the completion
-            // overlay is visible (it's portrait-only).
-            if showCinema { showCinema = false }
-            withAnimation(.easeInOut(duration: 0.5)) {
-                phase = .completed
-            }
+            completeSet()
+        }
+    }
+
+    /// A video that can't play was skipped: move on without counting it
+    /// as watched.
+    private func skipUnplayableVideo(_ videoId: String) {
+        guard videoId == currentVideo.id, phase == .playing else { return }
+        if hasNextVideo {
+            advanceNow()
+        } else {
+            completeSet()
+        }
+    }
+
+    private func completeSet() {
+        // Drop out of cinema so the completion overlay is visible
+        // (it's portrait-only).
+        if showCinema { showCinema = false }
+        withAnimation(.easeInOut(duration: 0.5)) {
+            phase = .completed
         }
     }
 
     private func advanceNow() {
         // Step into the next video. Clear clips first so the previous
         // video's data is unambiguously gone before we mount a fresh
-        // player — playerLayer's videoId-match guard is the safety
-        // net, but explicitly clearing here makes the timing visible
-        // in state and prevents a flash of the old WebView.
+        // player — playerLayer's videoId-match guard is the safety net.
         let next = index + 1
         guard next < self.set.videos.count else { return }
         Haptics.medium()
-        // Reset the shared playback position so the new video starts
-        // at its own clip.startTime rather than inheriting the previous
-        // video's tail-of-clip time.
-        sharedClipIdx = 0
-        sharedTime = nil
+        // The new video starts at its own beginning.
+        playhead.reset()
+        errorMessage = nil
+        loadedVideoId = nil
         withAnimation(.easeInOut(duration: 0.3)) {
             clips = []
             phase = .loading
@@ -487,33 +573,33 @@ struct SetPlayerView: View {
 
     @MainActor
     private func load() async {
+        let video = currentVideo
+        // iOS re-runs `.task` when the view reappears (e.g. after the
+        // cinema cover closes); the clips on screen are still right.
+        if loadedVideoId == video.id, !clips.isEmpty, errorMessage == nil { return }
         // Don't override .completed / .transitioning when an
-        // accidental re-fire happens (e.g. iOS re-runs .task).
+        // accidental re-fire happens.
         if phase != .transitioning && phase != .completed {
             phase = .loading
         }
         errorMessage = nil
         do {
-            let fetched = try await CurriculumRepository.shared.pocVideoClips(
-                videoId: currentVideo.id,
-            )
-            // The backend returns multiple "approved" curations of the
-            // same scene per video — auto-advancing through them would
-            // loop the same dialogue again under the same YouTube id.
-            // For the SET flow we want one playthrough per video, so
-            // pick the single clip that surfaces the MOST tagged
-            // dialogue. Earlier this picked the longest by duration,
-            // but the longest clip often had a sparser whisper pass
-            // and ended up showing fewer colored lines than a shorter
-            // alternate cut. Tie-break on duration so a denser clip
-            // doesn't lose to a marginally fuller but tiny one.
-            let primary = fetched.max(by: { a, b in
-                if a.lines.count != b.lines.count {
-                    return a.lines.count < b.lines.count
-                }
-                return (a.endTime - a.startTime) < (b.endTime - b.startTime)
-            })
-            clips = primary.map { [$0] } ?? []
+            let fetched = try await CurriculumRepository.shared.pocVideoClips(videoId: video.id)
+            // `.task(id:)` restarts on every index change; a result for a
+            // video we've already left is dropped. (A result for the current
+            // video is kept even if this task was cancelled meanwhile, e.g.
+            // by a cover hiding the screen — it is still the right data.)
+            guard video.id == currentVideo.id else { return }
+            // The backend returns several curations of the same scene per
+            // video; the set plays one per video — the one showing the most
+            // tagged dialogue.
+            guard let primary = PrimaryClip.pick(fetched) else {
+                clips = []
+                errorMessage = "Bu videonun altyazıları henüz hazır değil."
+                return
+            }
+            clips = [ClipTiming.sanitize(primary)]
+            loadedVideoId = video.id
             // Only push to playing if we're not in a higher-priority
             // overlay state.
             if phase == .loading {
@@ -521,9 +607,51 @@ struct SetPlayerView: View {
                     phase = .playing
                 }
             }
+            prefetchNextVideo()
         } catch {
+            // A cancelled load (the learner moved on) is not a failure.
+            if error is CancellationError { return }
+            if let urlError = error as? URLError, urlError.code == .cancelled { return }
+            guard video.id == currentVideo.id else { return }
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Warms the next video's clips while this one plays, so the advance
+    /// is instant.
+    private func prefetchNextVideo() {
+        guard hasNextVideo else { return }
+        let nextId = set.videos[index + 1].id
+        Task { await CurriculumRepository.shared.prefetchPocVideoClips(videoId: nextId) }
+    }
+}
+
+/// Where a set's on-screen player is. A reference type on purpose: the
+/// players report ~10 times a second, and keeping that in `@State` would
+/// re-render the whole set player (and both video screens) on every report.
+private final class SetPlayhead {
+    private var videoId: String? = nil
+    private var clipIndex = 0
+    private var time: Double? = nil
+
+    func record(videoId: String, clipIndex: Int, time: Double) {
+        self.videoId = videoId
+        self.clipIndex = clipIndex
+        self.time = time
+    }
+
+    func resumeClipIndex(for videoId: String) -> Int {
+        self.videoId == videoId ? clipIndex : 0
+    }
+
+    func resumeTime(for videoId: String) -> Double? {
+        self.videoId == videoId ? time : nil
+    }
+
+    func reset() {
+        videoId = nil
+        clipIndex = 0
+        time = nil
     }
 }
 

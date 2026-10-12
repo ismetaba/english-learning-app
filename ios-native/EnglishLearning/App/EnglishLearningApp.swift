@@ -21,6 +21,7 @@ struct EnglishLearningApp: App {
 struct RootView: View {
     @EnvironmentObject var appState: AppState
 
+    #if DEBUG
     /// Debug entry point — launching with `-StartInClipPlayer YES` boots straight
     /// into ClipPlayerView with live data. Used for design iteration on simulator.
     private var startsInClipPlayer: Bool {
@@ -28,12 +29,19 @@ struct RootView: View {
             ProcessInfo.processInfo.environment["START_IN_CLIP_PLAYER"] == "1"
     }
 
+    private var debugClipPlayer: some View { DebugClipPlayerLauncher() }
+    #else
+    private var startsInClipPlayer: Bool { false }
+
+    private var debugClipPlayer: some View { EmptyView() }
+    #endif
+
     var body: some View {
         ZStack {
             Theme.Color.background.ignoresSafeArea()
 
             if startsInClipPlayer {
-                DebugClipPlayerLauncher()
+                debugClipPlayer
             } else if !appState.isLoaded {
                 SplashView()
                     .transition(.opacity)
@@ -50,6 +58,7 @@ struct RootView: View {
     }
 }
 
+#if DEBUG
 /// Fetches the first lesson's clips and jumps straight into ClipPlayerView.
 /// Only reachable via launch argument; not wired into normal navigation.
 private struct DebugClipPlayerLauncher: View {
@@ -85,6 +94,7 @@ private struct DebugClipPlayerLauncher: View {
         }
     }
 }
+#endif
 
 struct SplashView: View {
     @State private var animate = false
