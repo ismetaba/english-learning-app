@@ -10,31 +10,59 @@ final class VocabFeedViewModel: ObservableObject {
     /// The pool `items` were fetched for; nil until a load succeeds.
     private(set) var loadedPool: [String]? = nil
 
+    /// The server deals a word again only this many cards later.
+    static let wordCooldown = 4
+
     /// The feed was never loaded, or the learner's pool changed since.
     func isStale(for poolIds: [String]) -> Bool {
         loadedPool != poolIds
     }
 
     /// Loads only when the feed is stale for `poolIds`, keeping the cards
-    /// through `keepId` in place (see `load`).
-    func loadIfStale(poolIds: [String], keepingThrough keepId: String?) async {
+    /// through the one `keepId` names when the response lands (see `load`).
+    func loadIfStale(poolIds: [String], keepingThrough keepId: () -> String?) async {
         guard isStale(for: poolIds) else { return }
         await load(poolIds: poolIds, keepingThrough: keepId)
     }
 
-    /// Fetches a fresh shuffle for `poolIds`. With `keepingThrough`, the
-    /// cards up to and including that one stay where they are (the
-    /// learner is on it) and only the cards after it are replaced.
-    func load(poolIds: [String], keepingThrough keepId: String? = nil, forceRefresh: Bool = false) async {
-        if !forceRefresh { isLoading = true }
+    /// Fetches a fresh shuffle for `poolIds`. `keepingThrough` is asked once
+    /// the response is in, for the card the learner is on *then* (they may
+    /// have swiped during the fetch): the cards up to and including it stay
+    /// where they are and only the ones after it are replaced. With nothing
+    /// to keep, the feed starts with the word added last.
+    func load(poolIds: [String], keepingThrough keepId: () -> String? = { nil },
+              forceRefresh: Bool = false) async {
+        // The feed is pool-only: an empty pool has no cards, and the server
+        // would scan the whole corpus just to say so.
+        guard !poolIds.isEmpty else {
+            items = []
+            loadedPool = poolIds
+            errorMessage = nil
+            isLoading = false
+            return
+        }
+        // A refresh over cards on screen stays quiet; with nothing on screen
+        // (a retry from the error state) the spinner shows, not the empty
+        // feed's message.
+        if !forceRefresh || items.isEmpty { isLoading = true }
         errorMessage = nil
+        let previousPool = loadedPool
         do {
             let response = try await CurriculumRepository.shared.vocabFeed(
                 poolIds: poolIds,
                 includeDiscovery: false,
                 limit: 80,
             )
-            self.items = Self.splice(current: items, keepingThrough: keepId, fresh: response.items)
+            let keep = keepId()
+            if let keep, items.contains(where: { $0.id == keep }) {
+                // A word added since the last load (in a scene opened from
+                // here, or on another tab) is the next card.
+                let added = poolIds.last.flatMap { previousPool?.contains($0) == false ? $0 : nil }
+                self.items = Self.splice(current: items, keepingThrough: keep, fresh: response.items,
+                                         leadingWord: added)
+            } else {
+                self.items = Self.leadingWithNewest(response.items, newestWordId: poolIds.last)
+            }
             self.loadedPool = poolIds
         } catch {
             self.errorMessage = error.localizedDescription
@@ -43,23 +71,56 @@ final class VocabFeedViewModel: ObservableObject {
     }
 
     /// `current` up to and including the card `keepId`, then the `fresh`
-    /// cards it doesn't already hold; just `fresh` when there's nothing
-    /// to keep.
+    /// cards it doesn't already hold (led by `leadingWord`'s first card when
+    /// given); just `fresh` when there's nothing to keep.
     static func splice(current: [VocabFeedItem], keepingThrough keepId: String?,
-                       fresh: [VocabFeedItem]) -> [VocabFeedItem] {
+                       fresh: [VocabFeedItem], leadingWord: String? = nil) -> [VocabFeedItem] {
         guard let keepId, let lastKept = current.firstIndex(where: { $0.id == keepId }) else { return fresh }
         let kept = Array(current[...lastKept])
         let keptIds = Set(kept.map(\.id))
         var upcoming = fresh.filter { !keptIds.contains($0.id) }
-        // The server never deals the same word twice in a row; keep that
-        // true across the seam.
-        let currentWord = current[lastKept].wordId
-        if upcoming.first?.wordId == currentWord,
-           let other = upcoming.firstIndex(where: { $0.wordId != currentWord }) {
-            let moved = upcoming.remove(at: other)
-            upcoming.insert(moved, at: 0)
+        if let leadingWord, let first = upcoming.firstIndex(where: { $0.wordId == leadingWord }) {
+            let lead = upcoming.remove(at: first)
+            upcoming.insert(lead, at: 0)
         }
-        return kept + upcoming
+        // The server never deals the same word twice in a row; keep that
+        // true across the seam (the kept card anchors the pass).
+        let separated = separatingRepeats([current[lastKept]] + upcoming)
+        return kept + separated.dropFirst()
+    }
+
+    /// `fresh` starting with the newest word's first card, its next card
+    /// brought up to `wordCooldown` (seen again soon, never back to back).
+    /// `learnedWords` is append-only, so the pool's last id is the newest.
+    static func leadingWithNewest(_ fresh: [VocabFeedItem], newestWordId: String?) -> [VocabFeedItem] {
+        guard let newest = newestWordId,
+              let first = fresh.firstIndex(where: { $0.wordId == newest }) else { return fresh }
+        var out = fresh
+        let lead = out.remove(at: first)
+        var again: VocabFeedItem? = nil
+        if let second = out.firstIndex(where: { $0.wordId == newest }) {
+            again = out.remove(at: second)
+        }
+        out.insert(lead, at: 0)
+        if let again { out.insert(again, at: min(wordCooldown, out.count)) }
+        return separatingRepeats(out)
+    }
+
+    /// Moves cards forward so no word plays twice in a row, wherever a
+    /// different word is left to fill the gap. The first card stays first.
+    static func separatingRepeats(_ items: [VocabFeedItem]) -> [VocabFeedItem] {
+        var out = items
+        var k = 1
+        while k < out.count {
+            let previousWord = out[k - 1].wordId
+            if out[k].wordId == previousWord,
+               let other = out[(k + 1)...].firstIndex(where: { $0.wordId != previousWord }) {
+                let moved = out.remove(at: other)
+                out.insert(moved, at: k)
+            }
+            k += 1
+        }
+        return out
     }
 }
 
@@ -87,7 +148,10 @@ struct VocabFeedView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if vm.isLoading && vm.items.isEmpty {
+            if vm.items.isEmpty && appState.progress.learnedWords.isEmpty {
+                // Nothing added yet: nothing to fetch, say how to fill it.
+                emptyState
+            } else if vm.isLoading && vm.items.isEmpty {
                 LoadingState(label: "Akış hazırlanıyor")
                     .preferredColorScheme(.dark)
             } else if let err = vm.errorMessage, vm.items.isEmpty {
@@ -136,8 +200,9 @@ struct VocabFeedView: View {
             // while the learner is still here; reloading right then would
             // reshuffle the feed under them, so a changed pool is picked
             // up the next time the screen appears, keeping the card they
-            // were on.
-            await vm.loadIfStale(poolIds: appState.progress.learnedWords, keepingThrough: visibleId)
+            // are on when the response lands (@State reads live storage,
+            // so a swipe during the fetch counts).
+            await vm.loadIfStale(poolIds: appState.progress.learnedWords, keepingThrough: { visibleId })
         }
         .onChange(of: vm.items) { _, items in
             // First load (or the card we were on is gone): snap to the
@@ -169,15 +234,27 @@ struct VocabFeedView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 36, weight: .heavy))
                 .foregroundStyle(Theme.Color.accent)
-            Text("Bir set izleyince akış dolacak")
+            Text("Kelime ekledikçe akış dolacak")
                 .font(.system(size: 16, weight: .heavy, design: .rounded))
                 .foregroundStyle(.white)
-            Text("Kelime tıklayıp Ekle'ye basınca buradaki sahnelerde tekrar karşına gelir.")
+                .multilineTextAlignment(.center)
+            Text("Videoda altı çizili kelimeye dokunup Ekle'ye bastığında, o kelime burada yeni sahnelerde karşına çıkar.")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .lineSpacing(2)
                 .padding(.horizontal, 40)
+            PrimaryButton(title: "Bir set aç", icon: "film", fullWidth: false) {
+                openSets()
+            }
+            .padding(.top, 8)
+        }
+    }
+
+    /// The sets live on the Video tab.
+    private func openSets() {
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+            appState.selectedTab = .home
         }
     }
 }
@@ -205,11 +282,41 @@ struct VocabReelCard: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var player = YouTubePlayerController()
     @StateObject private var sync = KaraokeSync()
+    /// The learner paused this card (their intent; what the player is
+    /// doing is `player.state`).
     @State private var manuallyPaused = false
+    /// The centred ▶, debounced so a seek, a loop wrap or the start of
+    /// playback doesn't flash it (`updatePausedCue`).
+    @State private var showsPausedCue = false
+    /// The centred spinner, debounced so a card that starts at once never
+    /// shows one (`updateLoadingCue`).
+    @State private var showsLoadingCue = false
 
     /// The sentence plus a beat of air on each side, so the line never
     /// feels clipped.
     private var window: PlaybackWindow { item.context.loopWindow() }
+
+    /// Playing, or about to (buffering): a tap pauses.
+    private var isPlaybackActive: Bool {
+        player.state == .playing || player.state == .buffering
+    }
+
+    /// The card on screen is up but not playing, whoever stopped it (the
+    /// learner, an interruption, a page rebuilt paused): a tap plays.
+    private var wantsPausedCue: Bool {
+        isActive && player.isReady && !isPlaybackActive && player.errorCode == nil
+    }
+
+    /// The card on screen has nothing to show yet; a tap has nothing to
+    /// pause or play.
+    private var isLoadingOnScreen: Bool {
+        isActive && showsPoster && player.errorCode == nil && !manuallyPaused && !showsPausedCue
+    }
+
+    /// The word the learner added last (`learnedWords` is append-only).
+    private var isNewestWord: Bool {
+        appState.progress.learnedWords.last == item.wordId
+    }
 
     var body: some View {
         ZStack {
@@ -267,13 +374,27 @@ struct VocabReelCard: View {
             .padding(.trailing, 14)
             .padding(.bottom, 150)
 
-            // Pause indicator overlay (center)
-            if manuallyPaused && player.errorCode == nil {
+            // Centre cue: ▶ while stopped, a spinner while loading, or —
+            // when a ready player is slow to start — a chip saying so.
+            if showsPausedCue && player.errorCode == nil {
                 Image(systemName: "play.circle.fill")
                     .font(.system(size: 76, weight: .bold))
                     .foregroundStyle(.white.opacity(0.85))
                     .shadow(color: .black.opacity(0.6), radius: 14)
+                    .allowsHitTesting(false)
+                    .accessibilityLabel("Oynat")
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            } else if isActive && player.isSlowStart && player.errorCode == nil {
+                slowStartChip
+                    .transition(.opacity)
+            } else if showsLoadingCue && player.errorCode == nil {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+                    .padding(14)
+                    .background(Circle().fill(Color.black.opacity(0.55)))
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
             }
 
             if let code = player.errorCode {
@@ -282,6 +403,9 @@ struct VocabReelCard: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { togglePause() }
+        .animation(.easeOut(duration: 0.15), value: showsPausedCue)
+        .animation(.easeOut(duration: 0.2), value: showsLoadingCue)
+        .animation(.easeOut(duration: 0.2), value: player.isSlowStart)
         .onAppear { start() }
         .onChange(of: isActive) { _, nowActive in
             if nowActive {
@@ -293,6 +417,22 @@ struct VocabReelCard: View {
         .onChange(of: isNear) { _, nowNear in
             if !nowNear { park() }
         }
+        // A page rebuilt under the card (iOS reclaimed its web process
+        // while the app was away) comes back paused where it was: the card
+        // on screen asks for playback again unless the learner paused it.
+        // On a first load this repeats a play already asked for.
+        .onChange(of: player.isReady) { _, ready in
+            if ready && isActive && !manuallyPaused && player.errorCode == nil {
+                player.play()
+            }
+        }
+        // One speed for every player.
+        .onChange(of: appState.playbackRate) { _, rate in
+            player.setRate(rate)
+            sync.setRate(rate)
+        }
+        .task(id: wantsPausedCue) { await updatePausedCue() }
+        .task(id: isLoadingOnScreen) { await updateLoadingCue() }
     }
 
     // MARK: - Playback
@@ -312,6 +452,9 @@ struct VocabReelCard: View {
             sync?.handle(event, hostTime: hostTime)
         }
         sync.setLines([item.context.syncLine])
+        // The learner's speed, as in every other player.
+        player.setRate(appState.playbackRate)
+        sync.setRate(appState.playbackRate)
         player.setMuted(isMuted)
         player.load(source(autoplay: isActive))
     }
@@ -335,27 +478,48 @@ struct VocabReelCard: View {
         player.load(source(autoplay: false))
     }
 
+    /// Pauses or plays by what the player is actually doing, so the first
+    /// tap always does what the screen shows. Ignored while loading.
     private func togglePause() {
-        guard player.errorCode == nil else { return }
+        guard player.errorCode == nil, !isLoadingOnScreen else { return }
         Haptics.light()
-        let pause = !manuallyPaused
-        withAnimation(.easeOut(duration: 0.15)) {
-            manuallyPaused = pause
-        }
-        if pause {
+        if isPlaybackActive {
+            manuallyPaused = true
             player.pause()
         } else {
+            manuallyPaused = false
             player.play()
         }
     }
 
+    /// Shows ▶ once the card has stayed stopped for a moment; at once when
+    /// the learner paused it themselves.
+    private func updatePausedCue() async {
+        guard wantsPausedCue else {
+            if showsPausedCue { showsPausedCue = false }
+            return
+        }
+        if !manuallyPaused {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+        }
+        showsPausedCue = true
+    }
+
+    /// Shows the spinner once loading has lasted a moment.
+    private func updateLoadingCue() async {
+        guard isLoadingOnScreen else {
+            if showsLoadingCue { showsLoadingCue = false }
+            return
+        }
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        guard !Task.isCancelled else { return }
+        showsLoadingCue = true
+    }
+
     private func replay() {
         Haptics.light()
-        if manuallyPaused {
-            withAnimation(.easeOut(duration: 0.15)) {
-                manuallyPaused = false
-            }
-        }
+        manuallyPaused = false
         player.seek(to: window.start)
         player.play()
         sync.jump(to: window.start)
@@ -377,6 +541,37 @@ struct VocabReelCard: View {
             manuallyPaused = false
             player.play()
         }
+    }
+
+    /// The player is up but the video hasn't started (slow network): not an
+    /// error, it usually starts; the learner may move on meanwhile.
+    private var slowStartChip: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .controlSize(.small)
+                .tint(.white)
+            Text("Video başlıyor…")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+            if let onSkip {
+                Button {
+                    Haptics.light()
+                    onSkip()
+                } label: {
+                    Text("Sonraki sahne")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.Color.accent)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.pressable)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 36)
+        .background(Capsule().fill(Color.black.opacity(0.8)))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
     }
 
     private func errorOverlay(code: Int) -> some View {
@@ -448,9 +643,9 @@ struct VocabReelCard: View {
                 .lineLimit(1)
             if item.isInPool {
                 HStack(spacing: 4) {
-                    Image(systemName: "bookmark.fill")
+                    Image(systemName: isNewestWord ? "sparkles" : "bookmark.fill")
                         .font(.system(size: 9, weight: .heavy))
-                    Text("KELİMEM")
+                    Text(isNewestWord ? "SON EKLEDİĞİN" : "KELİMEM")
                         .font(.system(size: 9, weight: .heavy))
                         .tracking(1.4)
                 }
@@ -476,20 +671,29 @@ struct VocabReelCard: View {
 
     private var bottomBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(item.word)
-                    .font(.system(size: 38, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
-                    .tracking(-0.8)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if let pos = partOfSpeechTr(item.partOfSpeech) {
-                    Text(pos.uppercased())
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(1.4)
-                        .foregroundStyle(.white.opacity(0.6))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(item.word)
+                        .font(.system(size: 38, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .tracking(-0.8)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    if let pos = partOfSpeechBadge(item.partOfSpeech) {
+                        Text(pos)
+                            .font(.system(size: 10, weight: .heavy))
+                            .tracking(1.4)
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                // How to say it, in Turkish letters, when we know.
+                if let reading = TurkishPhonetics.reading(for: item.word) {
+                    Text(reading)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .accessibilityLabel("Okunuşu: \(reading)")
+                }
             }
 
             if let tr = item.translationTr, !tr.isEmpty {
@@ -508,18 +712,6 @@ struct VocabReelCard: View {
             // colors (subject sky / verb sage / rest lavender).
             sentenceFlow
                 .padding(.top, 4)
-
-            HStack(spacing: 8) {
-                MasteryDots(
-                    filled: item.wordContextCount,
-                    total: StarterWordSummary.masteryThreshold,
-                )
-                Text("\(min(item.wordContextCount, StarterWordSummary.masteryThreshold)) / \(StarterWordSummary.masteryThreshold) bağlam")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1)
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-            .padding(.top, 2)
         }
     }
 
@@ -625,6 +817,12 @@ struct VocabReelCard: View {
         .animation(.easeInOut(duration: 0.15), value: position)
     }
 
+    /// The Turkish gloss under each word: one fixed colour, so an upcoming
+    /// word is dimmed once (by its cell), not twice.
+    private static let glossColor = Color(hex: 0x9CABCC)
+    /// Upcoming words stay readable before they're spoken.
+    private static let upcomingOpacity = 0.72
+
     /// Subject sky / verb sage / rest lavender. Structure tags use the
     /// server's word index; the array position stands in when a word
     /// has none.
@@ -649,13 +847,12 @@ struct VocabReelCard: View {
 
             if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                 Text(tr)
-                    .font(.system(size: 12, weight: .medium))
-                    .italic()
-                    .foregroundStyle(Color(hex: 0x9CABCC).opacity(phase == .upcoming ? 0.55 : 0.85))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(Self.glossColor)
                     .lineLimit(1)
             }
         }
-        .opacity(phase == .upcoming ? 0.55 : 1.0)
+        .opacity(phase == .upcoming ? Self.upcomingOpacity : 1.0)
     }
 
     /// Render a phrasal verb as one cell — joined English words on top
@@ -681,12 +878,11 @@ struct VocabReelCard: View {
                 .scaleEffect(phase == .active ? 1.14 : 1.0)
 
             Text(tr)
-                .font(.system(size: 12, weight: .medium))
-                .italic()
-                .foregroundStyle(Color(hex: 0x9CABCC).opacity(phase == .upcoming ? 0.55 : 0.85))
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(Self.glossColor)
                 .lineLimit(1)
         }
-        .opacity(phase == .upcoming ? 0.55 : 1.0)
+        .opacity(phase == .upcoming ? Self.upcomingOpacity : 1.0)
     }
 }
 
