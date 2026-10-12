@@ -87,8 +87,10 @@ test('seek and play issued together both take effect', { skip }, async () => {
     const before = (await p.events()).length;
     await p.driver.seekAndPlay(20.5);
     await p.waitFor((e) => e.slice(before).some((x) => x.type === 'time' && x.t >= 20.4 && x.t <= 21.8), 2500,
-      'playing from the tapped line');
-    assert.equal(await p.fake('p.getPlayerState()'), State.PLAYING);
+      'playhead at the tapped line');
+    // The seek lands first (BUFFERING), then playback resumes.
+    await p.waitFor((e) => e.slice(before).some((x) => x.type === 'state' && x.state === State.PLAYING), 2500,
+      'PLAYING after seek + play');
   } finally { await p.close(); }
 });
 

@@ -1,7 +1,5 @@
 import Foundation
 
-// STUB — API contract only. Implementation pending (see KaraokeTimelineTests).
-
 /// Pure core of the karaoke driver: feed it player events and frame times,
 /// read back the current `SyncPosition`. The SwiftUI wrapper calls
 /// `update(hostTime:)` once per display frame and publishes only when the
@@ -17,6 +15,9 @@ struct SyncDriver {
         timeline = KaraokeTimeline(lines: lines, lead: lead)
     }
 
+    /// Swaps the subtitle lines (next clip, scene loaded) keeping the lead.
+    /// `position` refers to the old lines until the next `update`, which
+    /// recomputes it from scratch.
     mutating func replaceLines(_ lines: [ClipLine]) {
         timeline = KaraokeTimeline(lines: lines, lead: timeline.lead)
     }
@@ -33,5 +34,11 @@ struct SyncDriver {
 
     /// Advances to `hostTime`; returns true when `position` changed.
     @discardableResult
-    mutating func update(hostTime: Double) -> Bool { false }
+    mutating func update(hostTime: Double) -> Bool {
+        time = clock.time(at: hostTime)
+        let next = timeline.position(at: time)
+        guard next != position else { return false }
+        position = next
+        return true
+    }
 }

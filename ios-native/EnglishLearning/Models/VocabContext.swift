@@ -52,54 +52,16 @@ struct VocabContext: Codable, Identifiable, Hashable {
     /// the existing ClipPlayerView at the right line. The player only
     /// needs id + youtubeVideoId + clip-bounds + this single line, so
     /// we synthesize a one-line clip from the context.
-    ///
-    /// Goes through JSONDecoder so we share ClipLine's custom decoder
-    /// rather than duplicating its init. Nil optionals are omitted
-    /// from the dict (NSNull would round-trip OK, but skipping the key
-    /// keeps the JSON closer to what the network returns).
     func asLessonClip() -> LessonClip {
-        var word_dicts: [[String: Any]] = []
-        for w in words {
-            var d: [String: Any] = [
-                "word": w.word,
-                "startTime": w.startTime,
-                "endTime": w.endTime,
-            ]
-            if let wi = w.wordIndex     { d["wordIndex"]     = wi }
-            if let si = w.starterId     { d["starterId"]     = si }
-            if let st = w.starterTr     { d["starterTr"]     = st }
-            if let tt = w.translationTr { d["translationTr"] = tt }
-            word_dicts.append(d)
-        }
+        LessonClip(id: lineId, youtubeVideoId: youtubeVideoId, movieTitle: movieTitle,
+                   startTime: clipStartTime, endTime: clipEndTime, lines: [clipLine])
+    }
 
-        var lineDict: [String: Any] = [
-            "id": lineId,
-            "speaker": "",
-            "text": text,
-            "startTime": startTime,
-            "endTime": endTime,
-            "isTarget": true,
-            "words": word_dicts,
-        ]
-        if let tr = translationTr { lineDict["translationTr"] = tr }
-        if let s = structure {
-            lineDict["structure"] = [
-                "subject":  s.subject,
-                "aux_verb": s.auxVerb,
-                "rest":     s.rest,
-            ]
-        }
-
-        let clipDict: [String: Any] = [
-            "id": lineId,
-            "youtubeVideoId": youtubeVideoId,
-            "movieTitle": movieTitle,
-            "startTime": clipStartTime,
-            "endTime": clipEndTime,
-            "lines": [lineDict],
-        ]
-        let data = try! JSONSerialization.data(withJSONObject: clipDict, options: [])
-        return try! JSONDecoder().decode(LessonClip.self, from: data)
+    /// The sentence as the target line of its scene (no speaker info).
+    var clipLine: ClipLine {
+        ClipLine(id: lineId, speaker: "", text: text, translationTr: translationTr,
+                 startTime: startTime, endTime: endTime, isTarget: true,
+                 structure: structure, words: words)
     }
 }
 
