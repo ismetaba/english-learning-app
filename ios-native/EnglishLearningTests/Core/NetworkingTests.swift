@@ -137,6 +137,41 @@ final class NetworkingTests: XCTestCase {
         XCTAssertEqual(second, clips)
     }
 
+    /// Production takes up to 60s before the first byte for some videos.
+    /// A video opened in an earlier session must start from its saved copy
+    /// at once, with the network copy replacing it in the background.
+    func test_savedCopyIsServedImmediatelyAndRefreshedInTheBackground() async throws {
+        let cache = MemoryCache()
+        let old = try sampleClips()
+        let fresh = [try Fixture.clip("frozen")]
+        await cache.save(old, for: "v")
+        let store = ClipStore(fetch: { _ in
+            try await Task.sleep(nanoseconds: 300_000_000)   // slow server
+            return fresh
+        }, cache: cache)
+
+        let started = Date()
+        let first = try await store.clips(for: "v")
+        XCTAssertEqual(first, old)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 0.2, "waited for the network despite a saved copy")
+
+        try await Task.sleep(nanoseconds: 600_000_000)
+        let second = try await store.clips(for: "v")
+        XCTAssertEqual(second, fresh, "background refresh should replace the saved copy for this session")
+        let saved = await cache.load("v")
+        XCTAssertEqual(saved, fresh)
+    }
+
+    func test_explicitRefreshWaitsForTheNetwork() async throws {
+        let cache = MemoryCache()
+        let old = try sampleClips()
+        let fresh = [try Fixture.clip("frozen")]
+        await cache.save(old, for: "v")
+        let store = ClipStore(fetch: { _ in fresh }, cache: cache)
+        let got = try await store.clips(for: "v", preferSaved: false)
+        XCTAssertEqual(got, fresh, "pull-to-refresh must not answer with the saved copy")
+    }
+
     func test_successfulFetchIsWrittenToTheCache() async throws {
         let cache = MemoryCache()
         let clips = try sampleClips()

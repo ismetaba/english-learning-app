@@ -34,7 +34,8 @@ actor ClipStore {
         self.cache = cache
     }
 
-    func clips(for videoId: String) async throws -> [LessonClip] {
+    // STUB — `preferSaved` API contract (see NetworkingTests); currently ignored.
+    func clips(for videoId: String, preferSaved: Bool = true) async throws -> [LessonClip] {
         if let memoized = memo[videoId] { return memoized }
         let task = inFlight[videoId] ?? start(videoId)
         do {
