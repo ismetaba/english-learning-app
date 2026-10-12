@@ -143,18 +143,18 @@ struct SetDetailView: View {
     }
 
     private var watchedCount: Int {
-        set.videos.filter { appState.isVideoWatched($0.id) }.count
+        self.set.videos.filter { appState.isVideoWatched($0.id) }.count
     }
 
     /// The hero button: start, continue at the first unwatched video, or
     /// rewatch from the top.
     private var primaryAction: (title: String, icon: String, startIndex: Int) {
-        let total = set.videos.count
+        let total = self.set.videos.count
         let watched = watchedCount
         if watched == 0 {
             return ("Sete Başla", "play.fill", 0)
         }
-        if let next = set.videos.firstIndex(where: { !appState.isVideoWatched($0.id) }) {
+        if let next = self.set.videos.firstIndex(where: { !appState.isVideoWatched($0.id) }) {
             return ("Devam et · \(watched)/\(total)", "play.fill", next)
         }
         return ("Baştan izle", "arrow.counterclockwise", 0)
@@ -449,7 +449,7 @@ struct SetPlayerView: View {
         self.set.videos[index]
     }
 
-    private var hasNextVideo: Bool { index < set.videos.count - 1 }
+    private var hasNextVideo: Bool { index < self.set.videos.count - 1 }
 
     @ViewBuilder
     private var playerLayer: some View {
@@ -621,7 +621,7 @@ struct SetPlayerView: View {
     /// is instant.
     private func prefetchNextVideo() {
         guard hasNextVideo else { return }
-        let nextId = set.videos[index + 1].id
+        let nextId = self.set.videos[index + 1].id
         Task { await CurriculumRepository.shared.prefetchPocVideoClips(videoId: nextId) }
     }
 }

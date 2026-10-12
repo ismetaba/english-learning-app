@@ -358,10 +358,13 @@ struct CinemaPlayerView: View {
         sync.jump(to: start)
     }
 
-    /// `time` when it leaves something of the window to play, else the
-    /// window's start.
+    /// `time` when it lies in (or just before) the window with something
+    /// left to play, else the window's start. A little slack below: a vocab
+    /// sentence's lead-in can sit a hair before the window (`ScenePlan`).
     private static func startTime(_ time: Double?, in window: PlaybackWindow) -> Double {
-        guard let time, time.isFinite, time >= 0, time < window.end - 0.25 else { return window.start }
+        guard let time, time.isFinite, time >= max(0, window.start - 1), time < window.end - 0.25 else {
+            return window.start
+        }
         return time
     }
 
