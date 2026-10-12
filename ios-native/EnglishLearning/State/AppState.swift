@@ -220,6 +220,8 @@ final class AppState: ObservableObject {
         progress.onboardingLevel = level
         progress.learningGoal = goal
         progress.dailyGoalMinutes = minutes
+        // The level answer picks the starting speed; "Hız" changes it later.
+        playbackRate = level.suggestedPlaybackRate
         updateStreak()
     }
 

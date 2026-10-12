@@ -459,8 +459,10 @@ struct SetPlayerView: View {
     private var playerLayer: some View {
         // Only mount ClipPlayerView when the loaded clips actually
         // belong to the current video, so a remount never starts with
-        // the previous video's data.
-        if hasClipsForCurrentVideo {
+        // the previous video's data. Never once the set is closed: a
+        // video still starting (e.g. the last one, skipped as slow)
+        // would otherwise play behind the closing screen.
+        if hasClipsForCurrentVideo, phase != .completed {
             ClipPlayerView(
                 clips: clips,
                 onFinish: { [videoId = currentVideo.id] in onVideoFinished(videoId) },
@@ -645,7 +647,7 @@ struct SetPlayerView: View {
 
     /// "Kelimelerimi gör": the Kelimeler tab, with the set closed behind it.
     private func showMyWords() {
-        appState.selectedTab = .vocab
+        appState.showMyWords()
         dismiss()
     }
 
@@ -656,7 +658,17 @@ struct SetPlayerView: View {
         // Cinema may have finished the video while it animated out; the
         // next-up card is up then and portrait stays paused under it.
         guard phase == .playing else { return }
-        portraitResumeAt = playhead.resumeTime(for: currentVideo.id)
+        // Cinema left before the video started (nothing recorded yet):
+        // portrait plays from the start instead of waiting paused.
+        portraitResumeAt = playhead.resumeTime(for: currentVideo.id) ?? resumeClipStart()
+    }
+
+    /// Where the set starts the clip portrait resumes on: its trimmed
+    /// window, as the players play it.
+    private func resumeClipStart() -> Double? {
+        let clipIndex = playhead.resumeClipIndex(for: currentVideo.id)
+        guard hasClipsForCurrentVideo, clips.indices.contains(clipIndex) else { return nil }
+        return ClipTiming.playbackWindow(for: clips[clipIndex], trimSilence: true).start
     }
 
     private func advanceNow() {

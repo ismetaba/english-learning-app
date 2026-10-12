@@ -36,8 +36,9 @@ enum OnboardingLevel: String, Codable, CaseIterable {
     case beginner, elementary, intermediate
 
     /// The playback speed a learner who picked this level starts with.
+    /// Only "Orta" can follow native speech; everyone else starts slower.
     var suggestedPlaybackRate: Double {
-        0.75
+        self == .intermediate ? 1.0 : 0.75
     }
 }
 

@@ -207,7 +207,8 @@ struct VocabWordDetailView: View {
             if vm.isLoading && vm.detail == nil {
                 LoadingState(label: "Sahneler yükleniyor")
                     .padding(.top, 24)
-            } else if let err = vm.errorMessage {
+            } else if vm.detail == nil, let err = vm.errorMessage {
+                // Only with nothing loaded: a failed refresh keeps the list.
                 ErrorState(message: err) {
                     Task { await vm.load(id: summary.id, forceRefresh: true) }
                 }
@@ -357,11 +358,14 @@ struct VocabContextPlayerView: View {
             Theme.Color.background.ignoresSafeArea()
             if let plan {
                 // No `onFinish`: the scene stays open when it ends (last
-                // frame, transcript, ▶ replays it); only back leaves.
+                // frame, transcript, ▶ replays it); only back leaves. No
+                // first-word hint: it would pause on the sentence the
+                // learner came to hear.
                 ClipPlayerView(
                     clips: [plan.clip],
                     onExit: { dismiss() },
                     initialTime: plan.startAt,
+                    showsStarterHint: false,
                 )
                 .environmentObject(appState)
             } else {

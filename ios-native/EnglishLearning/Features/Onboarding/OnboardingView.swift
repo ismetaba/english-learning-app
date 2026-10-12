@@ -74,9 +74,26 @@ struct OnboardingView: View {
                          sub: "Temelleri biliyorum")
                 levelRow(.intermediate, emoji: "📘", title: "Orta",
                          sub: "Sohbet edebiliyorum")
+                speedNote
+                    .padding(.top, 4)
             }
         }
         .padding(.horizontal, 20)
+    }
+
+    /// What the answer changes (`AppState.completeOnboarding` sets the
+    /// starting speed from it), said where it's chosen.
+    private var speedNote: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "speedometer")
+            Text(selectedLevel.suggestedPlaybackRate == 1.0
+                 ? "Videolar normal hızda başlar; videodaki “Hız” ile değiştirebilirsin."
+                 : "Videolar biraz yavaş başlar; videodaki “Hız” ile değiştirebilirsin.")
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(Theme.Font.body(13))
+        .foregroundStyle(Theme.Color.textMuted)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func levelRow(_ level: OnboardingLevel, emoji: String, title: String, sub: String) -> some View {

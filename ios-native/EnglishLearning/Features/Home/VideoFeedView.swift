@@ -9,7 +9,9 @@ final class VideoFeedViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
 
     func load(forceRefresh: Bool = false) async {
-        if !forceRefresh { isLoading = true }
+        // A refresh over cards on screen stays quiet; with nothing on screen
+        // (a retry from the error state) the spinner shows.
+        if !forceRefresh || sets.isEmpty { isLoading = true }
         errorMessage = nil
         do {
             self.sets = try await CurriculumRepository.shared.videoSets(forceRefresh: forceRefresh)

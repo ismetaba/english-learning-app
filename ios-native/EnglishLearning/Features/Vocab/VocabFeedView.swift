@@ -62,6 +62,9 @@ final class VocabFeedViewModel: ObservableObject {
             }
             self.loadedPool = poolIds
         } catch {
+            // Cut short (Liste, another tab): this model outlives the feed,
+            // so the load that follows must find it untouched.
+            if VocabViewModel.isCancellation(error) { return }
             self.errorMessage = error.localizedDescription
         }
         isLoading = false
@@ -78,12 +81,17 @@ final class VocabFeedViewModel: ObservableObject {
 /// landing two cards in a row.
 struct VocabFeedView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var vm = VocabFeedViewModel()
-    @State private var visibleId: String? = nil
-    @State private var openedScene: VocabContext? = nil
+    /// Held by VocabView with `visibleId` and `isMuted`, so the feed comes
+    /// back from Liste as it was left.
+    @ObservedObject var vm: VocabFeedViewModel
+    @Binding var visibleId: String?
     /// Sound is a feed-wide choice: muting one reel keeps the next ones
     /// muted too.
-    @State private var isMuted = false
+    @Binding var isMuted: Bool
+    /// Set by "Kelimelerimi gör"; cleared once the feed has landed on the
+    /// newest word.
+    @Binding var landsOnNewestWord: Bool
+    @State private var openedScene: VocabContext? = nil
     /// False while a scene is pushed over the feed, so no reel plays
     /// underneath it.
     @State private var isOnScreen = false
@@ -100,33 +108,44 @@ struct VocabFeedView: View {
                     .preferredColorScheme(.dark)
             } else if let err = vm.errorMessage, vm.items.isEmpty {
                 ErrorState(message: err) {
-                    Task { await vm.load(poolIds: appState.progress.learnedWords, forceRefresh: true) }
+                    Task {
+                        await vm.load(poolIds: appState.progress.learnedWords, forceRefresh: true)
+                        landOnNewestWordIfAsked()
+                    }
                 }
             } else if vm.items.isEmpty {
                 emptyState
             } else {
                 GeometryReader { geo in
                     let visibleIndex = vm.items.firstIndex(where: { $0.id == visibleId }) ?? 0
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(vm.items.enumerated()), id: \.element.id) { index, item in
-                                VocabReelCard(
-                                    item: item,
-                                    isActive: isOnScreen && visibleId == item.id,
-                                    isNear: abs(index - visibleIndex) <= 1,
-                                    isMuted: $isMuted,
-                                    onTapAdd: { handleAdd(item) },
-                                    onOpenScene: { openedScene = item.context },
-                                    onSkip: skipAction(after: index)
-                                )
-                                .frame(width: geo.size.width, height: geo.size.height)
-                                .id(item.id)
+                    ScrollViewReader { proxy in
+                        ScrollView(.vertical, showsIndicators: false) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(vm.items.enumerated()), id: \.element.id) { index, item in
+                                    VocabReelCard(
+                                        item: item,
+                                        isActive: isOnScreen && visibleId == item.id,
+                                        isNear: abs(index - visibleIndex) <= 1,
+                                        isMuted: $isMuted,
+                                        onTapAdd: { handleAdd(item) },
+                                        onOpenScene: { openedScene = item.context },
+                                        onSkip: skipAction(after: index)
+                                    )
+                                    .frame(width: geo.size.width, height: geo.size.height)
+                                    .id(item.id)
+                                }
                             }
+                            .scrollTargetLayout()
                         }
-                        .scrollTargetLayout()
+                        .scrollTargetBehavior(.paging)
+                        .scrollPosition(id: $visibleId)
+                        // Back from Liste the scroll view is new: put it on the
+                        // card the feed kept, not the top (the position alone
+                        // may not move a scroll view that isn't laid out yet).
+                        .onAppear {
+                            if let visibleId { proxy.scrollTo(visibleId, anchor: .top) }
+                        }
                     }
-                    .scrollTargetBehavior(.paging)
-                    .scrollPosition(id: $visibleId)
                 }
                 .ignoresSafeArea()
             }
@@ -147,6 +166,16 @@ struct VocabFeedView: View {
             // are on when the response lands (@State reads live storage,
             // so a swipe during the fetch counts).
             await vm.loadIfStale(poolIds: appState.progress.learnedWords, keepingThrough: { visibleId })
+            landOnNewestWordIfAsked()
+        }
+        // "Kelimelerimi gör": off any scene opened from here, back to the feed.
+        .onChange(of: appState.wordsRoute) { _, _ in
+            openedScene = nil
+        }
+        // Asked while the feed is on screen, no appearance will run the task
+        // above: land now if the feed is up to date (else its reload will).
+        .onChange(of: landsOnNewestWord) { _, asked in
+            if asked && isOnScreen { landOnNewestWordIfAsked() }
         }
         .onChange(of: vm.items) { _, items in
             // First load (or the card we were on is gone): snap to the
@@ -154,6 +183,20 @@ struct VocabFeedView: View {
             if !items.contains(where: { $0.id == visibleId }), let first = items.first {
                 visibleId = first.id
             }
+        }
+    }
+
+    /// "Kelimelerimi gör" lands on the word just caught, not the reel the
+    /// learner left. Only once the feed holds the current pool: before the
+    /// reload is in, the new word has no card yet.
+    private func landOnNewestWordIfAsked() {
+        let pool = appState.progress.learnedWords
+        guard landsOnNewestWord, !vm.isStale(for: pool) else { return }
+        landsOnNewestWord = false
+        guard let landing = FeedOrder.landingId(in: vm.items, from: visibleId, newestWordId: pool.last),
+              landing != visibleId else { return }
+        withAnimation(.easeInOut(duration: 0.35)) {
+            visibleId = landing
         }
     }
 

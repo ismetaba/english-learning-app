@@ -1801,6 +1801,9 @@ struct ClipPlayerView: View {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             hintLine = lineIndex
         }
+        // The learner may have scrolled the transcript away: bring the
+        // hinted line back, or the video stops for no visible reason.
+        resumeFollowing()
     }
 
     /// Hides the first-word hint. `markSeen` when the learner acted on it

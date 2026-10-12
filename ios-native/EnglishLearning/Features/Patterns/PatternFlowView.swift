@@ -8,7 +8,7 @@ import SwiftUI
 // rest lavender) with a Turkish gloss under each chunk. After the
 // static examples a "video akış" card invites the user to see the
 // pattern in real movie clips (only for patterns that have them). Last
-// card is a finish state that records completion via AppState.
+// card is a finish state; reaching it records completion via AppState.
 
 /// Lightweight nav payload — passed to navigationDestination so we
 /// push PatternReelsView on demand rather than always mounting it.
@@ -106,10 +106,19 @@ struct PatternFlowView: View {
                 .environmentObject(appState)
         }
         // Back from the video akış: the next step is the finish card, as
-        // the video card promised, not the video card again.
+        // the video card promised, not the video card again. A first
+        // arrival plays the completion haptic, so no light tap on top.
         .onChange(of: openedReels) { old, new in
             if old != nil && new == nil {
-                advance(to: finishCardIndex)
+                advance(to: finishCardIndex, haptic: appState.isPatternCompleted(pattern.id))
+            }
+        }
+        // The finish card already says "Tebrikler!" and "Bitti", so reaching
+        // it is finishing: leaving by the X, the edge swipe or another tab
+        // must count too, not only "Bitir". Idempotent: one haptic, one save.
+        .onChange(of: visibleIndex) { _, i in
+            if i >= finishCardIndex {
+                appState.markPatternComplete(pattern.id)
             }
         }
     }
@@ -120,8 +129,9 @@ struct PatternFlowView: View {
         openedReels = PatternReelsTarget(patternId: id, title: pattern.titleTr)
     }
 
-    /// Records the pattern (its haptic comes from there) and goes back to
-    /// the path, where the node now shows ✓.
+    /// Goes back to the path, where the node now shows ✓. Reaching this
+    /// card already recorded the pattern (and played its haptic); marking
+    /// again is a no-op that keeps "Bitir" from ever leaving it unsaved.
     private func finish() {
         appState.markPatternComplete(pattern.id)
         if let onFinished {
@@ -131,8 +141,8 @@ struct PatternFlowView: View {
         }
     }
 
-    private func advance(to idx: Int) {
-        Haptics.light()
+    private func advance(to idx: Int, haptic: Bool = true) {
+        if haptic { Haptics.light() }
         withAnimation(.easeInOut(duration: 0.3)) {
             visibleIndex = idx
         }

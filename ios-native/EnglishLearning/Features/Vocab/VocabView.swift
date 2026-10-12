@@ -28,9 +28,20 @@ final class VocabViewModel: ObservableObject {
                 forceRefresh: forceRefresh,
             )
         } catch {
+            // Cut short by a tab switch or a newer load (the pool changed):
+            // nothing failed, and the load that follows owns the screen.
+            if Self.isCancellation(error) { return }
             self.errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    /// A load cancelled, as Swift or URLSession says it (APIClient hands
+    /// URLSession's back wrapped in `.transport`).
+    static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if case APIError.transport(let underlying) = error { return isCancellation(underlying) }
+        return APIError.urlErrorCode(error) == .cancelled
     }
 }
 
@@ -63,12 +74,22 @@ struct VocabView: View {
     /// Akış or Liste, as the learner last left it.
     @AppStorage("vocab.mode") private var mode: VocabMode = .feed
     @State private var selectedWord: StarterWordSummary? = nil
+    /// The feed's state lives here, not in VocabFeedView: Liste removes the
+    /// feed (and its players), and Akış again must find the same card,
+    /// already loaded, with the sound as the learner left it.
+    @StateObject private var feed = VocabFeedViewModel()
+    @State private var feedVisibleId: String? = nil
+    @State private var feedIsMuted = false
+    /// "Kelimelerimi gör" asked for the newest word; the feed lands on it
+    /// once it holds the current pool.
+    @State private var feedLandsOnNewestWord = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 if mode == .feed {
-                    VocabFeedView()
+                    VocabFeedView(vm: feed, visibleId: $feedVisibleId, isMuted: $feedIsMuted,
+                                  landsOnNewestWord: $feedLandsOnNewestWord)
                         .environmentObject(appState)
                         .ignoresSafeArea()
                 } else {
@@ -95,6 +116,13 @@ struct VocabView: View {
         }
         .task(id: appState.progress.learnedWords) {
             await vm.load(learnedWords: appState.progress.learnedWords)
+        }
+        // "Kelimelerimi gör" from another tab: back to the root (an old word
+        // may still be pushed) and, in Akış, onto the word caught last.
+        // Liste needs no more: it's newest first.
+        .onChange(of: appState.wordsRoute) { _, _ in
+            selectedWord = nil
+            if mode == .feed { feedLandsOnNewestWord = true }
         }
     }
 
@@ -153,6 +181,11 @@ struct VocabView: View {
                 } else if vm.isLoading && vm.summaries.isEmpty {
                     LoadingState(label: "Kelimeler yükleniyor")
                         .padding(.top, 64)
+                } else if let err = vm.errorMessage, vm.summaries.isEmpty {
+                    ErrorState(message: err) {
+                        Task { await vm.load(learnedWords: appState.progress.learnedWords, forceRefresh: true) }
+                    }
+                    .padding(.top, 64)
                 } else {
                     grid
                         .padding(.horizontal, 20)

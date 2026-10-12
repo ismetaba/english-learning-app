@@ -64,6 +64,11 @@ enum FeedOrder {
     /// caught instead of the reel they left. Nil when the word has no card.
     static func landingId(in items: [VocabFeedItem], from currentId: String?,
                           newestWordId: String?) -> String? {
-        nil
+        guard let newestWordId else { return nil }
+        // Forward first, so the learner never steps back over cards they
+        // already watched; a card that's gone counts as the top.
+        let start = currentId.flatMap { id in items.firstIndex { $0.id == id } } ?? items.startIndex
+        let ahead = items[start...].first { $0.wordId == newestWordId }
+        return (ahead ?? items.first { $0.wordId == newestWordId })?.id
     }
 }
