@@ -95,11 +95,20 @@ final class YouTubePlayerWatchdogTests: XCTestCase {
     }
 
     /// Polls until `condition` holds; false if it doesn't within `limit`.
+    ///
+    /// The controller runs on the main actor too. CI saw WebKit stall it
+    /// for 9 s while launching its processes, so the poll woke past its
+    /// deadline before the watchdog (due long before) had its turn, and a
+    /// working watchdog was reported broken. Work that came due during a
+    /// stall gets to run before the verdict.
     @MainActor
     private func eventually(within limit: TimeInterval, _ condition: () -> Bool) async throws -> Bool {
         let deadline = Date().addingTimeInterval(limit)
         while !condition() {
-            if Date() >= deadline { return false }
+            if Date() >= deadline {
+                try await Task.sleep(nanoseconds: 50_000_000)
+                return condition()
+            }
             try await Task.sleep(nanoseconds: 20_000_000)
         }
         return true
