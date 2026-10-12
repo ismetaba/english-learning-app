@@ -61,8 +61,19 @@ struct ClipPlayerView: View {
     /// `onFinish`, then `onExit`. Setting it also enables the overlay's
     /// auto-skip countdown.
     let onUnplayable: (() -> Void)?
+    /// Replaces "Sahne x / y" under the title (e.g. "Video 3 / 30" in a set).
+    let headerSubtitle: String?
+    /// Plays each clip without its silent head and tail
+    /// (`ClipTiming.playbackWindow(for:trimSilence:)`).
+    let trimsSilence: Bool
+    /// Offers the one-time "tap the underlined word" hint. Off where the
+    /// learner came for one sentence (a word's or a pattern's scene): the
+    /// hint would pause the video right on it.
+    let showsStarterHint: Bool
 
     @EnvironmentObject var appState: AppState
+    /// Full-sentence Turkish under the current line (and under played lines).
+    @AppStorage("player.showSentenceTr") private var showSentenceTr = true
 
     @StateObject private var player = YouTubePlayerController()
     @StateObject private var sync = KaraokeSync()
@@ -86,18 +97,52 @@ struct ClipPlayerView: View {
     /// instead of replaying the finished window.
     @State private var advancePending = false
     @State private var isLooping = false
-    /// Defaults to 0.75× — comprehension over speed. Native conversational
-    /// video is too fast for an A2 learner at native rate, so we open slow
-    /// and let the user dial up.
-    @State private var speed: Double = 0.75
+    /// The line a jump or loop pinned in the karaoke (`KaraokeSync`), so its
+    /// 0.15s lead-in shows that line rather than the previous one. Tracked
+    /// until the jump lands, or for as long as the loop runs.
+    @State private var pinnedLine: Int? = nil
     /// Scrubber position while the learner drags; the seek happens once,
     /// on release.
     @State private var scrubPreview: Double? = nil
+    /// Clips (indices) already reported through `onClipComplete`, and
+    /// whether `onFinish` has fired: a replay after the end must not report
+    /// (and reward) them again.
+    @State private var completedClips: Set<Int> = []
+    @State private var didFinish = false
+    /// Line showing the one-time "tap the underlined word" hint, and whether
+    /// this player has offered it already.
+    @State private var hintLine: Int? = nil
+    @State private var hintOffered = false
+    /// Last time the learner dragged the transcript; auto-follow waits
+    /// while it is recent.
+    @State private var userScrolledAt: Date? = nil
+    /// Bumped to make the transcript scroll back to the current line.
+    @State private var followRequest = 0
+    /// Height of the controls overlay, which covers the bottom of the panel.
+    @State private var controlsHeight: CGFloat = 140
 
     /// Seeks to a line land this far before it so its first word isn't clipped.
     private static let lineLeadIn: Double = 0.15
     /// A looped line keeps playing this long after its last word.
     private static let loopTail: Double = 0.2
+    /// Auto-follow stays off this long after the learner scrolls.
+    private static let manualScrollHold: TimeInterval = 4
+    /// Less than this left in a clip window counts as its end: nothing to
+    /// start or resume there.
+    private static let endSlack: Double = 0.25
+    /// Target-word (starter) amber: underline, pooled-word tint, hint.
+    private static let amber = Color(hex: 0xFFB347)
+
+    private struct SpeedOption {
+        let rate: Double
+        let title: String
+    }
+
+    private static let speedOptions: [SpeedOption] = [
+        SpeedOption(rate: 0.5, title: "0.5× Yavaş"),
+        SpeedOption(rate: 0.75, title: "0.75× Rahat"),
+        SpeedOption(rate: 1.0, title: "1× Normal"),
+    ]
 
     init(
         clips: [LessonClip],
@@ -111,10 +156,13 @@ struct ClipPlayerView: View {
         resumeAt: Binding<Double?> = .constant(nil),
         isPaused: Bool = false,
         onUnplayable: (() -> Void)? = nil,
+        headerSubtitle: String? = nil,
+        trimsSilence: Bool = false,
+        showsStarterHint: Bool = true,
     ) {
         let prepared = clips.map { ClipTiming.sanitize($0) }
         self.prepared = prepared
-        self.windows = prepared.map { ClipTiming.playbackWindow(for: $0) }
+        self.windows = prepared.map { ClipTiming.playbackWindow(for: $0, trimSilence: trimsSilence) }
         self.contextTexts = prepared.map { clip in
             clip.lines.map { ClipPlayerView.structureAttributed(for: $0) }
         }
@@ -128,6 +176,9 @@ struct ClipPlayerView: View {
         self._resumeAt = resumeAt
         self.isPaused = isPaused
         self.onUnplayable = onUnplayable
+        self.headerSubtitle = headerSubtitle
+        self.trimsSilence = trimsSilence
+        self.showsStarterHint = showsStarterHint
 
         let safeIdx = max(0, min(initialClipIndex, max(0, prepared.count - 1)))
         self._index = State(initialValue: safeIdx)
@@ -138,6 +189,9 @@ struct ClipPlayerView: View {
     struct StarterPause: Equatable {
         let line: ClipLine
         let word: ClipWord
+        /// Already in the learner's words when tapped (a word met again),
+        /// as opposed to one added from this card.
+        var wasPooled = false
     }
 
     private static let emptyClip = LessonClip(id: -1, youtubeVideoId: "", movieTitle: "",
@@ -188,12 +242,24 @@ struct ClipPlayerView: View {
         .onReceive(playerEvents) { event in
             handle(event)
         }
+        .onChange(of: sync.position) { old, new in
+            positionChanged(from: old, to: new)
+        }
+        // One speed for every player: a change made here or in cinema
+        // applies at once.
+        .onChange(of: appState.playbackRate) { _, rate in
+            player.setRate(rate)
+            sync.setRate(rate)
+        }
         // Pause the portrait player while Cinema is on so we don't
         // double up on audio. Hosts that hoist cinema externally
         // (SetPlayerView) signal via `isPaused`; the in-view cinema
         // cover signals via `showCinema`.
         .onChange(of: isPaused) { _, paused in
-            if paused { player.pause() }
+            if paused {
+                player.pause()
+                endStarterHint(markSeen: false)
+            }
         }
         .onChange(of: showCinema) { _, on in
             if on {
@@ -218,7 +284,28 @@ struct ClipPlayerView: View {
                     cinemaHandoff.clipIndex = clipIndex
                     cinemaHandoff.time = t
                 },
+                // Cinema played the video to its end: portrait finishes
+                // instead of resuming (and replaying) the last clip. Only
+                // with a host to tell, so cinema's skip doesn't offer a
+                // "next" there isn't; without one cinema just closes at the
+                // end and `resumeFromCinema` finishes from its position.
+                onFinish: onFinish != nil ? {
+                    cinemaHandoff.finished = true
+                    showCinema = false
+                } : nil,
                 onExit: { showCinema = false },
+                onUnplayable: onUnplayable.map { skip -> () -> Void in
+                    {
+                        cinemaHandoff.time = nil
+                        showCinema = false
+                        skip()
+                    }
+                },
+                onClipComplete: { finished in
+                    creditCinemaClip(finished)
+                },
+                headerSubtitle: headerSubtitle,
+                trimsSilence: trimsSilence,
             )
             .environmentObject(appState)
         }
@@ -247,13 +334,20 @@ struct ClipPlayerView: View {
                     togglePlayback()
                 }
 
-            // Top chrome (back + title + expand) and the time chip
+            // Top chrome (back + title + expand) and the time chip — or,
+            // while a ready player is slow to start, a chip saying so.
             VStack {
                 topChrome
                 Spacer()
-                timeChip
-                    .padding(.bottom, 14)
-                    .allowsHitTesting(false)
+                if player.isSlowStart && playerErrorMessage == nil {
+                    slowStartChip
+                        .padding(.bottom, 8)
+                        .transition(.opacity)
+                } else {
+                    timeChip
+                        .padding(.bottom, 14)
+                        .allowsHitTesting(false)
+                }
             }
 
             if showsLoadingSpinner {
@@ -287,6 +381,7 @@ struct ClipPlayerView: View {
                         )
                         .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 6)
                 }
+                .accessibilityLabel("Oynat")
                 .transition(.opacity)
             }
         }
@@ -295,6 +390,7 @@ struct ClipPlayerView: View {
         .background(Color.black)
         .animation(.easeInOut(duration: 0.22), value: isPlaybackActive)
         .animation(.easeInOut(duration: 0.22), value: hasFirstFrame)
+        .animation(.easeInOut(duration: 0.22), value: player.isSlowStart)
     }
 
     private var backButton: some View {
@@ -311,12 +407,24 @@ struct ClipPlayerView: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
                 .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
+        .accessibilityLabel("Geri")
+    }
+
+    /// "Video 3 / 30 · 01:12" in a set, "Sahne 2 / 4 · 00:48" for several
+    /// scenes, just the length for a single one.
+    private var headerSubtitleText: String {
+        let length = formatTime(window.duration)
+        if let headerSubtitle { return "\(headerSubtitle) · \(length)" }
+        if totalClips > 1 { return "Sahne \(index + 1) / \(totalClips) · \(length)" }
+        return length
     }
 
     private var topChrome: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 6) {
             backButton
 
             // Title
@@ -325,7 +433,7 @@ struct ClipPlayerView: View {
                     .font(.system(size: 15, weight: .heavy))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                Text("Sahne \(index + 1) / \(totalClips) · \(formatTime(window.duration))")
+                Text(headerSubtitleText)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.white.opacity(0.65))
                     .lineLimit(1)
@@ -338,12 +446,17 @@ struct ClipPlayerView: View {
             // bottom of the frame.
             Button {
                 Haptics.medium()
+                // The word card would otherwise still be open (and the clip
+                // stalled on it) when portrait resumes.
+                closeStarterBanner()
+                endStarterHint(markSeen: false)
                 if let onCinemaRequest {
                     onCinemaRequest()
                 } else {
                     cinemaHandoff.clipIndex = index
                     cinemaHandoff.startTime = sync.time
                     cinemaHandoff.time = nil
+                    cinemaHandoff.finished = false
                     showCinema = true
                 }
             } label: {
@@ -353,11 +466,15 @@ struct ClipPlayerView: View {
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(Color(hex: 0x080A14, opacity: 0.55)))
                     .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.pressable)
+            .accessibilityLabel("Sinema modu")
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 20)
+        // 44 pt hit frames around the 36/34 pt circles: same visual spot.
+        .padding(.horizontal, 8)
+        .padding(.top, 16)
         .background(
             LinearGradient(
                 colors: [Color(hex: 0x080A14, opacity: 0.9), .clear],
@@ -379,6 +496,44 @@ struct ClipPlayerView: View {
             .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
     }
 
+    /// The player is up but the video hasn't started yet (slow network,
+    /// slow YouTube). Not an error: it usually starts; the learner may move
+    /// on if there is somewhere to go.
+    private var slowStartChip: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .controlSize(.small)
+                .tint(.white)
+            Text("Video başlıyor…")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+            if let skip = slowStartSkip {
+                Button {
+                    Haptics.light()
+                    skip()
+                } label: {
+                    Text(skipLabel)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.Color.accent)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.pressable)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 36)
+        .background(Capsule().fill(Color(hex: 0x080A14, opacity: 0.8)))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+    }
+
+    /// Only a real "next": another scene here, or the host's next video.
+    private var slowStartSkip: (() -> Void)? {
+        guard hasNextClip || onUnplayable != nil else { return nil }
+        return skipAction
+    }
+
     // MARK: - Error layer
 
     /// Covers the whole player (the transcript and controls are useless
@@ -395,8 +550,8 @@ struct ClipPlayerView: View {
             )
             .overlay(alignment: .topLeading) {
                 backButton
-                    .padding(.leading, 12)
-                    .padding(.top, 20)
+                    .padding(.leading, 8)
+                    .padding(.top, 16)
             }
             .transition(.opacity)
         }
@@ -421,6 +576,8 @@ struct ClipPlayerView: View {
 
     private var subtitlePanel: some View {
         VStack(alignment: .leading, spacing: 0) {
+            legendRow
+
             // Transcript stays mounted at all times so the scroll
             // position survives a starter-tap → "Devam" round trip;
             // the banner overlays on top, transcript keeps its anchor.
@@ -430,26 +587,72 @@ struct ClipPlayerView: View {
                     .allowsHitTesting(starterBanner == nil)
 
                 if let banner = starterBanner {
-                    starterChoice(for: banner)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 4)
-                        .padding(.bottom, 14)
-                        .background(Theme.Color.background.opacity(0.85))
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    // Scrolls when a long line makes the card taller than
+                    // the space above the controls.
+                    ScrollView(showsIndicators: false) {
+                        starterChoice(for: banner)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 4)
+                            .padding(.bottom, controlsHeight + 14)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .background(Theme.Color.background.opacity(0.85))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// What the three colours mean, plus the sentence-translation toggle.
+    private var legendRow: some View {
+        HStack(spacing: 8) {
+            StructureLegend()
+            Spacer(minLength: 0)
+            translationToggle
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var translationToggle: some View {
+        Button {
+            Haptics.selection()
+            showSentenceTr.toggle()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: showSentenceTr ? "text.bubble.fill" : "text.bubble")
+                    .font(.system(size: 11, weight: .bold))
+                Text("Çeviri")
+                    .font(.system(size: 11, weight: .bold))
+            }
+            .foregroundStyle(showSentenceTr ? Theme.Color.textPrimary : Theme.Color.textSecondary)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 32)
+            .background(
+                Capsule().fill(showSentenceTr ? Theme.Color.primarySoft : Color(hex: 0x111827))
+            )
+            .overlay(
+                Capsule().strokeBorder(showSentenceTr ? Theme.Color.borderAccent : Theme.Color.border, lineWidth: 1)
+            )
+            // 44 pt hit target around the 32 pt chip.
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable)
+        .accessibilityLabel("Cümle çevirisi")
+        .accessibilityValue(showSentenceTr ? "Açık" : "Kapalı")
+    }
+
     /// Scrollable transcript that fills the remaining screen space. Each line
     /// renders either as a dimmed context line or, when current, as the
     /// "currentLineBlock" with accent rail + karaoke. Scroll position
-    /// auto-tracks the current line, anchoring it to the top of the
-    /// scrollable area so upcoming lines fill the rest of the panel.
+    /// auto-tracks the current line, keeping the line before it in view at
+    /// the top so upcoming lines fill the rest of the panel. Dragging the
+    /// transcript pauses the tracking for a few seconds ("Şu ana dön").
     private var transcriptScroll: some View {
         let lines = clip.lines
         let currentLine = sync.position.lineIndex
+        let pool = Set(appState.progress.learnedWords)
         return GeometryReader { geo in
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
@@ -464,9 +667,9 @@ struct ClipPlayerView: View {
                         ForEach(Array(lines.enumerated()), id: \.element.id) { idx, line in
                             VStack(alignment: .leading, spacing: 0) {
                                 if currentLine == idx {
-                                    currentLineBlock(line, lineIndex: idx)
+                                    currentLineBlock(line, lineIndex: idx, pool: pool)
                                 } else {
-                                    contextRow(line, idx: idx, currentLine: currentLine)
+                                    contextRow(line, idx: idx, currentLine: currentLine, pool: pool)
                                 }
                                 if idx < lines.count - 1 {
                                     dividerRule
@@ -475,11 +678,15 @@ struct ClipPlayerView: View {
                             }
                             .id("line-\(idx)")
                         }
-                        // Bottom padding so the last line can still scroll up to anchor.
-                        Color.clear.frame(height: geo.size.height * 0.45)
+                        // Bottom padding so the last line can still scroll up
+                        // to anchor, clear of the controls.
+                        Color.clear.frame(height: max(geo.size.height * 0.45, controlsHeight + 24))
                     }
                     .padding(.horizontal, 20)
                 }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 8).onChanged { _ in noteUserScroll() }
+                )
                 .mask(
                     VStack(spacing: 0) {
                         Rectangle().fill(.black)
@@ -487,17 +694,87 @@ struct ClipPlayerView: View {
                             .frame(height: 140)
                     }
                 )
-                .onChange(of: sync.position.lineIndex) { _, newValue in
-                    guard let i = newValue else { return }
-                    withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
-                        proxy.scrollTo("line-\(i)", anchor: UnitPoint(x: 0.5, y: 0.0))
+                .overlay(alignment: .bottomTrailing) {
+                    if userScrolledAt != nil {
+                        backToNowButton {
+                            userScrolledAt = nil
+                            followCurrentLine(proxy, animated: true)
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, controlsHeight + 8)
+                        .transition(.opacity)
                     }
                 }
+                .animation(.easeInOut(duration: 0.2), value: userScrolledAt == nil)
+                .onChange(of: sync.position.lineIndex) { _, newValue in
+                    guard newValue != nil else { return }
+                    if let at = userScrolledAt {
+                        // The learner is reading elsewhere; don't yank them back.
+                        guard Date().timeIntervalSince(at) >= Self.manualScrollHold else { return }
+                        userScrolledAt = nil
+                    }
+                    followCurrentLine(proxy, animated: true)
+                }
+                .onChange(of: followRequest) { _, _ in
+                    followCurrentLine(proxy, animated: true)
+                }
                 .onChange(of: index) { _, _ in
+                    userScrolledAt = nil
                     proxy.scrollTo("transcript-top", anchor: .top)
                 }
             }
         }
+    }
+
+    /// Puts the line before the current one at the top, so the learner
+    /// still sees what was just said.
+    private func followCurrentLine(_ proxy: ScrollViewProxy, animated: Bool) {
+        guard let i = sync.position.lineIndex else { return }
+        let target = i > 0 ? "line-\(i - 1)" : "transcript-top"
+        if animated {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+                proxy.scrollTo(target, anchor: .top)
+            }
+        } else {
+            proxy.scrollTo(target, anchor: .top)
+        }
+    }
+
+    /// A drag on the transcript: hold auto-follow. Throttled, since the
+    /// gesture reports every frame.
+    private func noteUserScroll() {
+        let now = Date()
+        if let at = userScrolledAt, now.timeIntervalSince(at) < 0.5 { return }
+        userScrolledAt = now
+    }
+
+    /// Auto-follow on again, scrolled to the current line.
+    private func resumeFollowing() {
+        userScrolledAt = nil
+        followRequest += 1
+    }
+
+    private func backToNowButton(action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.selection()
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.down.to.line")
+                    .font(.system(size: 11, weight: .bold))
+                Text("Şu ana dön")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .foregroundStyle(Theme.Color.textPrimary)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 36)
+            .background(Capsule().fill(Theme.Color.backgroundElevated))
+            .overlay(Capsule().strokeBorder(Theme.Color.borderAccent, lineWidth: 1))
+            .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 3)
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable)
     }
 
     /// Before the first subtitle line starts.
@@ -508,15 +785,18 @@ struct ClipPlayerView: View {
             Text("Sahne başlıyor…")
                 .font(.system(size: 14, weight: .medium))
         }
-        .foregroundStyle(Color(hex: 0x5E6B8A))
+        .foregroundStyle(Theme.Color.textMuted)
         .padding(.vertical, 14)
     }
 
     /// Compact row for non-current lines in the scrollable transcript —
-    /// timestamp on the left, structure-coloured text. Tapping seeks.
-    private func contextRow(_ line: ClipLine, idx: Int, currentLine: Int?) -> some View {
+    /// timestamp on the left, structure-coloured text (target words
+    /// underlined amber), and for lines already played their Turkish
+    /// sentence. Tapping seeks.
+    private func contextRow(_ line: ClipLine, idx: Int, currentLine: Int?, pool: Set<String>) -> some View {
         let distance = currentLine.map { abs(idx - $0) } ?? 0
-        let opacity = max(0.35, 0.9 - Double(distance) * 0.12)
+        let opacity = max(0.55, 0.9 - Double(distance) * 0.08)
+        let isPlayed = currentLine.map { idx < $0 } ?? false
         return Button(action: {
             Haptics.selection()
             jumpToLine(idx)
@@ -524,13 +804,22 @@ struct ClipPlayerView: View {
             HStack(alignment: .top, spacing: 12) {
                 Text(formatTime(line.startTime - window.start))
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color(hex: 0x5E6B8A))
+                    .foregroundStyle(Theme.Color.textMuted)
                     .frame(width: 36, alignment: .leading)
                     .padding(.top, 3)
-                Text(contextText(lineIndex: idx, line: line))
-                    .font(.system(size: 14, weight: .semibold))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(contextText(lineIndex: idx, line: line, pool: pool))
+                        .font(.system(size: 14, weight: .semibold))
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if showSentenceTr, isPlayed, let tr = Self.sentenceTranslation(of: line) {
+                        Text(tr)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(Theme.Color.textMuted)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 Spacer(minLength: 0)
             }
             .opacity(opacity)
@@ -540,11 +829,30 @@ struct ClipPlayerView: View {
         .buttonStyle(.pressable(scale: 0.99))
     }
 
-    private func contextText(lineIndex: Int, line: ClipLine) -> AttributedString {
+    private func contextText(lineIndex: Int, line: ClipLine, pool: Set<String>) -> AttributedString {
+        // Lines with a word already in the learner's words are rebuilt to
+        // mark it as such; the rest use the copy built once in init.
+        if !pool.isEmpty, line.words.contains(where: { $0.starterId.map(pool.contains) ?? false }) {
+            return Self.structureAttributed(for: line, pooled: pool)
+        }
         if contextTexts.indices.contains(index), contextTexts[index].indices.contains(lineIndex) {
             return contextTexts[index][lineIndex]
         }
         return Self.structureAttributed(for: line)
+    }
+
+    /// The line's Turkish sentence; nil when missing or blank.
+    private static func sentenceTranslation(of line: ClipLine) -> String? {
+        guard let tr = line.translationTr?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !tr.isEmpty else { return nil }
+        return tr
+    }
+
+    /// The line's speaker, unless blank or the data's "Speaker" placeholder.
+    private static func speakerName(of line: ClipLine) -> String? {
+        let name = line.speaker.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.caseInsensitiveCompare("speaker") != .orderedSame else { return nil }
+        return name
     }
 
     private var dividerRule: some View {
@@ -553,16 +861,29 @@ struct ClipPlayerView: View {
             .frame(height: 1)
     }
 
-    private func currentLineBlock(_ line: ClipLine, lineIndex: Int) -> some View {
+    private func currentLineBlock(_ line: ClipLine, lineIndex: Int, pool: Set<String>) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if !line.speaker.isEmpty {
-                Text(line.speaker.uppercased())
+            if hintLine == lineIndex {
+                starterHintCallout
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if let speaker = Self.speakerName(of: line) {
+                Text(speaker.uppercased())
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.3)
                     .foregroundStyle(Color(hex: 0x8577FF))
             }
 
-            tappableWordsLine(for: line, lineIndex: lineIndex)
+            tappableWordsLine(for: line, lineIndex: lineIndex, pool: pool)
+
+            if showSentenceTr, let tr = Self.sentenceTranslation(of: line) {
+                Text(tr)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Theme.Color.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.leading, 14)
         .padding(.vertical, 14)
@@ -581,19 +902,60 @@ struct ClipPlayerView: View {
         }
     }
 
+    /// One-time teaching moment (until the learner has caught a word): the
+    /// first line with a target word pauses with this above it.
+    private var starterHintCallout: some View {
+        Button {
+            Haptics.light()
+            endStarterHint(markSeen: true)
+            resumePlayback()
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "hand.tap.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Self.amber)
+                Text("Altı çizili kelimeye dokun → anlamını gör, Ekle ile kelimelerine kat")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.Color.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.Color.textSecondary)
+                    .padding(.top, 2)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Self.amber.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Self.amber.opacity(0.5), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable(scale: 0.98))
+        .accessibilityHint("Kapatıp devam etmek için dokun")
+    }
+
     /// The current line rendered as wrapping rows of individual word views.
     ///
     /// Each word is coloured by sentence structure (subject blue / aux green
     /// / rest lavender) once spoken; the word being spoken gets the accent
     /// colour and grows slightly; words yet to be spoken are dimmed.
     ///
-    /// Starter-set words get an amber underline as a tap affordance. Tapping
-    /// one pauses the video and surfaces the meaning banner.
+    /// Starter-set words get an amber underline as a tap affordance; ones
+    /// already in the learner's words get a soft amber backdrop instead.
+    /// Tapping either pauses the video and surfaces the meaning banner.
     @ViewBuilder
-    private func tappableWordsLine(for line: ClipLine, lineIndex: Int) -> some View {
+    private func tappableWordsLine(for line: ClipLine, lineIndex: Int, pool: Set<String>) -> some View {
         let subjectIdx = Set(line.structure?.subject ?? [])
         let auxIdx     = Set(line.structure?.auxVerb ?? [])
         let position   = sync.position
+        let showsHint  = hintLine == lineIndex
 
         if line.words.isEmpty {
             Text(line.text)
@@ -610,6 +972,8 @@ struct ClipPlayerView: View {
                         phase: position.phase(ofWord: i, inLine: lineIndex),
                         subjectIdx: subjectIdx,
                         auxIdx: auxIdx,
+                        isPooled: w.starterId.map(pool.contains) ?? false,
+                        pulsesUnderline: showsHint,
                     )
                 }
             }
@@ -627,6 +991,8 @@ struct ClipPlayerView: View {
         phase: WordPhase,
         subjectIdx: Set<Int>,
         auxIdx: Set<Int>,
+        isPooled: Bool,
+        pulsesUnderline: Bool,
     ) -> some View {
         let isActive    = phase == .active
         let isUpcoming  = phase == .upcoming
@@ -640,10 +1006,11 @@ struct ClipPlayerView: View {
 
         let baseColor = Self.colorFor(bucket: bucketKind)
         // Active and target use different visual languages so they never
-        // compete: active = COLOR + SCALE, target = UNDERLINE. Past words
-        // stay in their structure colour at full opacity (re-readable),
-        // upcoming words sit at 55% opacity so the karaoke "wave" of
-        // brightness moves left-to-right as the speaker progresses.
+        // compete: active = COLOR + SCALE, target = UNDERLINE (or, once in
+        // the learner's words, an amber backdrop). Past words stay in their
+        // structure colour at full opacity (re-readable); upcoming words sit
+        // at 55% so the karaoke "wave" of brightness moves left-to-right.
+        // Only the English dims: the gloss and the target marks stay legible.
         let textColor: Color = isActive ? Theme.Color.accent : baseColor
         let wordOpacity: Double = isUpcoming ? 0.55 : 1.0
         let wordScale: CGFloat = isActive ? 1.06 : 1.0
@@ -651,38 +1018,53 @@ struct ClipPlayerView: View {
         VStack(alignment: .center, spacing: 1) {
             Text(Self.displayText(for: w.word, bucket: bucketKind, activeColor: textColor))
                 .font(.system(size: 20, weight: .bold))
-                .scaleEffect(wordScale)
+                .opacity(wordOpacity)
+                .background {
+                    if isStarter && isPooled {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Self.amber.opacity(0.18))
+                            .padding(.horizontal, -4)
+                            .padding(.vertical, -1)
+                    }
+                }
                 // Target-word marker — the ONLY underline in the current
                 // line, so this amber rule unambiguously means "this is a
                 // vocab target you can tap to learn".
                 .overlay(alignment: .bottom) {
-                    if isStarter {
-                        Rectangle()
-                            .fill(Color(hex: 0xFFB347))
-                            .frame(height: 1.5)
-                            .opacity(0.85)
-                            .offset(y: 2)
+                    if isStarter && !isPooled {
+                        if pulsesUnderline {
+                            PulsingUnderline(color: Self.amber)
+                                .offset(y: 3)
+                        } else {
+                            Rectangle()
+                                .fill(Self.amber)
+                                .frame(height: 1.5)
+                                .opacity(0.85)
+                                .offset(y: 2)
+                        }
                     }
                 }
+                .scaleEffect(wordScale)
 
-            // Word-by-word Turkish gloss. Quiet supporting layer.
+            // Word-by-word Turkish gloss. Supporting layer, but readable.
             if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                 Text(tr)
-                    .font(.system(size: 10, weight: .regular))
-                    .italic()
-                    .foregroundStyle(Color(hex: 0x7C8BAE))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(isStarter && isPooled ? Self.amber : Theme.Color.textSecondary)
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    .opacity(isUpcoming ? 0.8 : 1)
             }
         }
-        .opacity(wordOpacity)
         .contentShape(Rectangle())
         .onTapGesture {
             guard isStarter else { return }
             Haptics.medium()
             player.pause()
+            endStarterHint(markSeen: true)
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                starterBanner = StarterPause(line: line, word: w)
+                starterBanner = StarterPause(line: line, word: w, wasPooled: isPooled)
             }
         }
     }
@@ -697,7 +1079,7 @@ struct ClipPlayerView: View {
     private func staticTranslatedLine(
         for line: ClipLine,
         fontSize: CGFloat = 15,
-        glossSize: CGFloat = 10,
+        glossSize: CGFloat = 12,
     ) -> some View {
         let subjectIdx = Set(line.structure?.subject ?? [])
         let auxIdx     = Set(line.structure?.auxVerb  ?? [])
@@ -718,11 +1100,11 @@ struct ClipPlayerView: View {
 
                     if let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                         Text(tr)
-                            .font(.system(size: glossSize, weight: .regular))
-                            .italic()
-                            .foregroundStyle(Color(hex: 0x7C8BAE))
+                            .font(.system(size: glossSize, weight: .medium))
+                            .foregroundStyle(Theme.Color.textSecondary)
                             .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
             }
@@ -885,8 +1267,10 @@ struct ClipPlayerView: View {
     /// current row, without the karaoke overrides. Used by the context rows
     /// so the structure colouring stays continuous across the transcript.
     /// Contractions are split like in the current row. Untagged lines fall
-    /// back to the rest colour.
-    private static func structureAttributed(for line: ClipLine) -> AttributedString {
+    /// back to the rest colour. Target (starter) words are underlined amber
+    /// like in the current row — or, when in `pooled` (the learner's words),
+    /// sit on a soft amber backdrop instead.
+    private static func structureAttributed(for line: ClipLine, pooled: Set<String> = []) -> AttributedString {
         guard !line.words.isEmpty else {
             var out = AttributedString(line.text)
             out.foregroundColor = Theme.Color.textPrimary
@@ -908,6 +1292,7 @@ struct ClipPlayerView: View {
             let token = w.word
             let (core, suffix) = splitTrailingPunctuation(token)
 
+            var piece = AttributedString()
             if let parts = contractionExpansion(of: core) {
                 let secondColor: Color = (bucket == .subject)
                     ? colorFor(bucket: .auxVerb)
@@ -916,18 +1301,27 @@ struct ClipPlayerView: View {
 
                 var firstChunk = AttributedString(firstWord)
                 firstChunk.foregroundColor = baseColor
-                out.append(firstChunk)
+                piece.append(firstChunk)
 
-                out.append(AttributedString(" "))
+                piece.append(AttributedString(" "))
 
                 var secondChunk = AttributedString(parts.second + suffix)
                 secondChunk.foregroundColor = secondColor
-                out.append(secondChunk)
+                piece.append(secondChunk)
             } else {
                 var chunk = AttributedString(token)
                 chunk.foregroundColor = baseColor
-                out.append(chunk)
+                piece.append(chunk)
             }
+
+            if let starterId = w.starterId {
+                if pooled.contains(starterId) {
+                    piece.backgroundColor = amber.opacity(0.18)
+                } else {
+                    piece.underlineStyle = Text.LineStyle(pattern: .solid, color: amber)
+                }
+            }
+            out.append(piece)
 
             if i < line.words.count - 1 {
                 out.append(AttributedString(" "))
@@ -939,31 +1333,57 @@ struct ClipPlayerView: View {
     // MARK: - Starter-word card
 
     /// Banner shown when the learner taps a starter word. Shows the word +
-    /// (when available) its TR translation alongside the containing line
-    /// for context, plus the add / continue actions.
+    /// (when available) its TR translation and okunuş alongside the
+    /// containing line for context, plus the add / continue actions.
+    /// Before the word is added "Ekle" is the hero; afterwards "Devam" is,
+    /// and a caption says where the word went.
     private func starterChoice(for pause: StarterPause) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let word = pause.word.word.replacingOccurrences(of: "[^A-Za-z']", with: "", options: .regularExpression)
+        let learned = alreadyLearned(pause)
+        let justAdded = learned && !pause.wasPooled
+
+        return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.Color.accent)
-                Text("YENİ KELİME")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.3)
-                    .foregroundStyle(Theme.Color.accent)
+                if pause.wasPooled {
+                    // A word met again: recognise it.
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(Theme.Color.textSecondary)
+                    Text("KELİMELERİNDE")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(1.3)
+                        .foregroundStyle(Theme.Color.textSecondary)
+                } else {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(Theme.Color.accent)
+                    Text("YENİ KELİME")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(1.3)
+                        .foregroundStyle(Theme.Color.accent)
+                }
             }
 
-            // The starter word + its Turkish translation — the learning unit.
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(pause.word.word.replacingOccurrences(of: "[^A-Za-z']", with: "", options: .regularExpression))
-                    .font(.system(size: 32, weight: .heavy))
-                    .foregroundStyle(Theme.Color.textPrimary)
-                if let tr = pause.word.starterTr, !tr.isEmpty {
-                    Text(tr)
-                        .font(.system(size: 18, weight: .semibold))
-                        .italic()
-                        .foregroundStyle(Color(hex: 0xFFB347))
-                        .lineLimit(2)
+            // The starter word + its Turkish translation — the learning unit —
+            // and how to say it, in Turkish letters, when we know.
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(word)
+                        .font(.system(size: 32, weight: .heavy))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                    if let tr = pause.word.starterTr, !tr.isEmpty {
+                        Text(tr)
+                            .font(.system(size: 18, weight: .semibold))
+                            .italic()
+                            .foregroundStyle(Self.amber)
+                            .lineLimit(2)
+                    }
+                }
+                if let okunus = TurkishPhonetics.reading(for: word) {
+                    Text(okunus)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.Color.textMuted)
+                        .accessibilityLabel("Okunuşu: \(okunus)")
                 }
             }
             .padding(.top, 2)
@@ -971,26 +1391,44 @@ struct ClipPlayerView: View {
             // The line for context — same word-by-word rendering as the
             // current row (structure colours + per-word Turkish gloss),
             // just smaller and without karaoke / tap.
-            staticTranslatedLine(for: pause.line, fontSize: 16, glossSize: 10)
+            staticTranslatedLine(for: pause.line, fontSize: 16, glossSize: 12)
+
+            if let tr = Self.sentenceTranslation(of: pause.line) {
+                Text("Bu cümlede: \(tr)")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.Color.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             HStack(spacing: 10) {
                 Button {
+                    // Once only: no second "success" for a word already in.
+                    guard !alreadyLearned(pause) else { return }
                     Haptics.success()
                     addStarterToVocab(pause: pause)
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: alreadyLearned(pause) ? "checkmark" : "plus")
+                        Image(systemName: learned ? "checkmark" : "plus")
                             .font(.system(size: 12, weight: .heavy))
-                        Text(alreadyLearned(pause) ? "Eklendi" : "Ekle")
-                            .font(.system(size: 13, weight: .semibold))
+                        Text(learned ? "Eklendi" : "Ekle")
+                            .font(.system(size: 14, weight: .bold))
                     }
-                    .foregroundStyle(Theme.Color.textPrimary)
+                    .foregroundStyle(learned ? Theme.Color.textSecondary : Theme.Color.background)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.Color.backgroundElevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.Color.border, lineWidth: 1))
+                    .frame(minHeight: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(learned ? Theme.Color.backgroundElevated : Self.amber)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(learned ? Theme.Color.border : Color.clear, lineWidth: 1)
+                    )
+                    .shadow(color: learned ? Color.clear : Self.amber.opacity(0.35), radius: 10, x: 0, y: 4)
                 }
                 .buttonStyle(.pressable)
+                .accessibilityLabel(learned ? "Kelimelerinde" : "Kelimelerine ekle")
 
                 Button {
                     Haptics.medium()
@@ -998,17 +1436,37 @@ struct ClipPlayerView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Text("Devam")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                         Image(systemName: "arrow.right")
                             .font(.system(size: 12, weight: .bold))
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(learned ? Color.white : Theme.Color.textPrimary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.Color.primary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .shadow(color: Theme.Color.primaryGlow, radius: 10, x: 0, y: 4)
+                    .frame(minHeight: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(learned ? Theme.Color.primary : Theme.Color.backgroundElevated)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(learned ? Color.clear : Theme.Color.border, lineWidth: 1)
+                    )
+                    .shadow(color: learned ? Theme.Color.primaryGlow : Color.clear, radius: 10, x: 0, y: 4)
                 }
                 .buttonStyle(.pressable)
+            }
+            .animation(.easeInOut(duration: 0.2), value: learned)
+
+            if justAdded {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.Color.success)
+                    Text("“\(word)” kelimelerine eklendi")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.Color.textSecondary)
+                }
+                .transition(.opacity)
             }
         }
         .padding(18)
@@ -1020,32 +1478,47 @@ struct ClipPlayerView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Theme.Color.accent.opacity(0.35), lineWidth: 1)
         )
+        .animation(.easeInOut(duration: 0.2), value: justAdded)
     }
 
     // MARK: - Controls (absolute bottom)
 
     private var controls: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             transportRow
             chipRow
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
-        .padding(.bottom, 24)
+        .padding(.bottom, 20)
         .background(
-            LinearGradient(
-                colors: [.clear, Color(hex: 0x080A14, opacity: 0.9), Color(hex: 0x080A14)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
+            ZStack {
+                // Swallows taps between and around the controls: the
+                // transcript rows underneath would otherwise seek on them.
+                Color.black.opacity(0.001)
+                LinearGradient(
+                    colors: [.clear, Color(hex: 0x080A14, opacity: 0.9), Color(hex: 0x080A14)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            }
+        )
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { controlsHeight = geo.size.height }
+                    .onChange(of: geo.size.height) { _, height in controlsHeight = height }
+            }
         )
     }
 
     private var transportRow: some View {
-        HStack(spacing: 10) {
+        // 44 pt hit frames around the 38 pt side buttons; spacing keeps
+        // the visual gaps.
+        HStack(spacing: 7) {
             // Prev line (small)
-            smallTransport(icon: "backward.end.fill") {
+            smallTransport(icon: "chevron.backward.2", label: "Önceki cümle") {
                 seekLine(offset: -1)
             }
             // Play / Pause (primary)
@@ -1061,8 +1534,9 @@ struct ClipPlayerView: View {
                     .shadow(color: Color(hex: 0x8577FF, opacity: 0.5), radius: 14, x: 0, y: 6)
             }
             .buttonStyle(.pressable)
+            .accessibilityLabel(isPlaybackActive ? "Duraklat" : "Oynat")
             // Next line
-            smallTransport(icon: "forward.end.fill") {
+            smallTransport(icon: "chevron.forward.2", label: "Sonraki cümle") {
                 seekLine(offset: 1)
             }
             // Scrubber
@@ -1071,7 +1545,7 @@ struct ClipPlayerView: View {
         }
     }
 
-    private func smallTransport(icon: String, action: @escaping () -> Void) -> some View {
+    private func smallTransport(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button {
             Haptics.light()
             action()
@@ -1082,12 +1556,16 @@ struct ClipPlayerView: View {
                 .frame(width: 38, height: 38)
                 .background(Circle().fill(Color(hex: 0x111827)))
                 .overlay(Circle().strokeBorder(Color(hex: 0x1E2A42), lineWidth: 1))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
+        .accessibilityLabel(label)
     }
 
     /// Shows the ~4 Hz playhead within the clip window. Dragging only moves
-    /// a local preview; the player seeks once, on release.
+    /// a local preview; the player seeks once, on release. A 4 pt track in
+    /// a 44 pt-tall touch area.
     private var scrubber: some View {
         let window = self.window
         let total = max(window.duration, 0.01)
@@ -1112,12 +1590,12 @@ struct ClipPlayerView: View {
                         .frame(width: max(0, geo.size.width * fraction), height: 4)
                     Circle()
                         .fill(.white)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 14, height: 14)
                         .overlay(Circle().strokeBorder(Color(hex: 0x8577FF, opacity: 0.5), lineWidth: 3))
                         .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
-                        .offset(x: max(0, geo.size.width * fraction) - 5)
+                        .offset(x: max(0, geo.size.width * fraction) - 7)
                 }
-                .frame(height: 20)
+                .frame(height: 44)
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -1132,10 +1610,10 @@ struct ClipPlayerView: View {
                         }
                 )
             }
-            .frame(height: 20)
+            .frame(height: 44)
             Text(formatTime(total))
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color(hex: 0x5E6B8A))
+                .foregroundStyle(Theme.Color.textMuted)
         }
     }
 
@@ -1148,17 +1626,39 @@ struct ClipPlayerView: View {
             chip(icon: "infinity", label: "Döngü", active: isLooping) {
                 toggleLoop()
             }
-            chip(icon: nil, label: speedLabel, active: speed != 1.0) {
-                cycleSpeed()
-            }
+            speedMenu
             Spacer()
         }
     }
 
-    private var speedLabel: String {
-        // %g uses the shortest representation: 0.5 → "0.5",
-        // 0.75 → "0.75", 1.0 → "1" (no trailing ".00").
-        String(format: "%g×", speed)
+    /// "Hız 0.75×" — one rate for every player (`AppState.playbackRate`).
+    /// Neutral styling: a slower speed is a choice, not an "on" mode.
+    private var speedMenu: some View {
+        Menu {
+            ForEach(Self.speedOptions, id: \.rate) { option in
+                Button {
+                    Haptics.selection()
+                    appState.playbackRate = option.rate
+                } label: {
+                    if option.rate == appState.playbackRate {
+                        Label(option.title, systemImage: "checkmark")
+                    } else {
+                        Text(option.title)
+                    }
+                }
+            }
+        } label: {
+            chipFace(icon: "speedometer", label: "Hız \(Self.rateLabel(appState.playbackRate))", active: false)
+        }
+        .menuOrder(.fixed)
+        .accessibilityLabel("Oynatma hızı")
+        .accessibilityValue(Self.rateLabel(appState.playbackRate))
+    }
+
+    /// %g uses the shortest representation: 0.5 → "0.5×", 0.75 → "0.75×",
+    /// 1.0 → "1×" (no trailing ".00").
+    private static func rateLabel(_ rate: Double) -> String {
+        String(format: "%g×", rate)
     }
 
     private func chip(icon: String?, label: String, active: Bool, action: @escaping () -> Void) -> some View {
@@ -1166,25 +1666,32 @@ struct ClipPlayerView: View {
             Haptics.selection()
             action()
         } label: {
-            HStack(spacing: 5) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 11, weight: .bold))
-                }
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-            }
-            .foregroundStyle(active ? .white : Color(hex: 0x94A0C4))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(
-                Capsule().fill(active ? Color(hex: 0x8577FF) : Color(hex: 0x111827))
-            )
-            .overlay(
-                Capsule().strokeBorder(active ? Color(hex: 0x8577FF) : Color(hex: 0x1E2A42), lineWidth: 1)
-            )
+            chipFace(icon: icon, label: label, active: active)
         }
         .buttonStyle(.pressable)
+    }
+
+    /// A 36 pt capsule inside a 44 pt-tall hit area.
+    private func chipFace(icon: String?, label: String, active: Bool) -> some View {
+        HStack(spacing: 5) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+            }
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+        }
+        .foregroundStyle(active ? .white : Color(hex: 0x94A0C4))
+        .padding(.horizontal, 12)
+        .frame(minHeight: 36)
+        .background(
+            Capsule().fill(active ? Color(hex: 0x8577FF) : Color(hex: 0x111827))
+        )
+        .overlay(
+            Capsule().strokeBorder(active ? Color(hex: 0x8577FF) : Color(hex: 0x1E2A42), lineWidth: 1)
+        )
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 
     // MARK: - Player plumbing
@@ -1201,8 +1708,8 @@ struct ClipPlayerView: View {
             karaoke?.handle(event, hostTime: hostTime)
             events.send(event)
         }
-        player.setRate(speed)
-        sync.setRate(speed)
+        player.setRate(appState.playbackRate)
+        sync.setRate(appState.playbackRate)
         load(clipAt: index, startingAt: initialTime, autoplay: !isPaused)
     }
 
@@ -1220,6 +1727,8 @@ struct ClipPlayerView: View {
             // beginning of the clip.
             player.setBounds(start: window.start, end: window.end, loop: false)
         }
+        // A plain jump also drops any pinned line.
+        pinnedLine = nil
         sync.jump(to: start)
     }
 
@@ -1227,7 +1736,7 @@ struct ClipPlayerView: View {
     /// left to play, else the window's start. A little slack below: a vocab
     /// sentence's lead-in can sit a hair before the window (`ScenePlan`).
     private static func startTime(_ time: Double?, in window: PlaybackWindow) -> Double {
-        guard let time, time.isFinite, time >= max(0, window.start - 1), time < window.end - 0.25 else {
+        guard let time, time.isFinite, time >= max(0, window.start - 1), time < window.end - endSlack else {
             return window.start
         }
         return time
@@ -1256,9 +1765,56 @@ struct ClipPlayerView: View {
         if !hasFirstFrame { hasFirstFrame = true }
     }
 
+    /// The karaoke moved (a new word or line, or a jump).
+    private func positionChanged(from old: SyncPosition, to new: SyncPosition) {
+        // Playback reaching a new line by itself; a jump or loop pins its line.
+        let reachedLine = new.lineIndex != old.lineIndex && pinnedLine == nil
+        if !isLooping, let pin = pinnedLine, !Self.isLeadIn(new, of: pin) {
+            // The jump has landed. The karaoke lets its pin go by itself.
+            pinnedLine = nil
+        }
+        if reachedLine { offerStarterHint(at: new.lineIndex) }
+    }
+
+    /// Line `line` is on screen but its first word hasn't started.
+    private static func isLeadIn(_ position: SyncPosition, of line: Int) -> Bool {
+        position.lineIndex == line && position.progress == .notStarted
+    }
+
+    private func clearPin() {
+        guard pinnedLine != nil else { return }
+        pinnedLine = nil
+        sync.setPinnedLine(nil)
+    }
+
+    /// Until the learner has caught a first word, the first line with a
+    /// target word pauses once and says what to do with it.
+    private func offerStarterHint(at lineIndex: Int?) {
+        guard showsStarterHint, let lineIndex, !hintOffered, !appState.hasCaughtFirstWord,
+              starterBanner == nil, !isPaused, !showCinema, !isLooping,
+              player.state == .playing,
+              clip.lines.indices.contains(lineIndex),
+              clip.lines[lineIndex].words.contains(where: { $0.starterId != nil })
+        else { return }
+        hintOffered = true
+        player.pause()
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            hintLine = lineIndex
+        }
+    }
+
+    /// Hides the first-word hint. `markSeen` when the learner acted on it
+    /// (tapped it, the word, or play), so it doesn't come back.
+    private func endStarterHint(markSeen: Bool) {
+        guard hintLine != nil else { return }
+        withAnimation(.easeOut(duration: 0.2)) { hintLine = nil }
+        if markSeen { appState.markFirstWordCaught() }
+    }
+
     /// The page reached the end of the clip window (never fires while a
     /// line loops).
     private func clipDidEnd() {
+        clearPin()
         guard starterBanner == nil else {
             // The learner is reading the word card; move on when they
             // tap "Devam".
@@ -1269,28 +1825,49 @@ struct ClipPlayerView: View {
     }
 
     /// Natural end of the current clip: next clip, or the end of the video.
+    /// Each clip is reported once, and the video's end once: replaying a
+    /// finished clip doesn't report (and reward) it again.
     private func advance() {
         advancePending = false
-        onClipComplete?(clip)
+        creditClip(at: index)
         if hasNextClip {
             Haptics.medium()
             switchToClip(index + 1, startingAt: nil)
-        } else {
+        } else if !didFinish {
             Haptics.success()
-            onFinish?()
+            reportFinish()
         }
     }
 
-    private func switchToClip(_ newIndex: Int, startingAt time: Double?) {
+    private func creditClip(at clipIndex: Int) {
+        guard prepared.indices.contains(clipIndex), completedClips.insert(clipIndex).inserted else { return }
+        onClipComplete?(prepared[clipIndex])
+    }
+
+    /// A clip the internal cinema played to its end.
+    private func creditCinemaClip(_ finished: LessonClip) {
+        let clipIndex = prepared.firstIndex { $0.id == finished.id } ?? cinemaHandoff.clipIndex
+        creditClip(at: clipIndex)
+    }
+
+    private func reportFinish() {
+        guard !didFinish else { return }
+        didFinish = true
+        onFinish?()
+    }
+
+    private func switchToClip(_ newIndex: Int, startingAt time: Double?, autoplay: Bool? = nil) {
         guard prepared.indices.contains(newIndex) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
             index = newIndex
             starterBanner = nil
+            hintLine = nil
         }
         advancePending = false
         isLooping = false
         scrubPreview = nil
-        load(clipAt: newIndex, startingAt: time, autoplay: !isPaused)
+        userScrolledAt = nil
+        load(clipAt: newIndex, startingAt: time, autoplay: autoplay ?? !isPaused)
     }
 
     /// Error overlay "skip" with a further clip in this player.
@@ -1311,15 +1888,18 @@ struct ClipPlayerView: View {
             player.pause()
         } else {
             closeStarterBanner()
+            endStarterHint(markSeen: true)
             resumePlayback()
         }
     }
 
-    /// Play, or — when the clip ended while the word card was open — move on.
+    /// Play, or — when the clip ended while the word card was open — move on
+    /// (unless that was a replay of a video already finished: play again).
     private func resumePlayback() {
-        if advancePending {
+        if advancePending, hasNextClip || !didFinish {
             advance()
         } else {
+            advancePending = false
             player.play()
         }
     }
@@ -1329,24 +1909,44 @@ struct ClipPlayerView: View {
         withAnimation(.easeOut(duration: 0.2)) { starterBanner = nil }
     }
 
-    private func seek(to t: Double, play: Bool) {
+    /// `pinning` keeps that line on the karaoke through the lead-in before
+    /// its first word (`lineLeadIn`), instead of the line before it.
+    private func seek(to t: Double, play: Bool, pinning line: Int? = nil) {
         player.seek(to: t)
         if play { player.play() }
-        sync.jump(to: t)
+        pinnedLine = line
+        if let line {
+            sync.jump(to: t, pinning: line)
+        } else {
+            sync.jump(to: t)
+        }
     }
 
     /// Plays line `i` from its start. A running loop moves to that line.
     private func jumpToLine(_ i: Int) {
         let lines = clip.lines
         guard lines.indices.contains(i) else { return }
-        let line = lines[i]
-        let start = max(0, line.startTime - Self.lineLeadIn)
+        let start = max(0, lines[i].startTime - Self.lineLeadIn)
         if isLooping {
-            player.setBounds(start: start, end: line.endTime + Self.loopTail, loop: true)
+            player.setBounds(start: start, end: loopEnd(forLine: i), loop: true)
         }
         closeStarterBanner()
+        endStarterHint(markSeen: false)
         advancePending = false
-        seek(to: start, play: true)
+        seek(to: start, play: true, pinning: i)
+        resumeFollowing()
+    }
+
+    /// Where a loop of line `i` wraps: a little after its last word, but
+    /// before the next line would take over the karaoke.
+    private func loopEnd(forLine i: Int) -> Double {
+        let lines = clip.lines
+        let line = lines[i]
+        var end = line.endTime + Self.loopTail
+        if lines.indices.contains(i + 1) {
+            end = min(end, lines[i + 1].startTime - KaraokeTimeline.defaultLead - 0.01)
+        }
+        return max(end, line.endTime)
     }
 
     private func seekLine(offset: Int) {
@@ -1372,13 +1972,13 @@ struct ClipPlayerView: View {
         if isLooping {
             stopLooping()
         } else if let i = sync.position.lineIndex, clip.lines.indices.contains(i) {
-            let line = clip.lines[i]
-            let start = max(0, line.startTime - Self.lineLeadIn)
+            let start = max(0, clip.lines[i].startTime - Self.lineLeadIn)
             isLooping = true
-            player.setBounds(start: start, end: line.endTime + Self.loopTail, loop: true)
+            player.setBounds(start: start, end: loopEnd(forLine: i), loop: true)
             closeStarterBanner()
+            endStarterHint(markSeen: false)
             advancePending = false
-            seek(to: start, play: true)
+            seek(to: start, play: true, pinning: i)
         }
     }
 
@@ -1387,45 +1987,64 @@ struct ClipPlayerView: View {
         guard isLooping else { return }
         isLooping = false
         player.setBounds(start: window.start, end: window.end, loop: false)
+        // The loop's pin, unless its line is still in the lead-in (it lets
+        // go by itself once past).
+        if let pin = pinnedLine, !Self.isLeadIn(sync.position, of: pin) {
+            clearPin()
+        }
     }
 
     private func scrub(to t: Double) {
         // Scrubbing leaves the looped line.
         stopLooping()
         advancePending = false
+        endStarterHint(markSeen: false)
         seek(to: t, play: false)
     }
 
-    /// Parent-requested resume (portrait after cinema).
+    /// Parent-requested resume (portrait after cinema). Whatever the
+    /// learner left open in portrait (word card, hint) is stale by now.
     private func resume(at t: Double) {
         stopLooping()
+        closeStarterBanner()
+        endStarterHint(markSeen: false)
         advancePending = false
         seek(to: t, play: !isPaused)
     }
 
-    /// The internal cinema cover closed: carry on from where it got to.
+    /// The internal cinema cover closed: carry on from where it got to — or,
+    /// when cinema played the video to its end, finish.
     private func resumeFromCinema() {
+        if cinemaHandoff.finished {
+            cinemaHandoff.finished = false
+            cinemaHandoff.time = nil
+            finishAfterCinema()
+            return
+        }
         guard let t = cinemaHandoff.time else { return }
         let clipIndex = cinemaHandoff.clipIndex
         cinemaHandoff.time = nil
-        if clipIndex != index, prepared.indices.contains(clipIndex) {
+        if clipIndex == prepared.indices.last, t >= windows[clipIndex].end - Self.endSlack {
+            // Cinema reached the end with no host `onFinish` to hand it to,
+            // and just closed. Resuming there would replay the clip if
+            // portrait had already ended it before cinema.
+            finishAfterCinema()
+        } else if clipIndex != index, prepared.indices.contains(clipIndex) {
             switchToClip(clipIndex, startingAt: t)
         } else {
             resume(at: t)
         }
     }
 
-    private func cycleSpeed() {
-        // 0.75 → 1.0 → 0.5 → 0.75. Starts at 0.75 (the default), first
-        // tap goes up to native rate, next tap dives down to half-speed
-        // (slow study mode), then loops back to the comfortable default.
-        switch speed {
-        case 0.75: speed = 1.0
-        case 1.0:  speed = 0.5
-        default:   speed = 0.75
+    /// Cinema finished the video. Portrait shows its last scene from the
+    /// top, paused (nothing replays, and not the line it was on before
+    /// cinema), and the host hears the end once. Cinema already reported
+    /// the clips it completed.
+    private func finishAfterCinema() {
+        if let last = prepared.indices.last {
+            switchToClip(last, startingAt: nil, autoplay: false)
         }
-        player.setRate(speed)
-        sync.setRate(speed)
+        reportFinish()
     }
 
     private func continueFromStarter() {
@@ -1464,4 +2083,24 @@ private final class CinemaHandoff {
     var startTime: Double? = nil
     /// Cinema's last reported position; nil until it reports one.
     var time: Double? = nil
+    /// Cinema played the last clip to its end (or skipped past it).
+    var finished = false
+}
+
+/// The target-word underline while the first-word hint points at it.
+private struct PulsingUnderline: View {
+    let color: Color
+    @State private var bright = false
+
+    var body: some View {
+        Rectangle()
+            .fill(color)
+            .frame(height: 3)
+            .opacity(bright ? 1 : 0.35)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                    bright = true
+                }
+            }
+    }
 }
