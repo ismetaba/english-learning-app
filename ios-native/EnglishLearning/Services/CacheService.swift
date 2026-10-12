@@ -8,6 +8,9 @@ actor CacheService {
         static let curriculum: TimeInterval = 60 * 60 * 24       // 24h
         static let lesson: TimeInterval     = 60 * 60            // 1h
         static let clips: TimeInterval      = 60 * 30            // 30m
+        /// POC-video clips are only read back when the network fails (see
+        /// `ClipStore`), so the copy can be old — stale beats nothing offline.
+        static let clipsOffline: TimeInterval = 60 * 60 * 24 * 7 // 7d
         static let vocab: TimeInterval      = 60 * 60 * 24       // 24h
     }
 
@@ -70,9 +73,18 @@ actor CurriculumRepository {
     }
 
     func pocVideoClips(videoId: String, forceRefresh: Bool = false) async throws -> [LessonClip] {
-        // No caching — structure tagging is still landing while we build, so
-        // the response shape can change on every refresh during Phase 1.
-        try await APIClient.shared.fetchPocVideoClips(videoId: videoId)
+        // Fetched once per session via ClipStore (the endpoint takes up to
+        // 33s), falling back to the last good disk copy when offline. Not a
+        // TTL cache — structure tagging still changes server-side, so every
+        // session starts from the network. Pull-to-refresh forces a refetch.
+        if forceRefresh { await ClipStore.shared.invalidate(videoId) }
+        return try await ClipStore.shared.clips(for: videoId)
+    }
+
+    /// Starts loading a video's clips in the background (e.g. the next
+    /// video in a set while the current one plays) so opening it is instant.
+    func prefetchPocVideoClips(videoId: String) async {
+        await ClipStore.shared.prefetch(videoId)
     }
 
     func videoSets(forceRefresh: Bool = false) async throws -> [VideoSet] {
