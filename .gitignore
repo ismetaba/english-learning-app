@@ -51,3 +51,6 @@ data.db.backup-*
 data_clean.db
 data_clean.db-shm
 data_clean.db-wal
+
+# Claude Code agent worktrees (local only)
+.claude/worktrees/
