@@ -140,7 +140,7 @@ private struct SetHeroCard: View {
             // Mosaic of the first 4 video thumbnails — gives the set
             // a face that's clearly multi-video, instead of leaning on
             // any single video to represent the whole journey.
-            thumbnailMosaic
+            ThumbnailMosaic(videos: Array(set.videos.prefix(4)))
 
             // Bottom gradient so the position label stays legible
             // regardless of the underlying thumbnail brightness.
@@ -169,28 +169,6 @@ private struct SetHeroCard: View {
         }
         .aspectRatio(16.0 / 7.0, contentMode: .fit)
         .clipped()
-    }
-
-    private var thumbnailMosaic: some View {
-        let firstFour = Array(set.videos.prefix(4))
-        return GeometryReader { geo in
-            HStack(spacing: 0) {
-                ForEach(firstFour) { v in
-                    AsyncImage(url: v.thumbnailURL) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        case .empty, .failure:
-                            Color.black
-                        @unknown default:
-                            Color.black
-                        }
-                    }
-                    .frame(width: geo.size.width / CGFloat(max(firstFour.count, 1)), height: geo.size.height)
-                    .clipped()
-                }
-            }
-        }
     }
 
     private var infoBlock: some View {

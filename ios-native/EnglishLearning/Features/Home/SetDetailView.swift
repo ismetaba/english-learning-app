@@ -24,6 +24,9 @@ struct SetDetailView: View {
             }
         }
         .navigationBarBackButtonHidden(false)
+        // The back button shows only its chevron, not the system's
+        // English "Back".
+        .toolbarRole(.editor)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(set.displayTitle)
@@ -54,7 +57,7 @@ struct SetDetailView: View {
                         .tracking(1.4)
                         .foregroundStyle(difficultyTint)
                     Text("·").foregroundStyle(.white.opacity(0.5))
-                    Text("\(set.videos.count) VIDEO")
+                    Text("\(set.videos.count) VİDEO")
                         .font(.system(size: 11, weight: .heavy))
                         .tracking(1.4)
                         .foregroundStyle(.white)
@@ -97,7 +100,8 @@ struct SetDetailView: View {
                     Text(primaryAction.title)
                         .font(.system(size: 16, weight: .heavy))
                 }
-                .foregroundStyle(.white)
+                // Dark ink on the bright accent reads; white doesn't.
+                .foregroundStyle(Theme.Color.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
@@ -118,7 +122,7 @@ struct SetDetailView: View {
     private var videoList: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Text("VIDEOLAR")
+                Text("VİDEOLAR")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .tracking(2)
                     .foregroundStyle(Theme.Color.accent)
@@ -152,7 +156,7 @@ struct SetDetailView: View {
         let total = self.set.videos.count
         let watched = watchedCount
         if watched == 0 {
-            return ("Sete Başla", "play.fill", 0)
+            return ("Sete başla", "play.fill", 0)
         }
         if let next = self.set.videos.firstIndex(where: { !appState.isVideoWatched($0.id) }) {
             return ("Devam et · \(watched)/\(total)", "play.fill", next)
@@ -190,21 +194,13 @@ struct ThumbnailMosaic: View {
         GeometryReader { geo in
             HStack(spacing: 0) {
                 ForEach(videos) { v in
-                    AsyncImage(url: v.thumbnailURL) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        case .empty, .failure:
-                            Color.black
-                        @unknown default:
-                            Color.black
-                        }
-                    }
-                    .frame(width: geo.size.width / CGFloat(max(videos.count, 1)), height: geo.size.height)
-                    .clipped()
+                    // Narrow tiles: the still's letterbox bars are cropped.
+                    RemoteThumbnail(youtubeVideoId: v.youtubeVideoId)
+                        .frame(width: geo.size.width / CGFloat(max(videos.count, 1)), height: geo.size.height)
+                        .clipped()
                 }
             }
-            .background(Color.black)
+            .background(Theme.Color.backgroundCard)
         }
     }
 }
@@ -241,19 +237,10 @@ private struct SetVideoRow: View {
                     }
                 }
 
-                AsyncImage(url: video.thumbnailURL) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img.resizable().aspectRatio(contentMode: .fill)
-                    case .empty, .failure:
-                        Color.black
-                    @unknown default:
-                        Color.black
-                    }
-                }
-                .frame(width: 96, height: 54)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                RemoteThumbnail(youtubeVideoId: video.youtubeVideoId)
+                    .frame(width: 96, height: 54)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(video.movieTitle.uppercased())
@@ -302,9 +289,9 @@ private struct SetVideoRow: View {
 // MARK: - Set player (auto-advances through videos with polished transitions)
 
 /// Plays the videos of a set back-to-back. Between videos a transition
-/// overlay slides in (set progress + just-finished badge + next-video
-/// preview + auto-advance countdown). The last video ends in a
-/// completion screen instead of advancing. Crossfades + spring scale
+/// overlay slides in (set progress + just-finished badge + the words caught
+/// in it + next-video preview + auto-advance countdown). The last video
+/// ends in a closing screen instead of advancing. Crossfades + spring scale
 /// on the next-up card give the experience a "next episode" feel.
 struct SetPlayerView: View {
     let set: VideoSet
@@ -318,7 +305,7 @@ struct SetPlayerView: View {
         case loading
         case playing
         case transitioning   // showing the next-up card with countdown
-        case completed       // set finished, show celebration
+        case completed       // set finished, show the closing screen
     }
 
     @State private var index: Int
@@ -342,6 +329,19 @@ struct SetPlayerView: View {
     /// last known time to ClipPlayerView so portrait can pick up
     /// where cinema left off.
     @State private var portraitResumeAt: Double? = nil
+    /// Cinema was left with its own back / portrait button: portrait picks
+    /// up where it got to once the cover is gone. Not before — the cinema
+    /// player still plays while the cover animates out, and the two would
+    /// speak the same line at once.
+    @State private var resumePortraitAfterCinema = false
+
+    /// The learner's words when the current video started; what's new when
+    /// it ends is what they caught in it.
+    @State private var wordsAtVideoStart: WordsSnapshot? = nil
+    /// Caught in the video that just ended (the next-up recap).
+    @State private var caughtInVideo: [PocStarterWord] = []
+    /// Caught during this run of the set, in order (the closing screen).
+    @State private var caughtInSet: [PocStarterWord] = []
 
     init(set: VideoSet, startAtIndex: Int = 0) {
         self.set = set
@@ -361,7 +361,7 @@ struct SetPlayerView: View {
 
             // Loading state.
             if phase == .loading && errorMessage == nil {
-                LoadingState(label: "\(index + 1) / \(set.videos.count) yükleniyor")
+                LoadingState(label: loadingLabel)
                     .transition(.opacity)
             }
 
@@ -379,29 +379,33 @@ struct SetPlayerView: View {
             // The player's own back button isn't on screen while a video
             // loads or fails to; keep a way out.
             if phase == .loading || errorMessage != nil {
-                closeButton
+                roundIconButton("chevron.left", label: "Setten çık") { dismiss() }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(.leading, 16)
                     .padding(.top, 8)
                     .transition(.opacity)
             }
 
-            // Transition overlay (between videos).
+            // Transition overlay (between videos). Both of its ways forward
+            // name the video that just finished, so only one advance happens.
             if phase == .transitioning, index < set.videos.count - 1 {
                 NextUpOverlay(
                     set: set,
                     finishedIndex: index,
-                    onContinueNow: { advanceNow() },
+                    caught: caughtInVideo,
+                    onContinueNow: { [finished = index] in continueAfterNextUp(finishedIndex: finished) },
                     onExit: { dismiss() },
-                    onComplete: { advanceNow() },
+                    onComplete: { [finished = index] in continueAfterNextUp(finishedIndex: finished) },
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
 
-            // Completion screen (after last video).
+            // Closing screen (after the last video).
             if phase == .completed {
                 SetCompleteOverlay(
                     set: set,
+                    caught: caughtInSet,
+                    onShowWords: { showMyWords() },
                     onDismiss: { dismiss() },
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -410,38 +414,23 @@ struct SetPlayerView: View {
         .animation(.easeInOut(duration: 0.45), value: phase)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: index) { await load() }
+        // A load error stays on screen with its retry when the screen
+        // reappears (e.g. the cinema cover closed because of it) instead
+        // of flashing back to loading.
+        .task(id: index) {
+            guard errorMessage == nil else { return }
+            await load()
+        }
+        // Cinema can't show a load error usefully: drop to portrait, where
+        // the error has its retry, skip and close buttons.
+        .onChange(of: errorMessage) { _, err in
+            guard err != nil, showCinema else { return }
+            resumePortraitAfterCinema = false
+            showCinema = false
+        }
         .hidesTabBarWhileVisible()
-        .fullScreenCover(isPresented: $showCinema) {
-            // Cinema mounts at the SetPlayerView level so it survives
-            // the inner ClipPlayerView remount on video advance. The
-            // `.id(currentVideo.id)` on the inner view means cinema
-            // gets fresh state when the video changes — fresh clips,
-            // fresh start time — but the cover (and therefore the
-            // landscape orientation lock at the container level) stay
-            // on screen across the transition gap when `clips` is
-            // momentarily empty.
-            ZStack {
-                Color.black.ignoresSafeArea()
-                if !clips.isEmpty,
-                   clips.first?.youtubeVideoId == currentVideo.youtubeVideoId {
-                    CinemaPlayerView(
-                        clips: clips,
-                        initialTime: playhead.resumeTime(for: currentVideo.id),
-                        initialClipIndex: playhead.resumeClipIndex(for: currentVideo.id),
-                        onTick: tickRecorder(for: currentVideo.id),
-                        onFinish: { [videoId = currentVideo.id] in onVideoFinished(videoId) },
-                        onExit: {
-                            portraitResumeAt = playhead.resumeTime(for: currentVideo.id)
-                            showCinema = false
-                        },
-                        onUnplayable: { [videoId = currentVideo.id] in skipUnplayableVideo(videoId) },
-                    )
-                    .id(currentVideo.id)
-                    .environmentObject(appState)
-                }
-            }
-            .lockToLandscape()
+        .fullScreenCover(isPresented: $showCinema, onDismiss: { cinemaDidDismiss() }) {
+            cinemaCover
         }
     }
 
@@ -451,49 +440,142 @@ struct SetPlayerView: View {
 
     private var hasNextVideo: Bool { index < self.set.videos.count - 1 }
 
+    /// The loaded clips belong to the current video (never the previous
+    /// one's data in a fresh player).
+    private var hasClipsForCurrentVideo: Bool {
+        !clips.isEmpty && clips.first?.youtubeVideoId == currentVideo.youtubeVideoId
+    }
+
+    private var loadingLabel: String {
+        "\(index + 1) / \(self.set.videos.count) yükleniyor"
+    }
+
+    /// The players' header line: where this video is in the set.
+    private var videoPositionLabel: String {
+        "Video \(index + 1) / \(self.set.videos.count)"
+    }
+
     @ViewBuilder
     private var playerLayer: some View {
         // Only mount ClipPlayerView when the loaded clips actually
         // belong to the current video, so a remount never starts with
         // the previous video's data.
-        if !clips.isEmpty,
-           clips.first?.youtubeVideoId == currentVideo.youtubeVideoId {
+        if hasClipsForCurrentVideo {
             ClipPlayerView(
                 clips: clips,
                 onFinish: { [videoId = currentVideo.id] in onVideoFinished(videoId) },
                 onExit: { dismiss() },
-                onCinemaRequest: { showCinema = true },
+                onCinemaRequest: {
+                    resumePortraitAfterCinema = false
+                    showCinema = true
+                },
                 initialClipIndex: playhead.resumeClipIndex(for: currentVideo.id),
                 initialTime: playhead.resumeTime(for: currentVideo.id),
                 onTick: tickRecorder(for: currentVideo.id),
                 resumeAt: $portraitResumeAt,
-                isPaused: showCinema,
+                // Silent until the cinema cover has fully gone.
+                isPaused: showCinema || resumePortraitAfterCinema,
                 onUnplayable: { [videoId = currentVideo.id] in skipUnplayableVideo(videoId) },
+                headerSubtitle: videoPositionLabel,
+                trimsSilence: true,
             )
             .id(currentVideo.id)
             .environmentObject(appState)
         }
     }
 
-    private var closeButton: some View {
+    /// Cinema mounts at the SetPlayerView level so it survives the inner
+    /// ClipPlayerView remount on video advance. The `.id(currentVideo.id)`
+    /// on the inner view means cinema gets fresh state when the video
+    /// changes — fresh clips, fresh start time — but the cover (and
+    /// therefore the landscape orientation lock at the container level)
+    /// stays on screen across the gap while the next video loads.
+    private var cinemaCover: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if hasClipsForCurrentVideo {
+                CinemaPlayerView(
+                    clips: clips,
+                    initialTime: playhead.resumeTime(for: currentVideo.id),
+                    initialClipIndex: playhead.resumeClipIndex(for: currentVideo.id),
+                    onTick: tickRecorder(for: currentVideo.id),
+                    onFinish: { [videoId = currentVideo.id] in onVideoFinished(videoId) },
+                    onExit: {
+                        resumePortraitAfterCinema = true
+                        showCinema = false
+                    },
+                    onUnplayable: { [videoId = currentVideo.id] in skipUnplayableVideo(videoId) },
+                    headerSubtitle: videoPositionLabel,
+                    trimsSilence: true,
+                )
+                .id(currentVideo.id)
+                .environmentObject(appState)
+            } else {
+                cinemaPlaceholder
+            }
+        }
+        .lockToLandscape()
+    }
+
+    /// The cover while the next video loads (or failed to): never a bare
+    /// black screen, and always a way back to portrait.
+    private var cinemaPlaceholder: some View {
+        ZStack(alignment: .topLeading) {
+            if let err = errorMessage {
+                ErrorState(
+                    message: err,
+                    onRetry: { Task { await load() } },
+                    secondary: skipVideoAction,
+                )
+                .background(Theme.Color.background.ignoresSafeArea())
+            } else {
+                LoadingState(label: loadingLabel)
+                    .ignoresSafeArea()
+            }
+            roundIconButton("chevron.left", label: "Sinema modundan çık") {
+                resumePortraitAfterCinema = false
+                showCinema = false
+            }
+            .padding(.leading, 16)
+            .padding(.top, 8)
+        }
+        // The cover hides this screen, whose own `.task` may not run
+        // meanwhile; the next video loads from here too (a load already
+        // done or in flight is joined, not repeated).
+        .task(id: index) {
+            guard errorMessage == nil else { return }
+            await load()
+        }
+    }
+
+    private func roundIconButton(_ systemName: String, label: String,
+                                 action: @escaping () -> Void) -> some View {
         Button {
             Haptics.light()
-            dismiss()
+            action()
         } label: {
-            Image(systemName: "chevron.left")
+            Image(systemName: systemName)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(Theme.Color.textPrimary)
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Theme.Color.backgroundCard))
                 .overlay(Circle().strokeBorder(Theme.Color.border, lineWidth: 1))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
+        .accessibilityLabel(label)
     }
 
     /// "Sonraki videoya geç" under the error, unless this is the last video.
     private var skipVideoAction: (label: String, run: () -> Void)? {
         guard hasNextVideo else { return nil }
-        return (label: "Sonraki videoya geç", run: { advanceNow() })
+        let failedIndex = index
+        return (label: "Sonraki videoya geç", run: {
+            // A second tap (or the other error view's button) is a no-op.
+            guard index == failedIndex else { return }
+            advanceNow()
+        })
     }
 
     /// Records a player's position, tagged with the video it belongs to so
@@ -514,6 +596,7 @@ struct SetPlayerView: View {
     private func onVideoFinished(_ videoId: String) {
         guard videoId == currentVideo.id, phase == .playing else { return }
         appState.markVideoWatched(videoId)
+        caughtInVideo = collectCaughtWords()
         Haptics.success()
         if hasNextVideo {
             if showCinema {
@@ -535,6 +618,7 @@ struct SetPlayerView: View {
     /// as watched.
     private func skipUnplayableVideo(_ videoId: String) {
         guard videoId == currentVideo.id, phase == .playing else { return }
+        _ = collectCaughtWords()
         if hasNextVideo {
             advanceNow()
         } else {
@@ -542,13 +626,37 @@ struct SetPlayerView: View {
         }
     }
 
+    /// "Devam et" and the countdown both end here. Only the first call for
+    /// the video that just finished advances: a tap racing the countdown's
+    /// last tick would otherwise skip the next video.
+    private func continueAfterNextUp(finishedIndex: Int) {
+        guard phase == .transitioning, index == finishedIndex else { return }
+        advanceNow()
+    }
+
     private func completeSet() {
-        // Drop out of cinema so the completion overlay is visible
+        // Drop out of cinema so the closing screen is visible
         // (it's portrait-only).
         if showCinema { showCinema = false }
         withAnimation(.easeInOut(duration: 0.5)) {
             phase = .completed
         }
+    }
+
+    /// "Kelimelerimi gör": the Kelimeler tab, with the set closed behind it.
+    private func showMyWords() {
+        appState.selectedTab = .vocab
+        dismiss()
+    }
+
+    /// The cover is gone: only now does portrait take the audio back.
+    private func cinemaDidDismiss() {
+        guard resumePortraitAfterCinema else { return }
+        resumePortraitAfterCinema = false
+        // Cinema may have finished the video while it animated out; the
+        // next-up card is up then and portrait stays paused under it.
+        guard phase == .playing else { return }
+        portraitResumeAt = playhead.resumeTime(for: currentVideo.id)
     }
 
     private func advanceNow() {
@@ -571,6 +679,34 @@ struct SetPlayerView: View {
         // new video's clips; phase flips back to .playing on success.
     }
 
+    /// Words the learner added since the current video started (named as
+    /// the video names them), also added to the set's running list. Each
+    /// word is reported once.
+    private func collectCaughtWords() -> [PocStarterWord] {
+        let video = currentVideo
+        guard let start = wordsAtVideoStart, start.videoId == video.id else { return [] }
+        let learned = appState.progress.learnedWords
+        let newIds = learned.filter { !start.ids.contains($0) }
+        wordsAtVideoStart = WordsSnapshot(videoId: video.id, ids: Set(learned))
+        let caught = newIds.compactMap { starterWord(id: $0, in: video) }
+        let known = Set(caughtInSet.map(\.id))
+        caughtInSet.append(contentsOf: caught.filter { !known.contains($0.id) })
+        return caught
+    }
+
+    /// A caught word as the video's word list has it, or else as its clip
+    /// shows it.
+    private func starterWord(id: String, in video: PocVideo) -> PocStarterWord? {
+        if let listed = video.starterWords.first(where: { $0.id == id }) { return listed }
+        for line in clips.flatMap(\.lines) {
+            if let w = line.words.first(where: { $0.starterId == id }) {
+                let word = w.word.trimmingCharacters(in: .punctuationCharacters).lowercased()
+                return PocStarterWord(id: id, word: word, tr: w.starterTr ?? "", occurrences: 1)
+            }
+        }
+        return nil
+    }
+
     @MainActor
     private func load() async {
         let video = currentVideo
@@ -591,8 +727,7 @@ struct SetPlayerView: View {
             // by a cover hiding the screen — it is still the right data.)
             guard video.id == currentVideo.id else { return }
             // The backend returns several curations of the same scene per
-            // video; the set plays one per video — the one showing the most
-            // tagged dialogue.
+            // video; the set plays one per video (`PrimaryClip.pick`).
             guard let primary = PrimaryClip.pick(fetched) else {
                 clips = []
                 errorMessage = "Bu videonun altyazıları henüz hazır değil."
@@ -600,6 +735,11 @@ struct SetPlayerView: View {
             }
             clips = [ClipTiming.sanitize(primary)]
             loadedVideoId = video.id
+            // Words added from here on were caught in this video.
+            if wordsAtVideoStart?.videoId != video.id {
+                wordsAtVideoStart = WordsSnapshot(videoId: video.id,
+                                                  ids: Set(appState.progress.learnedWords))
+            }
             // Only push to playing if we're not in a higher-priority
             // overlay state.
             if phase == .loading {
@@ -624,6 +764,12 @@ struct SetPlayerView: View {
         let nextId = self.set.videos[index + 1].id
         Task { await CurriculumRepository.shared.prefetchPocVideoClips(videoId: nextId) }
     }
+}
+
+/// The learner's words when a video started.
+private struct WordsSnapshot {
+    let videoId: String
+    let ids: Set<String>
 }
 
 /// Where a set's on-screen player is. A reference type on purpose: the
@@ -655,26 +801,70 @@ private final class SetPlayhead {
     }
 }
 
+/// Turkish casing for this file's labels: uppercasing Turkish needs the
+/// Turkish locale ("izlenen video" → "İZLENEN VİDEO", not "IZLENEN").
+private enum SetFlowText {
+    static let turkish = Locale(identifier: "tr_TR")
+
+    /// A set's title in capitals: Turkish rules for a Turkish title, plain
+    /// ones for the English fallback.
+    static func titleCaps(_ set: VideoSet) -> String {
+        set.titleTr?.isEmpty == false
+            ? set.displayTitle.uppercased(with: turkish)
+            : set.displayTitle.uppercased()
+    }
+}
+
 // MARK: - Next-up overlay
 
 /// "Next episode" style transition card. Shows the set's progress, a
-/// brief acknowledgement of the just-finished video, a hero preview of
-/// the next video, and a countdown that auto-advances. The user can
-/// skip the wait, exit the set, or do nothing and let the timer roll.
+/// brief acknowledgement of the just-finished video and the words caught
+/// in it, a hero preview of the next video, and a countdown that
+/// auto-advances. The user can skip the wait, exit the set, or do nothing
+/// and let the timer roll.
 private struct NextUpOverlay: View {
     let set: VideoSet
     let finishedIndex: Int
+    /// Words the learner added during the video that just ended.
+    let caught: [PocStarterWord]
     let onContinueNow: () -> Void
     let onExit: () -> Void
     let onComplete: () -> Void
 
-    /// Auto-advance window. Long enough to read the next-up card and
-    /// short enough that the flow stays in motion.
-    private static let countdownSeconds = 5
+    /// Auto-advance window. Long enough to read the next-up card (and the
+    /// recap, when there is one) and short enough that the flow stays in
+    /// motion.
+    private let countdownSeconds: Double
+    /// Recap chips shown before the rest fold into "+n".
+    private static let maxRecapChips = 6
 
-    @State private var remaining: Double = Double(countdownSeconds)
+    @State private var remaining: Double
     @State private var timer: Timer? = nil
     @State private var didEnter: Bool = false
+    /// The learner tapped a recap word: the countdown waits for "Devam et".
+    @State private var isHeld = false
+    /// Set by whichever way out ("Devam et", "Setten çık", the countdown)
+    /// is taken first; the others then do nothing.
+    @State private var didLeave = false
+
+    init(
+        set: VideoSet,
+        finishedIndex: Int,
+        caught: [PocStarterWord],
+        onContinueNow: @escaping () -> Void,
+        onExit: @escaping () -> Void,
+        onComplete: @escaping () -> Void,
+    ) {
+        self.set = set
+        self.finishedIndex = finishedIndex
+        self.caught = caught
+        self.onContinueNow = onContinueNow
+        self.onExit = onExit
+        self.onComplete = onComplete
+        let seconds: Double = caught.isEmpty ? 5 : 8
+        self.countdownSeconds = seconds
+        self._remaining = State(initialValue: seconds)
+    }
 
     private var nextVideo: PocVideo? {
         let next = finishedIndex + 1
@@ -689,24 +879,36 @@ private struct NextUpOverlay: View {
         ZStack {
             backdrop
 
-            VStack(alignment: .leading, spacing: 0) {
-                Spacer(minLength: 0)
-                progressDots
-                    .padding(.bottom, 22)
-                finishedRow
-                    .padding(.bottom, 24)
-                Rectangle()
-                    .fill(Theme.Color.border.opacity(0.5))
-                    .frame(height: 1)
-                    .padding(.bottom, 24)
-                if let next = nextVideo {
-                    nextUpCard(for: next)
-                        .padding(.bottom, 28)
+            // Scrolls only when a long recap doesn't fit (small phones);
+            // otherwise the content sits centred like a card.
+            GeometryReader { geo in
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer(minLength: 24)
+                        setProgress
+                            .padding(.bottom, 22)
+                        finishedRow
+                            .padding(.bottom, caught.isEmpty ? 24 : 16)
+                        if !caught.isEmpty {
+                            recap
+                                .padding(.bottom, 24)
+                        }
+                        Rectangle()
+                            .fill(Theme.Color.border.opacity(0.5))
+                            .frame(height: 1)
+                            .padding(.bottom, 24)
+                        if let next = nextVideo {
+                            nextUpCard(for: next)
+                                .padding(.bottom, 28)
+                        }
+                        actions
+                        Spacer(minLength: 24)
+                    }
+                    .padding(.horizontal, 24)
+                    .frame(maxWidth: .infinity, minHeight: geo.size.height)
                 }
-                actions
-                Spacer(minLength: 0)
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, 24)
         }
         .onAppear {
             guard !didEnter else { return }
@@ -736,35 +938,39 @@ private struct NextUpOverlay: View {
         .ignoresSafeArea()
     }
 
-    private var progressDots: some View {
+    private var progressFraction: CGFloat {
+        let total = max(self.set.videos.count, 1)
+        return CGFloat(min(finishedIndex + 1, total)) / CGFloat(total)
+    }
+
+    /// Where the set is: one bar, as wide as the screen whether the set
+    /// has 5 videos or 100.
+    private var setProgress: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Text(set.displayTitle.uppercased())
+                Text(SetFlowText.titleCaps(set))
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.6)
                     .foregroundStyle(Theme.Color.textMuted)
-                Spacer(minLength: 0)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
                 Text("\(finishedIndex + 1) / \(set.videos.count)")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
                     .foregroundStyle(Theme.Color.textSecondary)
             }
-            HStack(spacing: 6) {
-                ForEach(Array(set.videos.enumerated()), id: \.element.id) { i, _ in
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(
-                            i <= finishedIndex
-                                ? Theme.Color.accent
-                                : Theme.Color.backgroundSurface,
-                        )
-                        .frame(height: 4)
-                        .frame(maxWidth: .infinity)
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(Theme.Color.border.opacity(0.4), lineWidth: 0.5),
-                        )
+                        .fill(Theme.Color.border)
+                    Capsule()
+                        .fill(Theme.Color.accent)
+                        .frame(width: geo.size.width * progressFraction)
                 }
             }
+            .frame(height: 4)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var finishedRow: some View {
@@ -794,10 +1000,31 @@ private struct NextUpOverlay: View {
         }
     }
 
+    /// What the learner added in the video that just ended. Tapping a
+    /// word holds the countdown so there's time to read.
+    private var recap: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Bu videoda yakaladıkların")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.Color.textSecondary)
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                ForEach(Array(caught.prefix(Self.maxRecapChips))) { word in
+                    Button(action: { holdCountdown() }) {
+                        CaughtWordChip(word: word)
+                    }
+                    .buttonStyle(.pressable)
+                }
+                if caught.count > Self.maxRecapChips {
+                    MoreWordsChip(count: caught.count - Self.maxRecapChips)
+                }
+            }
+        }
+    }
+
     private func nextUpCard(for video: PocVideo) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
-                Text("SIRADAKI")
+                Text("SIRADAKİ")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(1.6)
                     .foregroundStyle(Theme.Color.accent)
@@ -805,18 +1032,9 @@ private struct NextUpOverlay: View {
             }
 
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: video.thumbnailURL) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img.resizable().aspectRatio(contentMode: .fill)
-                    case .empty, .failure:
-                        Color.black
-                    @unknown default:
-                        Color.black
-                    }
-                }
-                .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                RemoteThumbnail(youtubeVideoId: video.youtubeVideoId)
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 LinearGradient(
                     colors: [.clear, .clear, .black.opacity(0.85)],
@@ -847,20 +1065,19 @@ private struct NextUpOverlay: View {
 
     private var actions: some View {
         VStack(spacing: 10) {
-            Button(action: {
-                Haptics.medium()
-                stopTimer()
-                onContinueNow()
-            }) {
+            Button(action: { continueNow() }) {
                 HStack(spacing: 12) {
-                    countdownRing
+                    if !isHeld {
+                        countdownRing
+                    }
                     Text("Devam et")
                         .font(.system(size: 16, weight: .heavy))
                     Spacer(minLength: 0)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 14, weight: .heavy))
                 }
-                .foregroundStyle(.white)
+                // Dark ink on the bright accent reads; white doesn't.
+                .foregroundStyle(Theme.Color.onAccent)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
                 .background(
@@ -875,11 +1092,7 @@ private struct NextUpOverlay: View {
             }
             .buttonStyle(.pressable(scale: 0.98))
 
-            Button(action: {
-                Haptics.light()
-                stopTimer()
-                onExit()
-            }) {
+            Button(action: { exitSet() }) {
                 Text("Setten çık")
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(Theme.Color.textMuted)
@@ -892,29 +1105,55 @@ private struct NextUpOverlay: View {
     private var countdownRing: some View {
         ZStack {
             Circle()
-                .strokeBorder(Color.white.opacity(0.25), lineWidth: 2)
+                .strokeBorder(Theme.Color.onAccent.opacity(0.25), lineWidth: 2)
                 .frame(width: 26, height: 26)
             Circle()
-                .trim(from: 0, to: max(0, remaining / Double(Self.countdownSeconds)))
-                .stroke(.white, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .trim(from: 0, to: max(0, remaining / countdownSeconds))
+                .stroke(Theme.Color.onAccent, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .frame(width: 26, height: 26)
                 .animation(.linear(duration: 0.1), value: remaining)
             Text("\(Int(remaining.rounded(.up)))")
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.Color.onAccent)
         }
     }
 
+    private func continueNow() {
+        guard !didLeave else { return }
+        didLeave = true
+        Haptics.medium()
+        stopTimer()
+        onContinueNow()
+    }
+
+    private func exitSet() {
+        guard !didLeave else { return }
+        didLeave = true
+        Haptics.light()
+        stopTimer()
+        onExit()
+    }
+
+    private func holdCountdown() {
+        guard !didLeave, !isHeld else { return }
+        Haptics.selection()
+        isHeld = true
+        stopTimer()
+    }
+
     private func startTimer() {
-        remaining = Double(Self.countdownSeconds)
+        remaining = countdownSeconds
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { t in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
             DispatchQueue.main.async {
+                // A tick queued before a tap stopped the timer must not
+                // advance (again) after it.
+                guard timer != nil, !didLeave else { return }
                 remaining -= 0.05
                 if remaining <= 0 {
-                    t.invalidate()
-                    timer = nil
+                    stopTimer()
+                    didLeave = true
                     Haptics.medium()
                     onComplete()
                 }
@@ -940,20 +1179,51 @@ private struct NextUpOverlay: View {
 
 // MARK: - Set complete overlay
 
-/// Shown after the LAST video in the set finishes. Celebrates the
-/// completion with a brief stat block + a single dismiss action that
-/// returns to the set detail.
+/// Shown after the LAST video in the set finishes (or is skipped). States
+/// honestly what happened — how many of the set's videos are watched, how
+/// many of its words are in the learner's list, the words added this time —
+/// and offers the way back to the set or on to those words.
 private struct SetCompleteOverlay: View {
     let set: VideoSet
+    /// Words the learner added during this run of the set.
+    let caught: [PocStarterWord]
+    let onShowWords: () -> Void
     let onDismiss: () -> Void
 
+    @EnvironmentObject var appState: AppState
+
     @State private var didEnter = false
-    @State private var trophyScale: CGFloat = 0.8
+    @State private var markScale: CGFloat = 0.8
+
+    /// Chips shown before the rest fold into "+n".
+    private static let maxChips = 12
+
+    private var watchedCount: Int {
+        self.set.videos.filter { appState.isVideoWatched($0.id) }.count
+    }
+
+    /// Every video watched to its end. A run that skipped an unplayable
+    /// video doesn't claim the set.
+    private var isSetComplete: Bool {
+        !self.set.videos.isEmpty && watchedCount == self.set.videos.count
+    }
+
+    /// The set's words in the learner's list, whenever they were added.
+    private var setWordsInList: Int {
+        let learned = Set(appState.progress.learnedWords)
+        var ids = Set<String>()
+        for video in self.set.videos {
+            for word in video.starterWords where learned.contains(word.id) {
+                ids.insert(word.id)
+            }
+        }
+        return ids.count
+    }
 
     var body: some View {
         ZStack {
-            // Festive backdrop — slightly more accent presence than
-            // the next-up overlay since this is a one-shot moment.
+            // Soft backdrop — slightly more accent presence than the
+            // next-up overlay since this is a one-shot moment.
             ZStack {
                 Theme.Color.background
                 RadialGradient(
@@ -969,83 +1239,189 @@ private struct SetCompleteOverlay: View {
             }
             .ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                Spacer(minLength: 0)
-
-                ZStack {
-                    Circle()
-                        .fill(Theme.Color.accent.opacity(0.2))
-                        .frame(width: 120, height: 120)
-                    Circle()
-                        .strokeBorder(Theme.Color.accent.opacity(0.5), lineWidth: 1.5)
-                        .frame(width: 120, height: 120)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 48, weight: .heavy))
-                        .foregroundStyle(Theme.Color.accent)
-                }
-                .scaleEffect(trophyScale)
-                .shadow(color: Theme.Color.accent.opacity(0.4), radius: 30, x: 0, y: 10)
-
-                VStack(spacing: 10) {
-                    Text("SET TAMAMLANDI")
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .tracking(2)
-                        .foregroundStyle(Theme.Color.accent)
-                    Text(set.displayTitle)
-                        .font(.system(size: 28, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Theme.Color.textPrimary)
-                        .tracking(-0.5)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                }
-
-                HStack(spacing: 24) {
-                    StatColumn(value: "\(set.videos.count)", label: "video")
-                    Rectangle()
-                        .fill(Theme.Color.border)
-                        .frame(width: 1, height: 32)
-                    StatColumn(value: "\(set.distinctStarterWordCount)", label: "kelime")
-                }
-                .padding(.vertical, 4)
-
-                Spacer(minLength: 0)
-
-                Button(action: {
-                    Haptics.success()
-                    onDismiss()
-                }) {
-                    HStack(spacing: 8) {
-                        Text("Sete dön")
-                            .font(.system(size: 16, weight: .heavy))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .heavy))
+            // Scrolls only when many words don't fit; otherwise centred.
+            GeometryReader { geo in
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 28) {
+                        Spacer(minLength: 16)
+                        mark
+                        heading
+                        stats
+                        if !caught.isEmpty {
+                            caughtWords
+                        }
+                        Spacer(minLength: 8)
+                        buttons
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [Theme.Color.accent, Theme.Color.accent.opacity(0.85)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing,
-                        ),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous),
-                    )
-                    .shadow(color: Theme.Color.accent.opacity(0.45), radius: 16, x: 0, y: 6)
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 32)
+                    .frame(maxWidth: .infinity, minHeight: geo.size.height)
                 }
-                .buttonStyle(.pressable(scale: 0.97))
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 32)
         }
         .onAppear {
             guard !didEnter else { return }
             didEnter = true
             withAnimation(.spring(response: 0.55, dampingFraction: 0.7)) {
-                trophyScale = 1.0
+                markScale = 1.0
             }
             Haptics.success()
         }
+    }
+
+    private var mark: some View {
+        ZStack {
+            Circle()
+                .fill(Theme.Color.accent.opacity(0.2))
+                .frame(width: 120, height: 120)
+            Circle()
+                .strokeBorder(Theme.Color.accent.opacity(0.5), lineWidth: 1.5)
+                .frame(width: 120, height: 120)
+            Image(systemName: isSetComplete ? "checkmark" : "film.stack")
+                .font(.system(size: 48, weight: .heavy))
+                .foregroundStyle(Theme.Color.accent)
+        }
+        .scaleEffect(markScale)
+        .shadow(color: Theme.Color.accent.opacity(0.4), radius: 30, x: 0, y: 10)
+    }
+
+    private var heading: some View {
+        VStack(spacing: 10) {
+            Text(isSetComplete ? "SET TAMAMLANDI" : "BUGÜNLÜK BU KADAR")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .tracking(2)
+                .foregroundStyle(Theme.Color.accent)
+            Text(set.displayTitle)
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.Color.textPrimary)
+                .tracking(-0.5)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+        }
+    }
+
+    private var stats: some View {
+        HStack(spacing: 24) {
+            StatColumn(value: "\(watchedCount)/\(set.videos.count)", label: "izlenen video")
+            Rectangle()
+                .fill(Theme.Color.border)
+                .frame(width: 1, height: 32)
+            StatColumn(value: "\(setWordsInList)", label: "eklediğin kelime")
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var caughtWords: some View {
+        VStack(spacing: 12) {
+            Text("Bu sefer eklediklerin")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Theme.Color.textSecondary)
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                ForEach(Array(caught.prefix(Self.maxChips))) { word in
+                    CaughtWordChip(word: word)
+                }
+                if caught.count > Self.maxChips {
+                    MoreWordsChip(count: caught.count - Self.maxChips)
+                }
+            }
+        }
+    }
+
+    private var buttons: some View {
+        VStack(spacing: 10) {
+            Button(action: {
+                Haptics.success()
+                onDismiss()
+            }) {
+                HStack(spacing: 8) {
+                    Text("Sete dön")
+                        .font(.system(size: 16, weight: .heavy))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .heavy))
+                }
+                // Dark ink on the bright accent reads; white doesn't.
+                .foregroundStyle(Theme.Color.onAccent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        colors: [Theme.Color.accent, Theme.Color.accent.opacity(0.85)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing,
+                    ),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous),
+                )
+                .shadow(color: Theme.Color.accent.opacity(0.45), radius: 16, x: 0, y: 6)
+            }
+            .buttonStyle(.pressable(scale: 0.97))
+
+            // Closes the loop: watch → add → see them in the word list.
+            if !appState.progress.learnedWords.isEmpty {
+                Button(action: {
+                    Haptics.light()
+                    onShowWords()
+                }) {
+                    Text("Kelimelerimi gör")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Theme.Color.backgroundCard),
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Theme.Color.border, lineWidth: 1),
+                        )
+                }
+                .buttonStyle(.pressable(scale: 0.97))
+            }
+        }
+    }
+}
+
+/// "word · tr": a word the learner added, in the players' target-word amber.
+private struct CaughtWordChip: View {
+    let word: PocStarterWord
+
+    private static let amber = Color(hex: 0xFFB347)
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(word.word)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(Theme.Color.textPrimary)
+            if !word.tr.isEmpty {
+                Text("·")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.Color.textMuted)
+                Text(word.tr)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.Color.textSecondary)
+            }
+        }
+        .lineLimit(1)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(Self.amber.opacity(0.12)))
+        .overlay(Capsule().strokeBorder(Self.amber.opacity(0.45), lineWidth: 1))
+    }
+}
+
+/// "+3 kelime daha" after the chips that fit.
+private struct MoreWordsChip: View {
+    let count: Int
+
+    var body: some View {
+        Text("+\(count) kelime daha")
+            .font(.system(size: 13, weight: .heavy))
+            .foregroundStyle(Theme.Color.textSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(Theme.Color.backgroundSurface.opacity(0.7)))
     }
 }
 
@@ -1057,8 +1433,9 @@ private struct StatColumn: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.system(size: 24, weight: .heavy, design: .rounded))
+                .monospacedDigit()
                 .foregroundStyle(Theme.Color.textPrimary)
-            Text(label.uppercased())
+            Text(label.uppercased(with: SetFlowText.turkish))
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(1.4)
                 .foregroundStyle(Theme.Color.textMuted)
