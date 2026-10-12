@@ -808,5 +808,20 @@ enum TurkishPhonetics {
         "willing": "viling",
         "yet": "yet",
         "yourself": "yorself",
+
+        // ==== Catchable starter words ====
+        // A2 starter words tagged in the videos that had no reading (and
+        // no IPA), so their okunuş row was blank on the reel, the word
+        // page and the list tile.
+        "become": "bikam",
+        "build": "bild",
+        "change": "çeync",
+        "clean": "klin",
+        "drive": "drayv",
+        "hope": "hop",
+        "send": "send",
+        "show": "şo",
+        "visit": "vizit",
+        "week": "vik",
     ]
 }
