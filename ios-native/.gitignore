@@ -16,3 +16,8 @@ xcuserdata/
 
 ## macOS
 .DS_Store
+
+## SwiftPM / harness
+.build/
+Tools/PlayerHarness/node_modules/
+Tools/PlayerHarness/test-results/

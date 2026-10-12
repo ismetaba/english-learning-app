@@ -1,0 +1,12 @@
+{
+  "a2-make" : {
+    "correctStreak" : 2,
+    "easeFactor" : 2.6,
+    "interval" : 3,
+    "lastReviewDate" : "2026-07-01",
+    "masteryLevel" : "learning",
+    "nextReviewDate" : "2026-07-04",
+    "totalReviews" : 2,
+    "wordId" : "a2-make"
+  }
+}

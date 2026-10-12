@@ -1,0 +1,102 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/ios-ci.yml"
+  pull_request:
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/ios-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast feedback: the Foundation-only core (sync engine, player protocol,
+  # models, persistence) built and tested with SwiftPM on Linux.
+  core-linux:
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        working-directory: ios-native
+        run: swift test
+
+  # The real app: committed Xcode project built and unit-tested on an iOS
+  # simulator, plus the player bridge harness in Chromium.
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          ls -d /Applications/Xcode*.app || true
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -v -i beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          swift --version
+
+      - name: Core tests (SwiftPM)
+        working-directory: ios-native
+        run: swift test
+
+      - name: Check project.yml and committed project agree
+        working-directory: ios-native
+        run: |
+          curl -sSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/download/2.44.1/xcodegen.zip
+          unzip -q /tmp/xcodegen.zip -d /tmp/xcodegen
+          cp EnglishLearning.xcodeproj/project.pbxproj /tmp/committed.pbxproj
+          /tmp/xcodegen/xcodegen/bin/xcodegen generate --spec project.yml
+          # Informational: file membership must match; IDs/ordering may differ.
+          diff <(grep -o '/\* [A-Za-z0-9_+.-]*\.swift in Sources \*/' /tmp/committed.pbxproj | sort) \
+               <(grep -o '/\* [A-Za-z0-9_+.-]*\.swift in Sources \*/' EnglishLearning.xcodeproj/project.pbxproj | sort)
+          cp /tmp/committed.pbxproj EnglishLearning.xcodeproj/project.pbxproj
+
+      - name: Build and test app (iOS simulator)
+        working-directory: ios-native
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          devs = json.load(sys.stdin)["devices"]
+          def ver(k):
+              m = re.search(r"iOS-(\d+)-(\d+)", k)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          for k in sorted((k for k in devs if "iOS" in k), key=ver, reverse=True):
+              phones = [d for d in devs[k] if d["name"].startswith("iPhone")]
+              if phones:
+                  print(phones[0]["udid"]); break
+          ')
+          echo "Simulator: $UDID"
+          set -o pipefail
+          xcodebuild test \
+            -project EnglishLearning.xcodeproj \
+            -scheme EnglishLearning \
+            -destination "id=$UDID" \
+            -skip-testing:EnglishLearningTests/YouTubePlayerEmbedIntegrationTests \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee /tmp/xcodebuild.log | grep -E "error:|warning: .*(deprecated|never)|Test Case .*(passed|failed)|\*\* (BUILD|TEST)" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" /tmp/xcodebuild.log
+
+      - name: Upload xcodebuild log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: /tmp/xcodebuild.log
+          if-no-files-found: ignore
+
+      - name: Player bridge harness (Chromium, fake YouTube)
+        working-directory: ios-native/Tools/PlayerHarness
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright-core install chromium
+          npm test

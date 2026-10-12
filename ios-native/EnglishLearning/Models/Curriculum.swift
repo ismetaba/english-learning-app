@@ -246,6 +246,24 @@ struct ClipWord: Codable, Equatable, Hashable, Identifiable {
         case word, startTime, endTime, wordIndex, starterId, starterTr, translationTr
     }
 
+    init(
+        word: String,
+        startTime: Double,
+        endTime: Double,
+        wordIndex: Int? = nil,
+        starterId: String? = nil,
+        starterTr: String? = nil,
+        translationTr: String? = nil
+    ) {
+        self.word = word
+        self.startTime = startTime
+        self.endTime = endTime
+        self.wordIndex = wordIndex
+        self.starterId = starterId
+        self.starterTr = starterTr
+        self.translationTr = translationTr
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.word          = try c.decode(String.self, forKey: .word)
@@ -286,6 +304,28 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id, speaker, text, translationTr, startTime, endTime, isTarget, structure, words
+    }
+
+    init(
+        id: Int,
+        speaker: String,
+        text: String,
+        translationTr: String?,
+        startTime: Double,
+        endTime: Double,
+        isTarget: Bool?,
+        structure: ClipLineStructure?,
+        words: [ClipWord]
+    ) {
+        self.id = id
+        self.speaker = speaker
+        self.text = text
+        self.translationTr = translationTr
+        self.startTime = startTime
+        self.endTime = endTime
+        self.isTarget = isTarget
+        self.structure = structure
+        self.words = words
     }
 
     init(from decoder: Decoder) throws {

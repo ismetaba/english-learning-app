@@ -9,9 +9,11 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    # Single source of truth for the shipped version — the committed
+    # .xcodeproj is regenerated from this file (`xcodegen generate`).
+    MARKETING_VERSION: "1.0.1"
+    CURRENT_PROJECT_VERSION: "2"
+    DEVELOPMENT_TEAM: "HJ9ZP4QLTL"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: "NO"
     SWIFT_EMIT_LOC_STRINGS: "YES"
@@ -26,12 +28,18 @@ targets:
       - path: EnglishLearning
         excludes:
           - "**/*.md"
+    scheme:
+      testTargets:
+        - EnglishLearningTests
     resources:
       - path: EnglishLearning/Resources
     info:
       path: EnglishLearning/Resources/Info.plist
       properties:
         CFBundleDisplayName: English Learning
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
@@ -52,7 +60,7 @@ targets:
         INFOPLIST_KEY_UIStatusBarStyle: "UIStatusBarStyleLightContent"
         ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: "AccentColor"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
 
   EnglishLearningTests:
@@ -61,6 +69,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: EnglishLearningTests
+        excludes:
+          - "Core/Fixtures/**"
     dependencies:
       - target: EnglishLearning
     settings:
@@ -68,3 +78,4 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.ismetaba.englishlearning.native.tests
         GENERATE_INFOPLIST_FILE: "YES"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1"

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 enum APIError: LocalizedError {
     case invalidURL
@@ -41,7 +44,9 @@ actor APIClient {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 20
         config.timeoutIntervalForResource = 40
+        #if !os(Linux)
         config.waitsForConnectivity = true
+        #endif
         self.session = URLSession(configuration: config)
         self.decoder = JSONDecoder()
     }
@@ -137,6 +142,28 @@ actor APIClient {
 
     func fetchClipsByVocab(wordId: String) async throws -> [LessonClip] {
         try await get("/api/v1/clips/by-vocab/\(wordId)")
+    }
+
+    // MARK: - Policy (STUB — see NetworkingTests)
+
+    static func makeSessionConfiguration() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 20
+        config.timeoutIntervalForResource = 40
+        return config
+    }
+
+    static func shouldRetry(_ error: Error, attempt: Int, maxRetries: Int) -> Bool {
+        if case APIError.http(let status, _) = error, (400..<500).contains(status) { return false }
+        return attempt < maxRetries
+    }
+
+    static func backoffDelay(attempt: Int) -> TimeInterval { Double(attempt) }
+
+    static func makeURL(base: URL, path: String, query: [URLQueryItem]) -> URL? {
+        var components = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        if !query.isEmpty { components?.queryItems = query }
+        return components?.url
     }
 
     // MARK: - Core request

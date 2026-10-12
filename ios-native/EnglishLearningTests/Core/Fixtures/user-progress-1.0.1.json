@@ -1,0 +1,80 @@
+{
+  "achievements" : [
+    "first-lesson"
+  ],
+  "checkpointResults" : {
+    "unit-1" : {
+      "attemptCount" : 1,
+      "passedAt" : "2026-06-29",
+      "perLessonScores" : {
+        "lesson-01-greetings" : 80
+      },
+      "score" : 80
+    }
+  },
+  "completedLessons" : [
+    "lesson-01-greetings"
+  ],
+  "dailyGoalMinutes" : 15,
+  "dailyTasks" : {
+    "completedItemIds" : [
+
+    ],
+    "date" : "2026-07-01",
+    "items" : [
+      {
+        "estimatedSeconds" : 60,
+        "id" : "t1",
+        "type" : "vocab-review",
+        "vocabWordId" : "a2-make"
+      }
+    ]
+  },
+  "lastActiveDate" : "2026-07-01",
+  "learnedWords" : [
+    "a2-make",
+    "a2-life",
+    "a2-try"
+  ],
+  "learningGoal" : "travel",
+  "lessonMastery" : {
+    "lesson-01-greetings" : {
+      "errorCount" : 0,
+      "errorSessionCount" : 0,
+      "lastPracticeDate" : "2026-06-30",
+      "practiceAttempts" : 0,
+      "practiceScore" : 0,
+      "reinforceClipsWatched" : 0,
+      "stage" : "watch",
+      "subProgress" : {
+        "bonusWatchCount" : 0,
+        "learnCompleted" : true,
+        "testPassed" : false,
+        "vocabCompleted" : false,
+        "watchCompleted" : false
+      },
+      "watchClipsCompleted" : 0,
+      "watchQuizScore" : 0
+    }
+  },
+  "level" : 2,
+  "onboardingCompleted" : true,
+  "onboardingLevel" : "elementary",
+  "sessionHistory" : [
+    {
+      "clipsWatched" : 3,
+      "date" : "2026-07-01",
+      "minutesWatched" : 12.5,
+      "wordsReviewed" : 4,
+      "xpEarned" : 30
+    }
+  ],
+  "streak" : 4,
+  "watchedClips" : [
+    "18578"
+  ],
+  "watchedScenes" : [
+    "scene-1"
+  ],
+  "xp" : 145
+}

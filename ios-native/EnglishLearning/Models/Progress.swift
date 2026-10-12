@@ -155,6 +155,8 @@ struct UserProgress: Codable, Equatable {
     var dailyTasks: DailyTaskBundle? = nil
     var achievements: [String] = []
     var watchedClips: [String] = []
+    /// `PocVideo.id`s the learner watched to the end (set flow).
+    var watchedVideos: [String] = []
 }
 
 // MARK: - Level helpers

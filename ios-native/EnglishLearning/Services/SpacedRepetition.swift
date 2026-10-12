@@ -16,6 +16,17 @@ enum SpacedRepetition {
         return f.string(from: date)
     }
 
+    // STUB — injectable clock/calendar API (see DayBoundaryTests).
+    static func isoDay(_ date: Date, calendar: Calendar) -> String { isoDay(date) }
+
+    static func newEntry(wordId: String, now: Date, calendar: Calendar) -> VocabPoolEntry { newEntry(wordId: wordId) }
+
+    static func computeNextReview(_ entry: VocabPoolEntry, correct: Bool, now: Date, calendar: Calendar) -> VocabPoolEntry {
+        computeNextReview(entry, correct: correct)
+    }
+
+    static func dueEntries(_ pool: [VocabPoolEntry], now: Date, calendar: Calendar) -> [VocabPoolEntry] { dueEntries(pool) }
+
     static func newEntry(wordId: String) -> VocabPoolEntry {
         VocabPoolEntry(
             wordId: wordId,

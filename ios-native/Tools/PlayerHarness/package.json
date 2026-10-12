@@ -1,0 +1,13 @@
+{
+  "name": "player-harness",
+  "private": true,
+  "type": "module",
+  "description": "Runs the app's YouTube player HTML in Chromium to test the JS bridge (fake YouTube by default, real YouTube with HARNESS_REAL_YT=1).",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 'tests/**/*.test.mjs'",
+    "test:real": "HARNESS_REAL_YT=1 node --test --test-concurrency=1 'tests/**/*.test.mjs'"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.1"
+  }
+}
