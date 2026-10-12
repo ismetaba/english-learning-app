@@ -50,9 +50,11 @@ Saf (Foundation-only) çekirdek `EnglishLearning/Core/` altında; aynı testler 
 |---|---|---|
 | 0 | Test altyapısı: SwiftPM çekirdek, Chromium oyuncu test düzeneği (sahte IFrame API), macOS CI, kayıpsız XcodeGen | ✅ |
 | 1 | Her hata için önce kırmızı test (9 oyuncu-sayfası testi + 72 Swift testi) | ✅ |
-| 2 | Paralel düzeltmeler (alt ajanlar): oyuncu köprüsü · senkron motoru · kalıcılık/gün sınırı · ağ/klip deposu | ⏳ |
-| 3 | Ekran entegrasyonu: tüm oynatıcı ekranları yeni çekirdeğe | ⏳ |
-| 4 | Doğrulama: Linux testleri, oyuncu düzeneği, macOS simülatör derleme+test | ⏳ |
+| 2 | Paralel düzeltmeler (alt ajanlar): oyuncu köprüsü · senkron motoru · kalıcılık/gün sınırı · ağ/klip deposu | ✅ |
+| 3 | Ekran entegrasyonu: tüm oynatıcı ekranları yeni çekirdeğe | ✅ |
+| 4 | Doğrulama: Linux testleri, oyuncu düzeneği, macOS simülatör derleme+test | ✅ |
+| 5 | Ekranların çekişmeli incelemesi (13 doğrulanmış hata) + UX denetimi (100 bulgu → `UX-YOL-HARITASI.md`); her ikisinin kod tarafı düzeltildi | ✅ |
+| 6 | Gerçek YouTube ile cihaz provası (aşağıdaki kontrol listesi) | ⏳ sizde |
 
 ## 4. Bilerek kapsam dışı bırakılanlar (sonraki adımlar)
 
@@ -62,3 +64,58 @@ Bunlar demoyu bozmaz ama yayından önce mutlaka yapılmalı (denetim raporunda 
 2. `/poc-videos/{id}/clips` yanıtı tüm klipleri döndürüyor; uygulama yalnızca birini kullanıyor → sunucuda `?primary=1` ile ~15× küçültme.
 3. YouTube ToS / App Store 5.2.3 pozisyonu, `NSAllowsArbitraryLoads` kaldırma, gizlilik manifesti.
 4. Gerçek YouTube ile cihaz testi (bu ortamdan YouTube oynatma engelli — aşağıdaki kontrol listesi).
+5. Sunucu hızlandırması (`/poc-videos/{id}/clips` 2,9 sn → 15 ms) kodda hazır ama **`fly deploy` yapılana kadar canlıda yok**. Uygulama bu arada kayıtlı kopya + ön yükleme ile idare eder; ilk açılış yine yavaş olabilir.
+
+## 5. Kanıt: neyin, hangi testle güvence altında olduğu
+
+| Sorun (bölüm 1) | Test(ler) | Sonuç |
+|---|---|---|
+| Karaoke kelimeleri atlıyor / geride kalıyor | `KaraokeTimelineTests.test_realClips_everyWordLightsUp_andHighlightTracksTheAudio`, `…sparseTicksWithoutInterpolationWouldMissWords`, `PlaybackClockTests` (8) | 5 gerçek klipte 1×, 0,75× ve 0,5× hızda **0 atlanan kelime**; vurgu karelerin %96–99'unda sesle aynı kelimede |
+| Atlanan/döngüdeki satırda önceki satırın görünmesi | `test_pinnedLineOwnsItsLeadIn`, `test_loopedLineNeverFlickersToItsNeighbour`, `test_unpinningRestoresPlainTimeline` | ✅ |
+| Tam saniyeye yuvarlama, kesilen cümleler | `PlayerProtocolTests.test_loadCarriesFractionalBoundsAndOptions`, `ClipTimingTests.test_playbackWindowPlaysEveryDisplayedLineInFull` | ✅ kesirli sınırlar; her satır baştan sona çalınıyor |
+| Sonraki klip yüklenmiyor, komut kaybı, hız sıfırlanması, döngü yok, hatadan sonra akan zaman | Chromium düzeneği `tests/bridge.test.mjs` (9 test, sahte IFrame API) | 9/9 ✅ |
+| Siyah ekran / oynatılamayan video | `PlayerProtocolTests.test_errorMessagesAreTurkishAndActionable`, `YouTubePlayerViewTests` (iOS) | ✅ Türkçe hata katmanı + "Tekrar dene" / otomatik atlama |
+| Set videoları 4–7 dk, sonda 20–36 sn ölü süre | `test_primaryClipPrefersAShortSceneWithEnoughDialogue`, `test_setWindowTrimsTheSilentHeadAndTail` | ✅ başta ≤3 sn, sonda ≤1,5 sn sessizlik |
+| "SPEAKER" yazan yer tutucu konuşmacı | `CurriculumDecodingTests` (3) | ✅ |
+| "Sahneyi aç" 0. saniyeden başlıyor | `ScenePlanTests` (6) | ✅ dokunulan cümleden açılıyor |
+| Yavaş klip uç noktası | `NetworkingTests` (12), `admin/tests/api-latency.test.ts` (6) | ✅ istemci: tek istek, ön yükleme, kayıtlı kopya hemen; sunucu: 15 ms (deploy bekliyor) |
+| İlerlemenin sessizce silinmesi | `ProgressPersistenceTests` (8, 1.0.1 sürümünün gerçek verisiyle) | ✅ çözülemeyen veri önce yedekleniyor |
+| Gün/seri saat dilimi hatası | `DayBoundaryTests` (7) | ✅ |
+| Video üstünde sekme çubuğu | `ImmersivePresenceTests` (2) | ✅ |
+
+**CI** (GitHub Actions, her push'ta): Linux `swift test` · macOS `swift test` · proje dosyası tutarlılığı · iOS simülatörde `xcodebuild test` · Chromium oyuncu düzeneği.
+
+## 6. Demo öncesi cihaz kontrol listesi (gerçek YouTube, ~20 dk)
+
+Bu ortamdan YouTube oynatılamadığı için aşağıdakiler yalnızca gerçek cihazda doğrulanabilir. Demo telefonunda, Türkiye ağından, **iki kez** baştan sona:
+
+**Hazırlık**
+- [ ] `fly deploy` yapıldı; `/api/v1/poc-videos/<id>/clips` tarayıcıda 1 sn'nin altında dönüyor.
+- [ ] Bölüm A içerik düzeltmeleri (`UX-YOL-HARITASI.md`) canlı veride yapıldı: Set 01 sırası, oynamayan videolar, kalıp havuzu, çeviriler.
+- [ ] Otomatik Kilit "Asla"; iPhone (iPad değil); sessiz tuşu **açık**.
+
+**Video sekmesi → Set 01 → "Sete Başla"**
+- [ ] İlk video 15 sn içinde başlıyor; başta en fazla ~3 sn altyazısız bölüm var.
+- [ ] Karaoke vurgusu duyulan kelimeyle aynı anda ilerliyor (1× ve 0,75×); hiçbir kelime atlanmıyor.
+- [ ] Bir satıra dokun → video o satırın başına atlıyor, vurgu o satırdan başlıyor (önceki satır yanıp sönmüyor).
+- [ ] Satır döngüsü: aynı satır tekrar tekrar, komşu satıra kaymadan çalıyor.
+- [ ] Hız 0,75×'e alındı → sonraki videoda da 0,75× kalıyor; uygulamayı kapatıp açınca da.
+- [ ] Amber kelimeye dokun → "Ekle" → kelime Kelimeler sekmesinde en üstte.
+- [ ] Video bitince "Sıradaki" ekranı geliyor; başlık "Video 2 / N"; sonraki video hemen başlıyor.
+- [ ] Yatay (sinema) moda geç ve çık: kaldığı yerden devam ediyor, karaoke senkron.
+- [ ] Ses sessiz tuşu açıkken de geliyor.
+
+**Kelimeler sekmesi**
+- [ ] Eklenen kelime → sahne oynatıcı dokunulan cümleden açılıyor.
+- [ ] Akış (reels) kaydırılınca her kart 2–3 sn içinde başlıyor; siyah kart yok; dokununca duraklıyor/devam ediyor.
+
+**Kalıplar sekmesi**
+- [ ] "I am + sıfat" reels: Türkçe satırlar doğru, uygunsuz sahne yok.
+- [ ] Bitir → yola dönüyor, kalıp ✓ işaretli.
+
+**Dayanıklılık**
+- [ ] Video oynarken uygulamayı arka plana al, 30 sn sonra dön → "Video yüklenemedi" deyip atlamıyor.
+- [ ] Uçak modunda daha önce açılmış bir video → kayıtlı kopyadan açılıyor; açılmamış olan → Türkçe hata + "Tekrar dene".
+- [ ] Uygulamayı güncelle/yeniden kur (TestFlight) → ilerleme, seri ve kelimeler duruyor.
+
+Herhangi bir madde başarısız olursa: hangi ekran, hangi video ve ne gördüğünü yazın. Önce onu yeniden üreten bir test yazılır, sonra düzeltilir.
