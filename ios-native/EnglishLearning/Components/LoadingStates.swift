@@ -10,7 +10,7 @@ struct LoadingState: View {
             if let label = label {
                 Text(label)
                     .font(Theme.Font.body(14))
-                    .foregroundStyle(Theme.Color.textMuted)
+                    .foregroundStyle(Theme.Color.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,7 +69,7 @@ struct EmptyState: View {
             if let subtitle = subtitle {
                 Text(subtitle)
                     .font(Theme.Font.body(14))
-                    .foregroundStyle(Theme.Color.textMuted)
+                    .foregroundStyle(Theme.Color.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
@@ -103,9 +103,9 @@ struct ErrorState: View {
             Text("Bir sorun oluştu")
                 .font(Theme.Font.headline(17, weight: .bold))
                 .foregroundStyle(Theme.Color.textPrimary)
-            Text(message)
-                .font(Theme.Font.body(13))
-                .foregroundStyle(Theme.Color.textMuted)
+            Text(shownMessage)
+                .font(Theme.Font.body(14))
+                .foregroundStyle(Theme.Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
             if let onRetry = onRetry {
@@ -129,5 +129,13 @@ struct ErrorState: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+
+    /// Error texts end in "Tekrar dene." for screens without a button;
+    /// right above the "Tekrar dene" button that would say it twice.
+    private var shownMessage: String {
+        let suffix = " Tekrar dene."
+        guard onRetry != nil, message.hasSuffix(suffix) else { return message }
+        return String(message.dropLast(suffix.count))
     }
 }

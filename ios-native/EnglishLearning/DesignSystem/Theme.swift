@@ -17,6 +17,9 @@ enum Theme {
         static let accent          = SwiftUI.Color(hex: 0x06D6B0)
         static let accentLight     = SwiftUI.Color(hex: 0x5DFFC8)
         static let accentSoft      = SwiftUI.Color(hex: 0x06D6B0, opacity: 0.12)
+        /// Text and icons on accent / success fills: white on turquoise
+        /// washes out in daylight and on a projector.
+        static let onAccent        = background
 
         // Success
         static let success         = SwiftUI.Color(hex: 0x10B981)
@@ -47,7 +50,9 @@ enum Theme {
         // Text
         static let textPrimary     = SwiftUI.Color(hex: 0xF1F3FF)
         static let textSecondary   = SwiftUI.Color(hex: 0x94A0C4)
-        static let textMuted       = SwiftUI.Color(hex: 0x5E6B8A)
+        // Bright enough to read on every background shade (the old 0x5E6B8A
+        // vanished on cards and under video).
+        static let textMuted       = SwiftUI.Color(hex: 0x7F8CAB)
         static let textDisabled    = SwiftUI.Color(hex: 0x3E4A6A)
 
         // Borders
@@ -209,6 +214,10 @@ enum Theme {
         UINavigationBar.appearance().tintColor = UIColor(Theme.Color.primary)
 
         UIScrollView.appearance().keyboardDismissMode = .interactive
+
+        // MainTabView draws its own floating bar over a TabView; the system
+        // bar never shows (the tabs also hide it with `.toolbar`).
+        UITabBar.appearance().isHidden = true
     }
 }
 

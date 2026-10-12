@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 @main
 struct EnglishLearningApp: App {
@@ -7,6 +8,11 @@ struct EnglishLearningApp: App {
 
     init() {
         Theme.configureGlobalAppearance()
+        // The YouTube players are web views, which play through the app's
+        // audio session: as `.playback` they stay audible with the silent
+        // switch on. Not activated here — the session goes active when a
+        // video starts, so opening the app doesn't stop the learner's music.
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [])
     }
 
     var body: some Scene {
@@ -55,6 +61,11 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: appState.isLoaded)
         .animation(.easeInOut(duration: 0.4), value: appState.progress.onboardingCompleted)
+        // The UI is Turkish only now; a device that picked another flag in
+        // the old onboarding or profile picker is switched back.
+        .onAppear {
+            if appState.nativeLanguage != .tr { appState.nativeLanguage = .tr }
+        }
     }
 }
 

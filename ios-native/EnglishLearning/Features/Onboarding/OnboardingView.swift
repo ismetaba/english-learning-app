@@ -1,13 +1,11 @@
 import SwiftUI
 
+/// First launch: one Turkish question, then straight into the app. The
+/// old language, goal and daily-minutes steps are gone — Turkish is the
+/// only UI language and nothing ever read the other two answers.
 struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
-    @State private var step: Int = 0
     @State private var selectedLevel: OnboardingLevel = .beginner
-    @State private var selectedGoal: LearningGoal = .personal
-    @State private var dailyMinutes: Int = 10
-
-    private let totalSteps = 4
 
     var body: some View {
         ZStack {
@@ -30,161 +28,55 @@ struct OnboardingView: View {
                 .offset(x: 170, y: 320)
 
             VStack(spacing: 0) {
-                topBar
-                    .padding(.top, 12)
-                    .padding(.horizontal, 20)
-
-                Group {
-                    switch step {
-                    case 0: languageStep
-                    case 1: levelStep
-                    case 2: goalStep
-                    default: minutesStep
-                    }
+                ScrollView(showsIndicators: false) {
+                    levelStep
+                        .padding(.top, 40)
+                        .padding(.bottom, 24)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
 
-                bottomBar
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
-            }
-        }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: step)
-    }
-
-    // MARK: - Top bar
-
-    private var topBar: some View {
-        HStack(spacing: 8) {
-            if step > 0 {
-                Button {
-                    Haptics.selection()
-                    step -= 1
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Theme.Color.textSecondary)
-                        .frame(width: 40, height: 40)
-                        .background(Theme.Color.backgroundCard, in: Circle())
-                        .overlay(Circle().strokeBorder(Theme.Color.border, lineWidth: 1))
+                PrimaryButton(
+                    title: "Öğrenmeye başla",
+                    icon: "sparkles",
+                    style: .primary
+                ) {
+                    finish()
                 }
-                .buttonStyle(.pressable)
-            }
-            Spacer(minLength: 0)
-            HStack(spacing: 6) {
-                ForEach(0..<totalSteps, id: \.self) { i in
-                    Capsule()
-                        .fill(i <= step ? Theme.Color.primary : Theme.Color.backgroundSurface)
-                        .frame(width: i == step ? 28 : 10, height: 6)
-                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: step)
-                }
-            }
-            Spacer(minLength: 0)
-            Text("\(step + 1)/\(totalSteps)")
-                .font(Theme.Font.caption(12, weight: .bold))
-                .foregroundStyle(Theme.Color.textMuted)
-                .frame(minWidth: 40, alignment: .trailing)
-        }
-    }
-
-    // MARK: - Bottom bar
-
-    private var bottomBar: some View {
-        VStack(spacing: 12) {
-            PrimaryButton(
-                title: step == totalSteps - 1 ? appState.t.t("startLearning") : appState.t.t("continue"),
-                icon: step == totalSteps - 1 ? "sparkles" : "chevron.right",
-                style: .primary
-            ) {
-                advance()
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
         }
     }
 
-    private func advance() {
-        if step < totalSteps - 1 {
-            step += 1
-        } else {
-            Haptics.success()
-            appState.completeOnboarding(
-                level: selectedLevel,
-                goal: selectedGoal,
-                minutes: dailyMinutes
-            )
-        }
+    private func finish() {
+        Haptics.success()
+        // Goal and minutes keep their old defaults so the stored progress
+        // looks the same as before; no screen reads them.
+        appState.completeOnboarding(
+            level: selectedLevel,
+            goal: .personal,
+            minutes: 10
+        )
     }
 
-    // MARK: - Step 1: language
-
-    private var languageStep: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            stepHeader(
-                emoji: "👋",
-                title: appState.t.t("welcome"),
-                subtitle: appState.t.t("chooseLanguage")
-            )
-            VStack(spacing: 10) {
-                ForEach(NativeLanguage.allCases) { lang in
-                    Button {
-                        Haptics.selection()
-                        appState.nativeLanguage = lang
-                    } label: {
-                        HStack(spacing: 14) {
-                            Text(lang.flag)
-                                .font(.system(size: 30))
-                            Text(lang.displayName)
-                                .font(Theme.Font.headline(17, weight: .semibold))
-                                .foregroundStyle(Theme.Color.textPrimary)
-                            Spacer()
-                            if appState.nativeLanguage == lang {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 22, weight: .bold))
-                                    .foregroundStyle(Theme.Color.primary)
-                            }
-                        }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 14)
-                        .background {
-                            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                                .fill(appState.nativeLanguage == lang ? Theme.Color.primarySoft : Theme.Color.backgroundCard)
-                        }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                                .strokeBorder(appState.nativeLanguage == lang ? Theme.Color.primary : Theme.Color.border, lineWidth: 1.5)
-                        )
-                    }
-                    .buttonStyle(.pressable)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-    }
-
-    // MARK: - Step 2: level
+    // MARK: - Level
 
     private var levelStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             stepHeader(
-                emoji: "🎯",
-                title: appState.t.t("whatsYourLevel"),
-                subtitle: "Tell us where to start"
+                emoji: "👋",
+                title: "Hoş geldin",
+                subtitle: "Nereden başlayalım?"
             )
             VStack(spacing: 12) {
-                levelRow(.beginner, emoji: "🌱", title: appState.t.t("levelBeginner"),
-                         sub: "Just starting out")
-                levelRow(.elementary, emoji: "📗", title: appState.t.t("levelElementary"),
-                         sub: "I know some basics")
-                levelRow(.intermediate, emoji: "📘", title: appState.t.t("levelIntermediate"),
-                         sub: "I can hold conversations")
+                levelRow(.beginner, emoji: "🌱", title: "Başlangıç",
+                         sub: "Yeni başlıyorum")
+                levelRow(.elementary, emoji: "📗", title: "Temel",
+                         sub: "Temelleri biliyorum")
+                levelRow(.intermediate, emoji: "📘", title: "Orta",
+                         sub: "Sohbet edebiliyorum")
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 20)
     }
 
     private func levelRow(_ level: OnboardingLevel, emoji: String, title: String, sub: String) -> some View {
@@ -200,8 +92,8 @@ struct OnboardingView: View {
                         .font(Theme.Font.headline(17, weight: .bold))
                         .foregroundStyle(Theme.Color.textPrimary)
                     Text(sub)
-                        .font(Theme.Font.body(13))
-                        .foregroundStyle(Theme.Color.textMuted)
+                        .font(Theme.Font.body(14))
+                        .foregroundStyle(Theme.Color.textSecondary)
                 }
                 Spacer()
                 if selected {
@@ -220,118 +112,7 @@ struct OnboardingView: View {
                 RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
                     .strokeBorder(selected ? Theme.Color.primary : Theme.Color.border, lineWidth: 1.5)
             )
-        }
-        .buttonStyle(.pressable)
-    }
-
-    // MARK: - Step 3: goal
-
-    private var goalStep: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            stepHeader(
-                emoji: "⭐️",
-                title: appState.t.t("whatsYourGoal"),
-                subtitle: "We'll tailor your plan"
-            )
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                goalTile(.travel, emoji: "✈️", title: appState.t.t("goalTravel"))
-                goalTile(.work, emoji: "💼", title: appState.t.t("goalWork"))
-                goalTile(.school, emoji: "🎓", title: appState.t.t("goalSchool"))
-                goalTile(.personal, emoji: "🌟", title: appState.t.t("goalPersonal"))
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-    }
-
-    private func goalTile(_ goal: LearningGoal, emoji: String, title: String) -> some View {
-        let selected = selectedGoal == goal
-        return Button {
-            Haptics.selection()
-            selectedGoal = goal
-        } label: {
-            VStack(spacing: 14) {
-                Text(emoji).font(.system(size: 40))
-                Text(title)
-                    .font(Theme.Font.headline(15, weight: .bold))
-                    .foregroundStyle(Theme.Color.textPrimary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                    .fill(selected ? Theme.Color.primarySoft : Theme.Color.backgroundCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
-                    .strokeBorder(selected ? Theme.Color.primary : Theme.Color.border, lineWidth: 2)
-            )
-        }
-        .buttonStyle(.pressable)
-    }
-
-    // MARK: - Step 4: minutes
-
-    private var minutesStep: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            stepHeader(
-                emoji: "⏰",
-                title: appState.t.t("chooseDailyGoal"),
-                subtitle: appState.t.t("minutesPerDay")
-            )
-            VStack(spacing: 10) {
-                ForEach([5, 10, 15, 20, 30], id: \.self) { m in
-                    minutesRow(m)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-    }
-
-    private func minutesRow(_ minutes: Int) -> some View {
-        let selected = dailyMinutes == minutes
-        let labels: [Int: String] = [
-            5: "Casual",
-            10: "Regular",
-            15: "Serious",
-            20: "Intense",
-            30: "Hardcore"
-        ]
-        return Button {
-            Haptics.selection()
-            dailyMinutes = minutes
-        } label: {
-            HStack(spacing: 16) {
-                Text("\(minutes)")
-                    .font(Theme.Font.display(28, weight: .heavy))
-                    .foregroundStyle(selected ? Theme.Color.primary : Theme.Color.textPrimary)
-                    .frame(width: 64, alignment: .leading)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(minutes) min / day")
-                        .font(Theme.Font.headline(15, weight: .bold))
-                        .foregroundStyle(Theme.Color.textPrimary)
-                    Text(labels[minutes] ?? "")
-                        .font(Theme.Font.body(13))
-                        .foregroundStyle(Theme.Color.textMuted)
-                }
-                Spacer()
-                if selected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.Color.primary)
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                    .fill(selected ? Theme.Color.primarySoft : Theme.Color.backgroundCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                    .strokeBorder(selected ? Theme.Color.primary : Theme.Color.border, lineWidth: 1.5)
-            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
     }
@@ -347,7 +128,7 @@ struct OnboardingView: View {
                 .tracking(-0.5)
                 .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)
-                .font(Theme.Font.body(15))
+                .font(Theme.Font.body(17, weight: .semibold))
                 .foregroundStyle(Theme.Color.textSecondary)
         }
     }

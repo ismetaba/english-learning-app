@@ -125,7 +125,7 @@ enum Localization {
         "loading": "Yükleniyor…",
         "welcome": "Hoş geldin",
         "chooseLanguage": "Ana dilini seç",
-        "whatsYourLevel": "Seviyeniz nedir?",
+        "whatsYourLevel": "Seviyen ne?",
         "levelBeginner": "Başlangıç",
         "levelElementary": "Temel",
         "levelIntermediate": "Orta",
