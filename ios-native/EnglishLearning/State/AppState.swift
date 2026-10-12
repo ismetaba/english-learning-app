@@ -34,10 +34,28 @@ final class AppState: ObservableObject {
     /// chrome-free space.
     var isVideoPlayerActive: Bool { presence.isActive }
 
+    /// The tab on screen. Screens switch tabs through this (an empty word
+    /// list sends the learner to the sets, a finished set to their words).
+    @Published var selectedTab: MainTab = .home
+
+    /// One playback speed for every player (portrait, cinema, reels), so a
+    /// learner who slowed down doesn't snap back to native speed on the
+    /// next video or in cinema mode. 0.75× by default: comprehension over
+    /// speed for A2 learners.
+    @Published var playbackRate: Double = 0.75 {
+        didSet { defaults.set(playbackRate, forKey: Keys.playbackRate) }
+    }
+
+    /// The learner has added a word from a video at least once. Until then
+    /// the player shows a one-time hint teaching the tap-to-add move.
+    @Published private(set) var hasCaughtFirstWord = false
+
     // MARK: - UserDefaults keys
     private enum Keys {
         static let nativeLanguage = "native_language"
         static let completedPatterns = "completed_patterns_v1"
+        static let playbackRate = "playback_rate_v1"
+        static let hasCaughtFirstWord = "has_caught_first_word_v1"
     }
     private let defaults = UserDefaults.standard
 
@@ -63,6 +81,11 @@ final class AppState: ObservableObject {
         if let raw = defaults.array(forKey: Keys.completedPatterns) as? [String] {
             completedPatterns = Set(raw)
         }
+        let storedRate = defaults.double(forKey: Keys.playbackRate)
+        if [0.5, 0.75, 1.0].contains(storedRate) {
+            playbackRate = storedRate
+        }
+        hasCaughtFirstWord = defaults.bool(forKey: Keys.hasCaughtFirstWord) || !progress.learnedWords.isEmpty
         rebuildTranslations()
         isLoaded = true
     }
@@ -131,8 +154,16 @@ final class AppState: ObservableObject {
     }
 
     func markVocabLearned(_ wordId: String) {
+        markFirstWordCaught()
         guard !progress.learnedWords.contains(wordId) else { return }
         progress.learnedWords.append(wordId)
+    }
+
+    /// Ends the one-time tap-to-add hint (also when the learner dismisses it).
+    func markFirstWordCaught() {
+        guard !hasCaughtFirstWord else { return }
+        hasCaughtFirstWord = true
+        defaults.set(true, forKey: Keys.hasCaughtFirstWord)
     }
 
     func markClipWatched(_ clipId: String) {

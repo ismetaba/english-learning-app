@@ -81,6 +81,11 @@ enum ClipTiming {
     /// lines within ±5s of the clip bounds, so the raw bounds can cut the
     /// first or last sentence mid-word. Expects a sanitized clip (lines
     /// covering their words).
+    // STUB — trimSilence API contract (see ClipTimingTests); currently ignored.
+    static func playbackWindow(for clip: LessonClip, padding: Double = 0.3, trimSilence: Bool) -> PlaybackWindow {
+        playbackWindow(for: clip, padding: padding)
+    }
+
     static func playbackWindow(for clip: LessonClip, padding: Double = 0.3) -> PlaybackWindow {
         guard let firstStart = clip.lines.map(\.startTime).min(),
               let lastEnd = clip.lines.map(\.endTime).max()

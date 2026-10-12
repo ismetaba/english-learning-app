@@ -108,14 +108,59 @@ final class ClipTimingTests: XCTestCase {
 
     // MARK: - Primary clip choice
 
-    func test_primaryClipPrefersMostLinesThenLongest() {
+    /// UX audit: picking the LONGEST of equally dense cuts made every set
+    /// video 4-7 minutes with 20-36s of subtitle-less tail. Equal density
+    /// now goes to the shorter cut.
+    func test_primaryClipPrefersMostLinesThenShortest() {
         let a = LessonClip(id: 1, youtubeVideoId: "v", movieTitle: "m", startTime: 0, endTime: 100,
                            lines: [line(1, 1, 2, [])])
         let b = LessonClip(id: 2, youtubeVideoId: "v", movieTitle: "m", startTime: 0, endTime: 50,
                            lines: [line(1, 1, 2, []), line(2, 3, 4, [])])
         let c = LessonClip(id: 3, youtubeVideoId: "v", movieTitle: "m", startTime: 0, endTime: 80,
                            lines: [line(1, 1, 2, []), line(2, 3, 4, [])])
-        XCTAssertEqual(PrimaryClip.pick([a, b, c])?.id, 3)
+        XCTAssertEqual(PrimaryClip.pick([a, b, c])?.id, 2)
         XCTAssertNil(PrimaryClip.pick([]))
+    }
+
+    /// A short scene (trimmed window <= 150s) with enough dialogue (>= 8
+    /// lines) beats a longer cut that merely has more lines.
+    func test_primaryClipPrefersAShortSceneWithEnoughDialogue() {
+        func lines(_ n: Int, every step: Double) -> [ClipLine] {
+            (0..<n).map { i in line(i, Double(i) * step + 1, Double(i) * step + 2, [word("w", Double(i) * step + 1, Double(i) * step + 1.5, 0)]) }
+        }
+        let longDense = LessonClip(id: 1, youtubeVideoId: "v", movieTitle: "m", startTime: 0, endTime: 400,
+                                   lines: lines(20, every: 19))
+        let shortEnough = LessonClip(id: 2, youtubeVideoId: "v", movieTitle: "m", startTime: 0, endTime: 140,
+                                     lines: lines(9, every: 15))
+        let shortSparse = LessonClip(id: 3, youtubeVideoId: "v", movieTitle: "m", startTime: 0, endTime: 60,
+                                     lines: lines(4, every: 12))
+        XCTAssertEqual(PrimaryClip.pick([longDense, shortEnough, shortSparse])?.id, 2)
+        // Without any short scene, density decides.
+        XCTAssertEqual(PrimaryClip.pick([longDense, shortSparse])?.id, 1)
+    }
+
+    // MARK: - Set playback trims dead air
+
+    func test_setWindowTrimsTheSilentHeadAndTail() throws {
+        for prefix in ["storks", "frozen", "madagascar"] {
+            let clip = ClipTiming.sanitize(try Fixture.clip(prefix))
+            let first = try XCTUnwrap(clip.lines.map(\.startTime).min())
+            let last = try XCTUnwrap(clip.lines.map(\.endTime).max())
+            let w = ClipTiming.playbackWindow(for: clip, trimSilence: true)
+            XCTAssertGreaterThanOrEqual(w.start, max(0, first - 3.0) - 1e-9, "\(prefix): more than 3s of silence before the first line")
+            XCTAssertLessThanOrEqual(w.end, last + 1.5 + 1e-9, "\(prefix): more than 1.5s of silence after the last line")
+            XCTAssertLessThanOrEqual(w.start, first, "\(prefix): first line cut")
+            XCTAssertGreaterThanOrEqual(w.end, last, "\(prefix): last line cut")
+        }
+        // Storks today: first line 11.8s, last line ends 176.0s, clip runs 0-203s.
+        let storks = ClipTiming.playbackWindow(for: ClipTiming.sanitize(try Fixture.clip("storks")), trimSilence: true)
+        XCTAssertLessThanOrEqual(storks.end, 177.6)
+        XCTAssertGreaterThanOrEqual(storks.start, 8.8)
+    }
+
+    func test_untrimmedWindowIsUnchanged() throws {
+        for clip in try Fixture.allClips().map(ClipTiming.sanitize) {
+            XCTAssertEqual(ClipTiming.playbackWindow(for: clip, trimSilence: false), ClipTiming.playbackWindow(for: clip))
+        }
     }
 }
