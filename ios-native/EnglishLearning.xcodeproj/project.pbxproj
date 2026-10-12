@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		019F60C2540884767A54913F /* VideoWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D54C68E6B757B515E86F69BB /* VideoWatchView.swift */; };
+		0234EBD81DF63633D8427721 /* PlayerErrorOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22C624663F00D3BDE6C5547C /* PlayerErrorOverlay.swift */; };
 		0791B019AB29DF0BFC51316C /* ImmersivePresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4838B341A1CA3B91E511B2 /* ImmersivePresence.swift */; };
 		083C3517FA14F2366D262F45 /* PatternsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25E38A8A8039D1B93168804 /* PatternsView.swift */; };
 		0E8EC621AF842D8B67481D2A /* ClipTimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC07551A645380D13E115330 /* ClipTimingTests.swift */; };
@@ -60,11 +61,13 @@
 		B6D6BDCF15CF42DEC65A4685 /* PlaybackClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39C112D6773158587135E3 /* PlaybackClock.swift */; };
 		B88BC7E80260C0ED81DC0441 /* VocabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */; };
 		BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */; };
+		BF54919DF433C8B417776626 /* YouTubePlayerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212B7AFAE10CC932A5AF4898 /* YouTubePlayerController.swift */; };
 		C184C026E2B993368FB538C4 /* ScenesLandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CC9EEA658DDF432920728B /* ScenesLandingView.swift */; };
 		C3857CCB1EC084802DD74058 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333C2AE61D5D3786689BBED7 /* ProfileView.swift */; };
 		C5AB1754EB5665310C2922F7 /* EnglishLearningApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294C12FF81F41CF119374B70 /* EnglishLearningApp.swift */; };
 		C79B50704A7D1171F6E5B5ED /* ClipPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */; };
 		CBB9FED90FCFEE9CCBD5E6C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FA05CB9673702CC47B3F2DB /* Assets.xcassets */; };
+		D09586A87234A7AA35729C75 /* KaraokeSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7698A854B7E3FB0FC17708 /* KaraokeSync.swift */; };
 		D127DBAAAAF6E4CDDE93F90F /* Fixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388A73716C6AA10ABF8DE2BD /* Fixtures.swift */; };
 		D14F2DCEFDC229C8F10F5D73 /* ImmersivePresenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */; };
 		D45BBBCF5E57E808438F4DBD /* YouTubePlayerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */; };
@@ -97,10 +100,13 @@
 		01FE707DEC0DAC1D3EB2FDDA /* ScenePlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenePlanTests.swift; sourceTree = "<group>"; };
 		026131E29DF8E3DAD68F443D /* Curriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curriculum.swift; sourceTree = "<group>"; };
 		072348C5D77C2B41A23CE66B /* ProgressPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPersistenceTests.swift; sourceTree = "<group>"; };
+		0B7698A854B7E3FB0FC17708 /* KaraokeSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaraokeSync.swift; sourceTree = "<group>"; };
 		1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipPlayerView.swift; sourceTree = "<group>"; };
 		1547D5705F84797FC7F44F41 /* SyncDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncDriver.swift; sourceTree = "<group>"; };
 		1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
 		18C9FB2D0B54F8034EF5DBE2 /* SentenceCellsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceCellsTests.swift; sourceTree = "<group>"; };
+		212B7AFAE10CC932A5AF4898 /* YouTubePlayerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerController.swift; sourceTree = "<group>"; };
+		22C624663F00D3BDE6C5547C /* PlayerErrorOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerErrorOverlay.swift; sourceTree = "<group>"; };
 		275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerEmbedIntegrationTests.swift; sourceTree = "<group>"; };
 		294C12FF81F41CF119374B70 /* EnglishLearningApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishLearningApp.swift; sourceTree = "<group>"; };
 		29C1C7DD782B63C6BFA39036 /* DailyTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyTasksView.swift; sourceTree = "<group>"; };
@@ -273,6 +279,7 @@
 			children = (
 				A5ABE0553DC6816E69509E58 /* ImmersivePresenceModifier.swift */,
 				2A06CCE962B5E537FA2F22AF /* LoadingStates.swift */,
+				22C624663F00D3BDE6C5547C /* PlayerErrorOverlay.swift */,
 				C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */,
 				36BE3A80DC7932C2C14FB9AE /* SectionHeader.swift */,
 			);
@@ -357,6 +364,8 @@
 			children = (
 				649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */,
 				1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */,
+				0B7698A854B7E3FB0FC17708 /* KaraokeSync.swift */,
+				212B7AFAE10CC932A5AF4898 /* YouTubePlayerController.swift */,
 				73580C34736B5F98A0916DFA /* YouTubePlayerView.swift */,
 			);
 			path = ClipPlayer;
@@ -589,6 +598,7 @@
 				E7FF61B7A031602BB0FD78D8 /* HomeView.swift in Sources */,
 				0791B019AB29DF0BFC51316C /* ImmersivePresence.swift in Sources */,
 				68BB835793431CA367AD1696 /* ImmersivePresenceModifier.swift in Sources */,
+				D09586A87234A7AA35729C75 /* KaraokeSync.swift in Sources */,
 				51AB988FF63514EEE18CE272 /* KaraokeTimeline.swift in Sources */,
 				D81D5F4B69FCCFFC79BC387C /* LearningPathView.swift in Sources */,
 				F73FB5B550CBEBD4A4F8EA69 /* LessonClipsView.swift in Sources */,
@@ -604,6 +614,7 @@
 				38C513B1AABC39202E216EF7 /* PatternReelsView.swift in Sources */,
 				083C3517FA14F2366D262F45 /* PatternsView.swift in Sources */,
 				B6D6BDCF15CF42DEC65A4685 /* PlaybackClock.swift in Sources */,
+				0234EBD81DF63633D8427721 /* PlayerErrorOverlay.swift in Sources */,
 				2963C68C4109B23BA162F490 /* PlayerProtocol.swift in Sources */,
 				EEF742AA95323128D4E523D1 /* PocVideo.swift in Sources */,
 				228FBA847B52AC707407DD8F /* PrimaryButton.swift in Sources */,
@@ -632,6 +643,7 @@
 				B88BC7E80260C0ED81DC0441 /* VocabView.swift in Sources */,
 				372E5562CDE0151EA3EC64CB /* VocabWordDetailView.swift in Sources */,
 				97B145AA37C1695694274371 /* YouTubeEmbedHTML.swift in Sources */,
+				BF54919DF433C8B417776626 /* YouTubePlayerController.swift in Sources */,
 				3C50FC04CF0CF9A804E84DA4 /* YouTubePlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

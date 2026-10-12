@@ -1,38 +1,20 @@
 import SwiftUI
+import UIKit
 import WebKit
 
-/// Wraps the YouTube IFrame API inside a WKWebView and exposes imperative controls +
-/// a time-update callback sent at 250ms cadence from the page.
+/// Hosts a `YouTubePlayerController`'s player page in a WKWebView. All
+/// control and every event go through the controller; this view only owns
+/// the web view's lifetime.
 struct YouTubePlayerView: UIViewRepresentable {
-    let videoId: String
-    var startTime: Double = 0
-    var endTime: Double? = nil
-    var autoplay: Bool = true
-    @Binding var isPlaying: Bool
-    var currentTime: ((Double) -> Void)? = nil
-    var onReady: (() -> Void)? = nil
-    var onEnded: (() -> Void)? = nil
-    var onError: ((Int) -> Void)? = nil
+    /// Owned by the screen (e.g. `@StateObject`, which it needs anyway to
+    /// observe `state`/`errorCode`); the view only borrows it.
+    let controller: YouTubePlayerController
 
-    @Binding var command: PlayerCommand?
-
-    enum PlayerCommand: Equatable {
-        case play
-        case pause
-        case seek(Double)
-        case loop(Double, Double)
-        case reload
-        case setSpeed(Double)
-        case setMuted(Bool)
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        let contentController = WKUserContentController()
-        contentController.add(context.coordinator, name: "ytBridge")
-        config.userContentController = contentController
+        config.userContentController = context.coordinator.contentController
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
 
@@ -43,79 +25,69 @@ struct YouTubePlayerView: UIViewRepresentable {
         web.backgroundColor = .black
         web.scrollView.backgroundColor = .black
         web.navigationDelegate = context.coordinator
-        context.coordinator.webView = web
-
-        let html = Self.makeHTML(videoId: videoId, start: startTime, end: endTime, autoplay: autoplay)
-        web.loadHTMLString(html, baseURL: URL(string: "https://www.youtube-nocookie.com"))
+        context.coordinator.bind(controller, to: web)
         return web
     }
 
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        if let cmd = command {
-            context.coordinator.send(cmd)
-            DispatchQueue.main.async { self.command = nil }
-        }
+    func updateUIView(_ web: WKWebView, context: Context) {
+        // No-op unless a different controller was passed in.
+        context.coordinator.bind(controller, to: web)
     }
 
-    // MARK: - HTML
+    static func dismantleUIView(_ web: WKWebView, coordinator: Coordinator) {
+        coordinator.teardown(web)
+    }
 
+    /// Page for a single clip, as the controller builds it (used by the
+    /// live embed integration test).
     static func makeHTML(videoId: String, start: Double, end: Double?, autoplay: Bool) -> String {
-        YouTubeEmbedHTML.make(videoId: videoId, start: start, end: end, autoplay: autoplay)
+        YouTubeEmbedHTML.make(source: PlayerSource(videoId: videoId, start: start, end: end, autoplay: autoplay))
     }
 
-    // MARK: - Coordinator
+    @MainActor
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        let contentController: WKUserContentController
+        private let messageProxy: ScriptMessageProxy
+        private weak var controller: YouTubePlayerController?
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-        let parent: YouTubePlayerView
-        weak var webView: WKWebView?
-        init(_ parent: YouTubePlayerView) { self.parent = parent }
-
-        func send(_ cmd: PlayerCommand) {
-            guard let web = webView else { return }
-            let js: String
-            switch cmd {
-            case .play:             js = "window.__cmd({ type: 'play' });"
-            case .pause:            js = "window.__cmd({ type: 'pause' });"
-            case .seek(let t):      js = "window.__cmd({ type: 'seek', t: \(t) });"
-            case .loop(let a, _):   js = "window.__cmd({ type: 'loop', a: \(a) });"
-            case .reload:           js = "window.__cmd({ type: 'reload' });"
-            case .setSpeed(let r):  js = "window.__cmd({ type: 'setSpeed', r: \(r) });"
-            case .setMuted(let m):  js = "window.__cmd({ type: 'setMuted', m: \(m) });"
-            }
-            web.evaluateJavaScript(js, completionHandler: nil)
+        override init() {
+            contentController = WKUserContentController()
+            messageProxy = ScriptMessageProxy()
+            super.init()
+            contentController.add(messageProxy, name: YouTubeEmbedHTML.messageHandlerName)
         }
 
-        func userContentController(_ userContentController: WKUserContentController,
-                                   didReceive message: WKScriptMessage) {
-            guard message.name == "ytBridge",
-                  let body = message.body as? [String: Any],
-                  let kind = body["kind"] as? String else { return }
-            switch kind {
-            case "ready":
-                DispatchQueue.main.async { self.parent.onReady?() }
-            case "time":
-                if let t = body["data"] as? Double {
-                    DispatchQueue.main.async { self.parent.currentTime?(t) }
-                } else if let n = body["data"] as? NSNumber {
-                    DispatchQueue.main.async { self.parent.currentTime?(n.doubleValue) }
-                }
-            case "state":
-                if let s = body["data"] as? Int {
-                    DispatchQueue.main.async { self.parent.isPlaying = (s == 1) }
-                } else if let n = body["data"] as? NSNumber {
-                    DispatchQueue.main.async { self.parent.isPlaying = (n.intValue == 1) }
-                }
-            case "ended":
-                DispatchQueue.main.async { self.parent.onEnded?() }
-            case "error":
-                if let code = body["data"] as? Int {
-                    DispatchQueue.main.async { self.parent.onError?(code) }
-                } else if let n = body["data"] as? NSNumber {
-                    DispatchQueue.main.async { self.parent.onError?(n.intValue) }
-                }
-            default:
-                break
-            }
+        func bind(_ controller: YouTubePlayerController, to web: WKWebView) {
+            guard controller !== self.controller else { return }
+            self.controller?.detach(web)
+            self.controller = controller
+            messageProxy.target = controller
+            controller.attach(web)
         }
+
+        func teardown(_ web: WKWebView) {
+            controller?.detach(web)
+            controller = nil
+            messageProxy.target = nil
+            contentController.removeScriptMessageHandler(forName: YouTubeEmbedHTML.messageHandlerName)
+            web.navigationDelegate = nil
+            web.stopLoading()
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            controller?.webContentProcessDidTerminate(webView)
+        }
+    }
+}
+
+/// `WKUserContentController` retains its handlers strongly; routing the
+/// page's messages through this weak hop keeps a web view from keeping its
+/// controller alive.
+@MainActor
+private final class ScriptMessageProxy: NSObject, WKScriptMessageHandler {
+    weak var target: YouTubePlayerController?
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        target?.receive(message.body, from: message.webView)
     }
 }

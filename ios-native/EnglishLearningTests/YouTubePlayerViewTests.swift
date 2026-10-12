@@ -11,7 +11,9 @@ import XCTest
 /// The fix characteristics these tests assert:
 ///   1. Embed HTML must use the privacy-enhanced `youtube-nocookie.com` domain.
 ///   2. Player must register an `onError` callback so the Swift layer can react.
-///   3. Swift side must expose an `onError` hook so callers can show a fallback.
+///   3. The page forwards the error code over the bridge, where
+///      `YouTubePlayerController` surfaces it (`errorCode`, `onEvent`) so
+///      screens can show a fallback.
 final class YouTubePlayerViewTests: XCTestCase {
     private let videoId = "z8VDANXnJjc" // Despicable Me clip that reproduces error 152
 
@@ -50,8 +52,10 @@ final class YouTubePlayerViewTests: XCTestCase {
             "Player must register an onError event handler so errors can bubble up."
         )
         XCTAssertTrue(
-            html.contains("send('error'"),
+            html.contains("send('error', { code:"),
             "onError handler must forward the error code through the ytBridge."
         )
+        XCTAssertEqual(PlayerEvent.parse(["kind": "error", "code": 152]), .error(152),
+                       "the Swift side must decode the forwarded code")
     }
 }
