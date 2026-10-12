@@ -42,11 +42,6 @@ struct PatternReelsView: View {
     @StateObject private var vm = PatternReelsViewModel()
     @State private var visibleId: Int? = nil
     @State private var openedScene: VocabContext? = nil
-    /// Tracks "the user is on this screen right now". Used by the
-    /// watchdog below so the flag re-assert only runs while we're
-    /// visible — onDisappear flips this back off so we don't fight
-    /// the parent screen restoring the tab bar after we leave.
-    @State private var isCurrentlyVisible: Bool = false
 
     var body: some View {
         ZStack {
@@ -97,24 +92,7 @@ struct PatternReelsView: View {
             VocabContextPlayerView(context: ctx)
                 .environmentObject(appState)
         }
-        .onAppear {
-            isCurrentlyVisible = true
-            appState.isVideoPlayerActive = true
-        }
-        // Parent PatternFlowView's own onDisappear flips the flag back to
-        // false when SwiftUI fires it during the forward push — that race
-        // leaves the floating tab bar visible behind us. Watch the flag
-        // and re-assert true while we're on screen; once we disappear
-        // the guard goes off so the parent can take responsibility.
-        .onChange(of: appState.isVideoPlayerActive) { _, newValue in
-            if isCurrentlyVisible, !newValue {
-                appState.isVideoPlayerActive = true
-            }
-        }
-        .onDisappear {
-            isCurrentlyVisible = false
-            appState.isVideoPlayerActive = false
-        }
+        .hidesTabBarWhileVisible()
         .task {
             await vm.load(patternId: patternId)
         }

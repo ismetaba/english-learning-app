@@ -74,3 +74,23 @@ struct VocabPoolEntry: Codable, Identifiable, Equatable {
 
     var id: String { wordId }
 }
+
+extension VocabPoolEntry {
+    /// The pool is persisted as one JSON blob, so, as with `UserProgress`, a
+    /// missing field or a mastery level added in a later version must not
+    /// make every entry unreadable: they fall back to a new entry's values.
+    /// Encoding stays synthesized, so the stored format is unchanged.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        wordId = try c.decode(String.self, forKey: .wordId)
+        masteryLevel = try c.decodeIfPresent(String.self, forKey: .masteryLevel)
+            .flatMap(MasteryLevel.init(rawValue:)) ?? .new
+        easeFactor = try c.decodeIfPresent(Double.self, forKey: .easeFactor) ?? SpacedRepetition.initialEaseFactor
+        interval = try c.decodeIfPresent(Int.self, forKey: .interval) ?? 0
+        // "" sorts before every day string, i.e. due now like a new entry.
+        nextReviewDate = try c.decodeIfPresent(String.self, forKey: .nextReviewDate) ?? ""
+        correctStreak = try c.decodeIfPresent(Int.self, forKey: .correctStreak) ?? 0
+        totalReviews = try c.decodeIfPresent(Int.self, forKey: .totalReviews) ?? 0
+        lastReviewDate = try c.decodeIfPresent(String.self, forKey: .lastReviewDate) ?? ""
+    }
+}

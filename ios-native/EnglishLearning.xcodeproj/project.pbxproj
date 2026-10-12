@@ -40,6 +40,7 @@
 		5F3210C9BB03EFCB55537181 /* VocabContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */; };
 		5FA6129310DB86A398A0B9AD /* ClipStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 359079DDB654B0EE5BDBA0BF /* ClipStore.swift */; };
 		63277E5ADC90CBB30C6B9C33 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898D883E553A0F54A8112D89 /* AppState.swift */; };
+		68BB835793431CA367AD1696 /* ImmersivePresenceModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5ABE0553DC6816E69509E58 /* ImmersivePresenceModifier.swift */; };
 		6D3C09544DBEA0C70F71073A /* NetworkingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D0948B281F0BB584F7C58E9 /* NetworkingTests.swift */; };
 		6F32BB136C30660800196C5F /* Streak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65890C4DC8124A6568299E09 /* Streak.swift */; };
 		7D1AD839992A522BD05F80B6 /* PlayerProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C902191E850B92D4B7FB50 /* PlayerProtocolTests.swift */; };
@@ -148,6 +149,7 @@
 		A25540F8B535DAF9E129ED01 /* LearningPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPathView.swift; sourceTree = "<group>"; };
 		A25E38A8A8039D1B93168804 /* PatternsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternsView.swift; sourceTree = "<group>"; };
 		A49279260F980A2348278F95 /* VocabFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabFeedView.swift; sourceTree = "<group>"; };
+		A5ABE0553DC6816E69509E58 /* ImmersivePresenceModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersivePresenceModifier.swift; sourceTree = "<group>"; };
 		A6CC9EEA658DDF432920728B /* ScenesLandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenesLandingView.swift; sourceTree = "<group>"; };
 		AE5778A74C171EBC53907C4F /* ProgressPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPersistence.swift; sourceTree = "<group>"; };
 		AE600C3A5912FE11EF6FB53A /* SentenceCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceCells.swift; sourceTree = "<group>"; };
@@ -269,6 +271,7 @@
 		3FE21E48106DBDC6F8A90A53 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				A5ABE0553DC6816E69509E58 /* ImmersivePresenceModifier.swift */,
 				2A06CCE962B5E537FA2F22AF /* LoadingStates.swift */,
 				C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */,
 				36BE3A80DC7932C2C14FB9AE /* SectionHeader.swift */,
@@ -585,6 +588,7 @@
 				C5AB1754EB5665310C2922F7 /* EnglishLearningApp.swift in Sources */,
 				E7FF61B7A031602BB0FD78D8 /* HomeView.swift in Sources */,
 				0791B019AB29DF0BFC51316C /* ImmersivePresence.swift in Sources */,
+				68BB835793431CA367AD1696 /* ImmersivePresenceModifier.swift in Sources */,
 				51AB988FF63514EEE18CE272 /* KaraokeTimeline.swift in Sources */,
 				D81D5F4B69FCCFFC79BC387C /* LearningPathView.swift in Sources */,
 				F73FB5B550CBEBD4A4F8EA69 /* LessonClipsView.swift in Sources */,

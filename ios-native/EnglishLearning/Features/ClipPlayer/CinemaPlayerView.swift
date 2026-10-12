@@ -128,12 +128,11 @@ struct CinemaPlayerView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .lockToLandscape()
+        .hidesTabBarWhileVisible()
         .onAppear {
-            appState.isVideoPlayerActive = true
             scheduleChromeHide()
         }
         .onDisappear {
-            appState.isVideoPlayerActive = false
             hideChromeWorkItem?.cancel()
         }
         .onChange(of: clip.id) { _, _ in

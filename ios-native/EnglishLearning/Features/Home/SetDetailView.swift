@@ -366,8 +366,7 @@ struct SetPlayerView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .task(id: index) { await load() }
-        .onAppear { appState.isVideoPlayerActive = true }
-        .onDisappear { appState.isVideoPlayerActive = false }
+        .hidesTabBarWhileVisible()
         .fullScreenCover(isPresented: $showCinema) {
             // Cinema mounts at the SetPlayerView level so it survives
             // the inner ClipPlayerView remount on video advance. The

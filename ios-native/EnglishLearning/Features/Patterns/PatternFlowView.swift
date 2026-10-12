@@ -94,8 +94,7 @@ struct PatternFlowView: View {
         .preferredColorScheme(.dark)
         .navigationBarHidden(true)
         // Hide the floating tab bar via the same hook the video player uses.
-        .onAppear { appState.isVideoPlayerActive = true }
-        .onDisappear { appState.isVideoPlayerActive = false }
+        .hidesTabBarWhileVisible()
         .navigationDestination(item: $openedReels) { target in
             PatternReelsView(patternId: target.patternId, title: target.title)
                 .environmentObject(appState)

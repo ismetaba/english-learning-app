@@ -393,7 +393,6 @@ struct VocabContextPlayerView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear { appState.isVideoPlayerActive = true }
-        .onDisappear { appState.isVideoPlayerActive = false }
+        .hidesTabBarWhileVisible()
     }
 }
