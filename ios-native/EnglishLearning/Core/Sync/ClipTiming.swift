@@ -81,29 +81,76 @@ enum ClipTiming {
     /// lines within ±5s of the clip bounds, so the raw bounds can cut the
     /// first or last sentence mid-word. Expects a sanitized clip (lines
     /// covering their words).
-    // STUB — trimSilence API contract (see ClipTimingTests); currently ignored.
-    static func playbackWindow(for clip: LessonClip, padding: Double = 0.3, trimSilence: Bool) -> PlaybackWindow {
-        playbackWindow(for: clip, padding: padding)
-    }
-
-    static func playbackWindow(for clip: LessonClip, padding: Double = 0.3) -> PlaybackWindow {
+    ///
+    /// `trimSilence` (set playback) also cuts dead air the curated bounds
+    /// leave around the dialogue: playback starts at most `maxLeadSilence`
+    /// before the first line and stops at most `maxTailSilence` after the
+    /// last one (storks: 0-203s became 8.8-177.5s). Within those limits the
+    /// curated bounds still win.
+    static func playbackWindow(for clip: LessonClip, padding: Double = 0.3,
+                               trimSilence: Bool = false) -> PlaybackWindow {
         guard let firstStart = clip.lines.map(\.startTime).min(),
               let lastEnd = clip.lines.map(\.endTime).max()
         else { return PlaybackWindow(start: clip.startTime, end: clip.endTime) }
-        return PlaybackWindow(start: max(0, min(clip.startTime, firstStart - padding)),
-                              end: max(clip.endTime, lastEnd + padding))
+        var start = min(clip.startTime, firstStart - padding)
+        var end = max(clip.endTime, lastEnd + padding)
+        if trimSilence {
+            start = max(start, firstStart - maxLeadSilence)
+            end = min(end, lastEnd + maxTailSilence)
+        }
+        return PlaybackWindow(start: max(0, start), end: end)
     }
+
+    /// Longest silence a trimmed window keeps before the first line.
+    static let maxLeadSilence: Double = 3.0
+    /// Longest silence a trimmed window keeps after the last line: enough
+    /// to land the sentence, short of YouTube's own end screen.
+    static let maxTailSilence: Double = 1.5
 }
 
 enum PrimaryClip {
+    /// A scene this short (as the set plays it, trimmed) is "short".
+    static let shortSceneMaxDuration: Double = 150
+    /// ...as long as it has at least this many lines of dialogue.
+    static let shortSceneMinLines = 8
+
     /// The one clip a set plays per video. The backend returns several
-    /// curations of the same scene; the one with the most tagged lines
-    /// shows the most colored dialogue (the longest often had a sparser
-    /// whisper pass). Duration breaks ties.
+    /// curations of the same scene. A short scene with enough dialogue
+    /// wins (the set promises short scenes; the longest cuts ran 4-7
+    /// minutes with up to 36s of silent tail). Otherwise the one with the
+    /// most tagged lines shows the most colored dialogue (the longest often
+    /// had a sparser whisper pass). Equal density goes to the shorter cut.
     static func pick(_ clips: [LessonClip]) -> LessonClip? {
-        clips.max { a, b in
-            if a.lines.count != b.lines.count { return a.lines.count < b.lines.count }
-            return a.duration < b.duration
+        var best: (clip: LessonClip, rank: Rank)?
+        for clip in clips {
+            let rank = Rank(clip)
+            // Strictly better only: among equals the first one stays.
+            if best.map({ rank > $0.rank }) ?? true { best = (clip, rank) }
+        }
+        return best?.clip
+    }
+
+    private struct Rank: Comparable {
+        let isShortScene: Bool
+        let lineCount: Int
+        /// Trimmed playback length, then the curated length: shorter ranks higher.
+        let playedDuration: Double
+        let duration: Double
+
+        init(_ clip: LessonClip) {
+            let window = ClipTiming.playbackWindow(for: ClipTiming.sanitize(clip), trimSilence: true)
+            lineCount = clip.lines.count
+            isShortScene = window.duration <= PrimaryClip.shortSceneMaxDuration
+                && lineCount >= PrimaryClip.shortSceneMinLines
+            playedDuration = window.duration
+            duration = clip.duration
+        }
+
+        static func < (a: Rank, b: Rank) -> Bool {
+            if a.isShortScene != b.isShortScene { return !a.isShortScene }
+            if a.lineCount != b.lineCount { return a.lineCount < b.lineCount }
+            if a.playedDuration != b.playedDuration { return a.playedDuration > b.playedDuration }
+            return a.duration > b.duration
         }
     }
 }

@@ -208,7 +208,13 @@ enum YouTubeError {
         case 100:
             return "Bu video kaldırılmış ya da artık bulunamıyor."
         case 101, 150, 152:
-            return "Videonun sahibi, videonun uygulamalarda oynatılmasına izin vermiyor."
+            // Country and Content-ID blocks arrive with the same codes as
+            // "embedding disabled", so don't blame the owner.
+            return "Bu video Türkiye'de ya da uygulama içinde oynatılamıyor."
+        case 153:
+            // YouTube refused the in-app player itself (its embed setup,
+            // e.g. a missing referrer), not this particular video.
+            return "YouTube oynatıcısı bu videoyu uygulama içinde açamadı."
         case loadTimeoutCode:
             return "Video yüklenemedi. İnternet bağlantını kontrol edip tekrar dene."
         default:

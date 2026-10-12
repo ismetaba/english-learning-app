@@ -55,6 +55,9 @@ final class KaraokeSync: ObservableObject {
             frames.setRunning(playing)
         case .clipEnded(let t):
             driver.tick(mediaTime: t, hostTime: hostTime, isPlaying: false)
+            // A loop never ends the window, so a jump's pin is spent; a
+            // replay from the start mustn't find it.
+            driver.pin(line: nil)
             frames.setRunning(false)
         case .error:
             driver.setPlaying(false, hostTime: hostTime)
@@ -66,12 +69,29 @@ final class KaraokeSync: ObservableObject {
     }
 
     /// Call right after issuing a seek so the highlight moves at once
-    /// instead of waiting for the page's next tick.
+    /// instead of waiting for the page's next tick. Clears a pinned line.
     func jump(to t: Double) {
+        jump(to: t, pinning: nil)
+    }
+
+    /// A seek into line `line`'s lead-in (jump to a line, loop it): that
+    /// line shows from the jump on, and on every loop wrap, instead of the
+    /// line before it until its first word. `line` indexes the current
+    /// lines; nil is a plain `jump(to:)`. The pin lets go once playback is
+    /// well past the line, at the clip's end, on new lines or the next jump.
+    func jump(to t: Double, pinning line: Int?) {
         let now = CACurrentMediaTime()
+        driver.pin(line: line)
         driver.jump(to: t, hostTime: now)
         pendingSeek = (t, now + 0.6)
         step(now)
+    }
+
+    /// Pins (or with nil unpins) a line without seeking, e.g. when a loop
+    /// starts or stops on the line already playing.
+    func setPinnedLine(_ line: Int?) {
+        driver.pin(line: line)
+        step(CACurrentMediaTime())
     }
 
     func setRate(_ rate: Double) {

@@ -61,9 +61,22 @@ struct KaraokeTimeline: Equatable {
         self.lead = lead
     }
 
-    // STUB — pinned-line API contract (see PinnedLineTests); pin ignored.
+    /// How far before its start a pinned line may take over: a line jump's
+    /// 0.15s lead-in plus seek slop. A pin that outlives its jump can't
+    /// steal the screen from further away.
+    static let maxPinnedLeadIn: Double = 1.0
+
+    /// `position(at:)`, except that line `pinnedLine` (one the learner
+    /// jumped to or loops) already owns its lead-in: seeks land a little
+    /// before a line so its first word isn't clipped, and that lead-in
+    /// would otherwise show the previous line. From the line's start on the
+    /// pin changes nothing, so it never holds the karaoke back.
     func position(at t: Double, pinnedLine: Int?) -> SyncPosition {
-        position(at: t)
+        guard let pin = pinnedLine, lines.indices.contains(pin) else { return position(at: t) }
+        let tt = t + lead
+        let start = lines[pin].startTime
+        guard tt < start, tt >= start - Self.maxPinnedLeadIn else { return position(at: t) }
+        return SyncPosition(lineIndex: pin, progress: .notStarted)
     }
 
     /// Runs every display frame, hence binary searches over the (sorted)
