@@ -190,3 +190,71 @@ final class KaraokeTimelineTests: XCTestCase {
         return SimResult(missedWords: missed, frameAccuracy: Double(correct) / Double(max(frames, 1)))
     }
 }
+
+// MARK: - Pinned line (jumps and loops start a little before the line)
+
+/// Jumping to a line (or looping it) seeks 0.15s before its first word so
+/// nothing is clipped. During that lead-in the timeline used to report the
+/// PREVIOUS line: a looped line flickered to its neighbour on every pass,
+/// and a quick second "next line" tap counted from the wrong line.
+final class PinnedLineTests: XCTestCase {
+    private func word(_ text: String, _ start: Double, _ end: Double, _ index: Int) -> ClipWord {
+        ClipWord(word: text, startTime: start, endTime: end, wordIndex: index)
+    }
+
+    private var lines: [ClipLine] {
+        [
+            ClipLine(id: 1, speaker: "", text: "I am happy", translationTr: nil, startTime: 10.0, endTime: 11.0,
+                     isTarget: nil, structure: nil,
+                     words: [word("I", 10.0, 10.15, 0), word("am", 10.2, 10.4, 1), word("happy", 10.45, 11.0, 2)]),
+            ClipLine(id: 2, speaker: "", text: "Me too", translationTr: nil, startTime: 11.9, endTime: 12.6,
+                     isTarget: nil, structure: nil,
+                     words: [word("Me", 11.9, 12.2, 0), word("too", 12.25, 12.6, 1)]),
+        ]
+    }
+
+    func test_reproduces_leadInShowsThePreviousLine() {
+        let tl = KaraokeTimeline(lines: lines, lead: 0)
+        XCTAssertEqual(tl.position(at: 11.75).lineIndex, 0)
+    }
+
+    func test_pinnedLineOwnsItsLeadIn() {
+        let tl = KaraokeTimeline(lines: lines, lead: 0)
+        XCTAssertEqual(tl.position(at: 11.75, pinnedLine: 1), SyncPosition(lineIndex: 1, progress: .notStarted))
+        XCTAssertEqual(tl.position(at: 12.0, pinnedLine: 1), SyncPosition(lineIndex: 1, progress: .speaking(0)))
+        // A pin never holds the karaoke back once playback is past the line.
+        XCTAssertEqual(tl.position(at: 12.0, pinnedLine: 0), SyncPosition(lineIndex: 1, progress: .speaking(0)))
+        // Out-of-range pins are ignored.
+        XCTAssertEqual(tl.position(at: 11.75, pinnedLine: 7), tl.position(at: 11.75))
+    }
+
+    func test_loopedLineNeverFlickersToItsNeighbour() {
+        // Line 2 looped as [11.75, 12.8]: the page wraps back to 11.75 each pass.
+        var driver = SyncDriver(lines: lines, lead: 0.05)
+        driver.pin(line: 1)
+        driver.jump(to: 11.75, hostTime: 0)
+        driver.setPlaying(true, hostTime: 0)
+        var host = 0.0, media = 11.75
+        for _ in 0..<400 {                     // ~4 passes at 60 fps
+            host += 1.0 / 60
+            media += 1.0 / 60
+            if media >= 12.8 {                 // page wraps the loop
+                media = 11.75
+                driver.tick(mediaTime: media, hostTime: host, isPlaying: true)
+            }
+            driver.update(hostTime: host)
+            XCTAssertEqual(driver.position.lineIndex, 1, "flickered at media \(media)")
+        }
+    }
+
+    func test_unpinningRestoresPlainTimeline() {
+        var driver = SyncDriver(lines: lines, lead: 0)
+        driver.pin(line: 1)
+        driver.jump(to: 11.75, hostTime: 0)
+        driver.update(hostTime: 0)
+        XCTAssertEqual(driver.position.lineIndex, 1)
+        driver.pin(line: nil)
+        driver.update(hostTime: 0)
+        XCTAssertEqual(driver.position.lineIndex, 0)
+    }
+}

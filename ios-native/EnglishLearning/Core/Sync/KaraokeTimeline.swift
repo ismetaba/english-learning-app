@@ -61,6 +61,11 @@ struct KaraokeTimeline: Equatable {
         self.lead = lead
     }
 
+    // STUB — pinned-line API contract (see PinnedLineTests); pin ignored.
+    func position(at t: Double, pinnedLine: Int?) -> SyncPosition {
+        position(at: t)
+    }
+
     /// Runs every display frame, hence binary searches over the (sorted)
     /// lines and words.
     func position(at t: Double) -> SyncPosition {

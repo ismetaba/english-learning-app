@@ -18,6 +18,9 @@ struct SyncDriver {
     /// Swaps the subtitle lines (next clip, scene loaded) keeping the lead.
     /// `position` refers to the old lines until the next `update`, which
     /// recomputes it from scratch.
+    // STUB — pinned-line API contract (see PinnedLineTests); currently ignored.
+    mutating func pin(line: Int?) {}
+
     mutating func replaceLines(_ lines: [ClipLine]) {
         timeline = KaraokeTimeline(lines: lines, lead: timeline.lead)
     }
