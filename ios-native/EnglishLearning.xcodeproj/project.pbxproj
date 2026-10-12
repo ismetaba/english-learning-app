@@ -23,6 +23,7 @@
 		2963C68C4109B23BA162F490 /* PlayerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756A0731114E5150516F623C /* PlayerProtocol.swift */; };
 		299E8502FF005B3E894642AC /* Pattern.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C704EADA62B4C30D2CBE942 /* Pattern.swift */; };
 		2E0C2C8C3E67451688B72187 /* ScenePlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE707DEC0DAC1D3EB2FDDA /* ScenePlanTests.swift */; };
+		2F2B5197864BBFB553A1B6ED /* CurriculumDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FF59B910E9329199D31E45C /* CurriculumDecodingTests.swift */; };
 		33433B89EB40E761ABE5FBA4 /* ProgressPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5778A74C171EBC53907C4F /* ProgressPersistence.swift */; };
 		372E5562CDE0151EA3EC64CB /* VocabWordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D603D3E57B66CE11CC164D /* VocabWordDetailView.swift */; };
 		38C513B1AABC39202E216EF7 /* PatternReelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5BC20192E0E809F48816B5 /* PatternReelsView.swift */; };
@@ -33,6 +34,7 @@
 		425AC241FF4A5EA108E7B712 /* ClipTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707FE016CC6EA3130C1ED3CF /* ClipTiming.swift */; };
 		44EA3429A3544B775FF9AB6A /* Curriculum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 026131E29DF8E3DAD68F443D /* Curriculum.swift */; };
 		477894FECFCE32F2DFC6FE46 /* ScenePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C41EF60DCDFF9D83EFBAB2 /* ScenePlan.swift */; };
+		4D2144A2EFDE1EB252961192 /* StructureLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDA537589B5788352D1046B /* StructureLegend.swift */; };
 		5038F26361113728FDD42586 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333F2E9E5ED8F3E29FDF9858 /* SmokeTests.swift */; };
 		51AB988FF63514EEE18CE272 /* KaraokeTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD790AC5B566739ADC95A4F4 /* KaraokeTimeline.swift */; };
 		5276AF3856DE85E3EC654669 /* VocabReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF6F523CFB9DA6B3CE1C345 /* VocabReviewView.swift */; };
@@ -81,6 +83,7 @@
 		F0F41CFF379F915651472723 /* SpacedRepetition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E719052C8218642BC0ADDB8C /* SpacedRepetition.swift */; };
 		F15BEF240300C9701451EE3D /* VideoFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E838A54C77D3D01490201EEF /* VideoFeedView.swift */; };
 		F2BDD1DD313750013C4A72B1 /* CoursesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8AD28F480946D6F3919D9C /* CoursesView.swift */; };
+		F5F467DCB42BB7710E71C2CC /* RemoteThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A3A375F5D914C5F45C8A1B /* RemoteThumbnail.swift */; };
 		F73FB5B550CBEBD4A4F8EA69 /* LessonClipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FD576AE33C2C20A38A04F3 /* LessonClipsView.swift */; };
 		F81F4F7F971FB6AEBE8D223E /* VocabFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49279260F980A2348278F95 /* VocabFeedView.swift */; };
 		FA5AC3986F450AD504E98A0A /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71ACAFE06F340C436181393D /* APIClient.swift */; };
@@ -101,6 +104,7 @@
 		026131E29DF8E3DAD68F443D /* Curriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curriculum.swift; sourceTree = "<group>"; };
 		072348C5D77C2B41A23CE66B /* ProgressPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPersistenceTests.swift; sourceTree = "<group>"; };
 		0B7698A854B7E3FB0FC17708 /* KaraokeSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaraokeSync.swift; sourceTree = "<group>"; };
+		12A3A375F5D914C5F45C8A1B /* RemoteThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteThumbnail.swift; sourceTree = "<group>"; };
 		1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipPlayerView.swift; sourceTree = "<group>"; };
 		1547D5705F84797FC7F44F41 /* SyncDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncDriver.swift; sourceTree = "<group>"; };
 		1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
@@ -127,6 +131,8 @@
 		5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersivePresenceTests.swift; sourceTree = "<group>"; };
 		5D0948B281F0BB584F7C58E9 /* NetworkingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTests.swift; sourceTree = "<group>"; };
 		5F5BC20192E0E809F48816B5 /* PatternReelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternReelsView.swift; sourceTree = "<group>"; };
+		5FDA537589B5788352D1046B /* StructureLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructureLegend.swift; sourceTree = "<group>"; };
+		5FF59B910E9329199D31E45C /* CurriculumDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurriculumDecodingTests.swift; sourceTree = "<group>"; };
 		649F09649AD4F60059AD5E58 /* CinemaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CinemaPlayerView.swift; sourceTree = "<group>"; };
 		65890C4DC8124A6568299E09 /* Streak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Streak.swift; sourceTree = "<group>"; };
 		6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerViewTests.swift; sourceTree = "<group>"; };
@@ -242,6 +248,7 @@
 			isa = PBXGroup;
 			children = (
 				DC07551A645380D13E115330 /* ClipTimingTests.swift */,
+				5FF59B910E9329199D31E45C /* CurriculumDecodingTests.swift */,
 				87DA095BE2E4F79468E16191 /* DayBoundaryTests.swift */,
 				388A73716C6AA10ABF8DE2BD /* Fixtures.swift */,
 				5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */,
@@ -281,7 +288,9 @@
 				2A06CCE962B5E537FA2F22AF /* LoadingStates.swift */,
 				22C624663F00D3BDE6C5547C /* PlayerErrorOverlay.swift */,
 				C91142DFCBB9817917F3EFD6 /* PrimaryButton.swift */,
+				12A3A375F5D914C5F45C8A1B /* RemoteThumbnail.swift */,
 				36BE3A80DC7932C2C14FB9AE /* SectionHeader.swift */,
+				5FDA537589B5788352D1046B /* StructureLegend.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -621,6 +630,7 @@
 				C3857CCB1EC084802DD74058 /* ProfileView.swift in Sources */,
 				5800CD0C28ED66E9D62E278E /* Progress.swift in Sources */,
 				33433B89EB40E761ABE5FBA4 /* ProgressPersistence.swift in Sources */,
+				F5F467DCB42BB7710E71C2CC /* RemoteThumbnail.swift in Sources */,
 				477894FECFCE32F2DFC6FE46 /* ScenePlan.swift in Sources */,
 				C184C026E2B993368FB538C4 /* ScenesLandingView.swift in Sources */,
 				B19C0853ED3BEEB14690AD3F /* SectionHeader.swift in Sources */,
@@ -628,6 +638,7 @@
 				172E51659F7BF2C4354C2A76 /* SetDetailView.swift in Sources */,
 				F0F41CFF379F915651472723 /* SpacedRepetition.swift in Sources */,
 				6F32BB136C30660800196C5F /* Streak.swift in Sources */,
+				4D2144A2EFDE1EB252961192 /* StructureLegend.swift in Sources */,
 				25633C5E1CC5AA795D72CC15 /* SyncDriver.swift in Sources */,
 				9A476B0EF6D1D223D3EC586C /* Theme.swift in Sources */,
 				4147E91232EA04F5C198DFFF /* TurkishPhonetics.swift in Sources */,
@@ -653,6 +664,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0E8EC621AF842D8B67481D2A /* ClipTimingTests.swift in Sources */,
+				2F2B5197864BBFB553A1B6ED /* CurriculumDecodingTests.swift in Sources */,
 				810F831BC949B17BB90340E2 /* DayBoundaryTests.swift in Sources */,
 				D127DBAAAAF6E4CDDE93F90F /* Fixtures.swift in Sources */,
 				D14F2DCEFDC229C8F10F5D73 /* ImmersivePresenceTests.swift in Sources */,
