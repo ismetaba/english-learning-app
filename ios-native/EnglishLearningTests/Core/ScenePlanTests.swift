@@ -19,13 +19,36 @@ final class ScenePlanTests: XCTestCase {
         XCTAssertGreaterThan(worst, 60, "fixture should contain a sentence deep inside its scene")
     }
 
-    func test_opensTheFullSceneAtTheTappedSentence() throws {
+    /// …and then it ran on to the end of the scene, a minute or more past
+    /// the sentence the learner tapped. A word's scene now stays with its
+    /// sentence: the sentence and the couple of lines that answer it.
+    func test_reproduces_sceneRanFarPastTheSentence() throws {
+        let context = try storksContext()
+        let fullClip = try Fixture.clip("storks")
+        let sceneEnd = ClipTiming.playbackWindow(for: ClipTiming.sanitize(fullClip)).end
+        XCTAssertGreaterThan(sceneEnd - context.endTime, 20, "fixture: the scene runs on well past the sentence")
+
+        let plan = ScenePlan.make(context: context, videoClips: [fullClip])
+        let window = ClipTiming.playbackWindow(for: plan.clip)
+        XCTAssertLessThanOrEqual(window.end - context.endTime, ScenePlan.maxTail + 4,
+                                 "plays \(window.end - context.endTime)s past the sentence")
+    }
+
+    func test_opensTheSentenceWithTheLinesThatFollowIt() throws {
         let context = try storksContext()
         let fullClip = try Fixture.clip("storks")
         let plan = ScenePlan.make(context: context, videoClips: [fullClip])
 
-        XCTAssertEqual(plan.clip.id, fullClip.id, "uses the full scene so every subtitle line is shown")
-        XCTAssertGreaterThan(plan.clip.lines.count, 1)
+        XCTAssertEqual(plan.clip.id, fullClip.id)
+        // The scene can carry the sentence under another line id; the start
+        // time is what both endpoints agree on.
+        let first = try XCTUnwrap(plan.clip.lines.first)
+        XCTAssertEqual(first.startTime, context.startTime, accuracy: 0.1, "the tapped sentence comes first")
+        XCTAssertLessThanOrEqual(plan.clip.lines.count, 1 + ScenePlan.followingLines)
+        let scene = ClipTiming.sanitize(fullClip).lines.map(\.id)
+        let start = try XCTUnwrap(scene.firstIndex(of: first.id))
+        XCTAssertEqual(plan.clip.lines.map(\.id), Array(scene[start..<(start + plan.clip.lines.count)]),
+                       "the following lines, in scene order")
         XCTAssertEqual(plan.startAt, context.startTime - ScenePlan.leadIn, accuracy: 0.05)
         let window = ClipTiming.playbackWindow(for: plan.clip)
         XCTAssertGreaterThanOrEqual(plan.startAt, window.start)
@@ -41,6 +64,9 @@ final class ScenePlanTests: XCTestCase {
             XCTAssertEqual(plan.clip.youtubeVideoId, ctx.youtubeVideoId)
             XCTAssertEqual(plan.startAt, max(0, ctx.startTime - ScenePlan.leadIn), accuracy: 0.05,
                            "line \(ctx.lineId) must start at its sentence, not the scene start")
+            // Only the sentence plays, not the rest of the scene it came from.
+            let window = ClipTiming.playbackWindow(for: plan.clip)
+            XCTAssertLessThanOrEqual(window.end, ctx.endTime + 1.5, "line \(ctx.lineId)")
         }
     }
 

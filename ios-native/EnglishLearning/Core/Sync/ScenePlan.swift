@@ -4,6 +4,11 @@ import Foundation
 struct ScenePlan: Equatable {
     /// Start a little before the sentence so its first word isn't clipped.
     static let leadIn: Double = 0.4
+    /// Lines after the sentence the scene keeps playing…
+    static let followingLines = 2
+    /// …each starting within this many seconds of the sentence's end, so a
+    /// pause ends the scene instead of running on into the next exchange.
+    static let maxTail: Double = 6
     /// The context and clip endpoints can carry different line ids for the
     /// same subtitle; their start times agree.
     private static let sameLineTolerance: Double = 0.1
@@ -11,22 +16,38 @@ struct ScenePlan: Equatable {
     let clip: LessonClip
     let startAt: Double
 
-    /// Opens the full scene (every subtitle line) when one of `videoClips`
-    /// contains the sentence, otherwise just the sentence. Either way
-    /// playback starts at the sentence, not at the scene start, which can
-    /// be minutes earlier.
+    /// Plays the sentence and the lines that follow it (up to
+    /// `followingLines`, within `maxTail` seconds) when one of `videoClips`
+    /// contains the sentence, otherwise just the sentence. Either way it
+    /// starts at the sentence, not at the scene start, which can be minutes
+    /// earlier, and stops soon after it instead of running to the end of
+    /// the scene.
     static func make(context: VocabContext, videoClips: [LessonClip]?) -> ScenePlan {
         if let match = sceneLine(for: context, in: videoClips ?? []) {
-            let clip = ClipTiming.sanitize(match.clip)
-            let window = ClipTiming.playbackWindow(for: clip)
-            let lineStart = ClipTiming.sanitize(match.line).startTime
-            return ScenePlan(clip: clip, startAt: max(window.start, lineStart - leadIn))
+            let scene = ClipTiming.sanitize(match.clip)
+            if let index = scene.lines.firstIndex(where: { $0.id == match.line.id }) {
+                let target = scene.lines[index]
+                let following = scene.lines[(index + 1)...]
+                    .prefix(followingLines)
+                    .prefix { $0.startTime - target.endTime <= maxTail }
+                return excerpt(of: scene, lines: [target] + following)
+            }
         }
-        // Not clamped to the playback window: a context's clip bounds can
-        // start after its own sentence (11.8s sentence, 27.1s "clip" start),
-        // and the window's 0.3s padding would eat into the lead-in.
+        // The context's clip bounds are its whole scene (and can even start
+        // after its own sentence: 11.8s sentence, 27.1s "clip" start), so the
+        // window is rebuilt around the sentence alone.
         let clip = ClipTiming.sanitize(context.asLessonClip())
-        return ScenePlan(clip: clip, startAt: max(0, context.startTime - leadIn))
+        return excerpt(of: clip, lines: clip.lines)
+    }
+
+    /// `lines` of `clip` as a clip of their own, starting `leadIn` before
+    /// the first: the playback window then ends with the last line.
+    private static func excerpt(of clip: LessonClip, lines: [ClipLine]) -> ScenePlan {
+        let start = max(0, (lines.first?.startTime ?? clip.startTime) - leadIn)
+        let end = lines.last?.endTime ?? clip.endTime
+        let trimmed = LessonClip(id: clip.id, youtubeVideoId: clip.youtubeVideoId, movieTitle: clip.movieTitle,
+                                 startTime: start, endTime: end, lines: lines)
+        return ScenePlan(clip: trimmed, startAt: start)
     }
 
     /// The scene of the same video holding the sentence: by line id, else
