@@ -44,7 +44,7 @@ struct SetDetailView: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 14) {
             ZStack(alignment: .bottomLeading) {
-                ThumbnailMosaic(videos: Array(set.videos.prefix(4)))
+                ThumbnailMosaic(videos: set.mosaicVideos)
                     .aspectRatio(16.0 / 8.5, contentMode: .fit)
                 LinearGradient(
                     colors: [.clear, .black.opacity(0.85)],

@@ -331,7 +331,9 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.id            = try c.decode(Int.self, forKey: .id)
-        self.speaker       = Self.displayedSpeaker(try c.decode(String.self, forKey: .speaker))
+        // Lines without a speaker (null or absent, as the Spanish server
+        // sends them) just have no label.
+        self.speaker       = Self.displayedSpeaker(try c.decodeIfPresent(String.self, forKey: .speaker) ?? "")
         self.text          = try c.decode(String.self, forKey: .text)
         self.translationTr = try c.decodeIfPresent(String.self, forKey: .translationTr)
         self.startTime     = try c.decode(Double.self, forKey: .startTime)

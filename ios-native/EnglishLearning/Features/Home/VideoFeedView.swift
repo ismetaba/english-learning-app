@@ -149,10 +149,10 @@ private struct SetHeroCard: View {
 
     private var heroImage: some View {
         ZStack(alignment: .bottomLeading) {
-            // Mosaic of the first 4 video thumbnails — gives the set
+            // Mosaic of 4 different video thumbnails — gives the set
             // a face that's clearly multi-video, instead of leaning on
             // any single video to represent the whole journey.
-            ThumbnailMosaic(videos: Array(set.videos.prefix(4)))
+            ThumbnailMosaic(videos: set.mosaicVideos)
 
             // Bottom gradient so the position label stays legible
             // regardless of the underlying thumbnail brightness.

@@ -21,6 +21,16 @@ final class CurriculumDecodingTests: XCTestCase {
         XCTAssertEqual(try decodeLine(speaker: "Speaker 2").speaker, "Speaker 2")
     }
 
+    /// The Spanish server sends `"speaker": null` (its lines have no
+    /// speaker); decoding failed and every Spanish scene showed "İçerik
+    /// yüklenemedi". No speaker is simply no label.
+    func test_reproduces_nullOrMissingSpeakerDecodesAsBlank() throws {
+        let null = #"{"id":1,"speaker":null,"text":"Hola","startTime":0,"endTime":1,"words":[]}"#
+        XCTAssertEqual(try JSONDecoder().decode(ClipLine.self, from: Data(null.utf8)).speaker, "")
+        let missing = #"{"id":1,"text":"Hola","startTime":0,"endTime":1,"words":[]}"#
+        XCTAssertEqual(try JSONDecoder().decode(ClipLine.self, from: Data(missing.utf8)).speaker, "")
+    }
+
     func test_reproduces_fixturesAreFullOfPlaceholderSpeakers() throws {
         let raw = try JSONSerialization.jsonObject(with: Fixture.data("clip-storks-wolves-love-babies.json")) as? [[String: Any]]
         let speakers = (raw?.first?["lines"] as? [[String: Any]] ?? []).compactMap { $0["speaker"] as? String }

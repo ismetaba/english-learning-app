@@ -75,6 +75,7 @@
 		C79B50704A7D1171F6E5B5ED /* ClipPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1547C0C37BA1728A807F01F1 /* ClipPlayerView.swift */; };
 		CBB9FED90FCFEE9CCBD5E6C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FA05CB9673702CC47B3F2DB /* Assets.xcassets */; };
 		D09586A87234A7AA35729C75 /* KaraokeSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7698A854B7E3FB0FC17708 /* KaraokeSync.swift */; };
+		D0CAFC71BB4F89D8D5E00770 /* SpanishPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BD9A0A39879BD2D0571E3A /* SpanishPayloadTests.swift */; };
 		D127DBAAAAF6E4CDDE93F90F /* Fixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388A73716C6AA10ABF8DE2BD /* Fixtures.swift */; };
 		D14F2DCEFDC229C8F10F5D73 /* ImmersivePresenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */; };
 		D45BBBCF5E57E808438F4DBD /* YouTubePlayerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */; };
@@ -136,6 +137,7 @@
 		4FE92974ACB3DF1125BFD541 /* PocVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocVideo.swift; sourceTree = "<group>"; };
 		548D68AC58DAD20D011CACDC /* SpanishPhoneticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanishPhoneticsTests.swift; sourceTree = "<group>"; };
 		55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishLearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		55BD9A0A39879BD2D0571E3A /* SpanishPayloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanishPayloadTests.swift; sourceTree = "<group>"; };
 		56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabContext.swift; sourceTree = "<group>"; };
 		5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersivePresenceTests.swift; sourceTree = "<group>"; };
 		5D0948B281F0BB584F7C58E9 /* NetworkingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTests.swift; sourceTree = "<group>"; };
@@ -279,6 +281,7 @@
 				01FE707DEC0DAC1D3EB2FDDA /* ScenePlanTests.swift */,
 				18C9FB2D0B54F8034EF5DBE2 /* SentenceCellsTests.swift */,
 				333F2E9E5ED8F3E29FDF9858 /* SmokeTests.swift */,
+				55BD9A0A39879BD2D0571E3A /* SpanishPayloadTests.swift */,
 				548D68AC58DAD20D011CACDC /* SpanishPhoneticsTests.swift */,
 			);
 			path = Core;
@@ -711,6 +714,7 @@
 				2E0C2C8C3E67451688B72187 /* ScenePlanTests.swift in Sources */,
 				E306A6316BEE51496ED3C0B5 /* SentenceCellsTests.swift in Sources */,
 				5038F26361113728FDD42586 /* SmokeTests.swift in Sources */,
+				D0CAFC71BB4F89D8D5E00770 /* SpanishPayloadTests.swift in Sources */,
 				A0721AEA68ACCB1FCC4EC433 /* SpanishPhoneticsTests.swift in Sources */,
 				9EF18C155ABF59B65DE5298E /* TurkishPhoneticsTests.swift in Sources */,
 				BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */,
