@@ -226,6 +226,28 @@ async function tagAll() {
 
 // ── 4. Glosses ───────────────────────────────────────────────────────
 
+/** Hand-written glosses for the most frequent function words, which the
+ *  model glosses from whichever sentence it saw first ("si" in "Si
+ *  recuerdan…" came back as "-ıp -madığı"). Keys are esGlossKey forms. */
+const GLOSS_OVERRIDES: Record<string, string> = {
+  el: '(belirli, eril)', la: '(belirli, dişil)', los: '(belirli, çoğul)', las: '(belirli, çoğul)',
+  un: 'bir', una: 'bir', unos: 'birkaç', unas: 'birkaç', al: "-e (a + el)", del: "-in (de + el)",
+  de: '-in / -den', a: '-e / -a', en: '-de / içinde', con: 'ile', sin: 'olmadan', por: 'için / -den dolayı',
+  para: 'için', sobre: 'hakkında / üstünde', desde: '-den beri', hasta: '-e kadar',
+  que: 'ki / -en', qué: 'ne', si: 'eğer', sí: 'evet', no: 'hayır / değil', y: 've', o: 'veya',
+  pero: 'ama', porque: 'çünkü', cuando: '-dığında', como: 'gibi', cómo: 'nasıl', dónde: 'nerede',
+  cuándo: 'ne zaman', quién: 'kim', cuál: 'hangisi', muy: 'çok', más: 'daha', ya: 'artık / zaten',
+  también: 'de / da', aquí: 'burada', ahí: 'orada', allí: 'orada', bien: 'iyi', mal: 'kötü',
+  yo: 'ben', tú: 'sen', él: 'o (erkek)', ella: 'o (kadın)', usted: 'siz', nosotros: 'biz',
+  nosotras: 'biz', ellos: 'onlar', ellas: 'onlar', ustedes: 'sizler',
+  me: 'beni / bana', te: 'seni / sana', se: 'kendini / kendine', lo: 'onu', le: 'ona', les: 'onlara',
+  nos: 'bizi / bize', mi: 'benim', mis: 'benim', tu: 'senin', tus: 'senin', su: 'onun', sus: 'onun',
+  esto: 'bu', eso: 'şu / o', este: 'bu', esta: 'bu', ese: 'şu', esa: 'şu',
+  soy: '-im (ser)', eres: '-sin (ser)', es: '-dir (ser)', somos: '-iz (ser)', son: '-dirler (ser)',
+  estoy: '-im (estar)', estás: '-sin (estar)', está: '-dir (estar)', estamos: '-iz (estar)',
+  están: '-dirler (estar)', hay: 'var',
+};
+
 const GLOSS_SYS = `You give Turkish glosses for a Spanish-learning app. Each item is a Spanish word with a sentence it appears in. Answer with the word's meaning IN THAT SENTENCE as the short Turkish gloss a learner sees under the word: 1-3 words. Conjugated verbs get the matching conjugated Turkish form ("quiero" → "istiyorum", "está" → "-dir / bulunuyor"). Articles and prepositions get the closest Turkish word or a short hint in parentheses ("el" → "(belirli)", "de" → "-in, -den"). Names get the name itself. Keep each "word" exactly as given.`;
 
 const GLOSS_SCHEMA = {
@@ -276,7 +298,7 @@ async function glossAll() {
   const insert = db.prepare('INSERT INTO word_translations_es (word_lower, translation_tr) VALUES (?, ?)');
   db.transaction(() => {
     for (const k of ctx.keys()) {
-      const tr = cache.get(k);
+      const tr = GLOSS_OVERRIDES[k] ?? cache.get(k);
       if (tr) insert.run(k, tr);
     }
   })();
@@ -285,7 +307,7 @@ async function glossAll() {
 // ── 5. Vocab ─────────────────────────────────────────────────────────
 
 /** Function words and the copulas the patterns already teach. */
-const STOPWORDS = new Set(`a al algo algún alguna alguno algunos ante antes aquí así aun aunque bien cada como con cual cuando de del desde donde dos e el ella ellas ello ellos en entonces entre era eres es esa ese eso esta está estaba estamos están estar estás este esto estoy fue fuera ha había han has hasta hay he la las le les lo los me mi mis muy más nada ni no nos nosotros o os para pero poco por porque que qué quien se ser si sí sin sobre soy su sus también tan te ti tu tú tus un una uno unos unas usted ustedes y ya yo él ah oh eh mm uh ay sí okay ok vale bueno pues hola adiós`.split(' '));
+const STOPWORDS = new Set(`a al algo algún alguna alguno algunos ante antes aquí así aun aunque bien cada como con cual cuando de del desde donde dos e el ella ellas ello ellos en entonces entre era eres es esa ese eso esta está estaba estamos están estar estás este esto estoy fue fuera ha había han has hasta hay haber he la las le les lo los me mi mis muy más nada ni no nos nosotros o os para pero poco por porque que qué quien se ser si sí sin sobre soy su sus también tan te ti tu tú tus un una uno unos unas usted ustedes y ya yo él ah oh eh mm uh ay sí okay ok vale bueno pues hola adiós`.split(' '));
 
 const LEMMA_SYS = `You analyse Spanish words for a beginner vocabulary list. For each word (with a sentence it appears in) give: its dictionary form ("lemma": infinitive for verbs, masculine singular for adjectives, singular for nouns), its part of speech ("pos": noun, verb, adjective, adverb or other), the lemma's main Turkish meaning ("tr": 1-3 words, a verb as a Turkish infinitive like "gitmek"), and the CEFR level of the lemma ("cefr": A1, A2, B1 or B2). Keep each "word" exactly as given.`;
 
@@ -391,8 +413,9 @@ function buildSet() {
   db.prepare(
     `INSERT INTO video_sets (id, title, title_tr, description, description_tr, difficulty, sort_order)
      VALUES ('es-set-1', 'Spanish Starter', 'İspanyolca Başlangıç',
-             'Slow, clear Latin American Spanish scenes.',
-             'Yavaş ve net Latin Amerika İspanyolcası sahneleri.', 'beginner', 100)`,
+             'Animated film scenes in Latin American Spanish, slowest first.',
+             'Pixar, Disney ve DreamWorks filmlerinden Latin Amerika İspanyolcası sahneler, en yavaştan başlayarak.',
+             'beginner', 100)`,
   ).run();
   // Slowest source first; a source's scenes stay in story order.
   const order = [...videoOrder].sort(
