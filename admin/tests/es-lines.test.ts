@@ -28,9 +28,31 @@ test('untimed words get times between their neighbours, so the text stays whole'
 test('a long pause or a segment boundary ends a line', () => {
   const lines = toLines([
     { text: 'Mira el perro', start: 0, end: 5, words: [w('Mira', 0, 0.3), w('el', 0.3, 0.4), w('perro', 3, 3.4)] },
-    { text: 'qué bonito', start: 5, end: 6, words: [w('qué', 5, 5.2), w('bonito', 5.2, 5.6)] },
+    { text: 'Qué bonito', start: 5, end: 6, words: [w('Qué', 5, 5.2), w('bonito', 5.2, 5.6)] },
   ]);
-  assert.deepEqual(lines.map(l => l.text), ['Mira el', 'perro', 'qué bonito']);
+  assert.deepEqual(lines.map(l => l.text), ['Mira el', 'perro', 'Qué bonito']);
+});
+
+test('a sentence WhisperX splits across two segments stays one line', () => {
+  // "¡Está | entrenado!": no sentence end before the boundary, and the next
+  // segment carries on in lowercase.
+  const lines = toLines([
+    { text: '¡Está', start: 0, end: 1, words: [w('¡Está', 0.2, 0.6)] },
+    { text: 'entrenado!', start: 1, end: 2, words: [w('entrenado!', 0.7, 1.3)] },
+    { text: 'Bueno, ya', start: 2, end: 3, words: [w('Bueno,', 2, 2.3), w('ya', 2.4, 2.6)] },
+    { text: 'me tengo que ir.', start: 3, end: 4, words: [w('me', 2.7, 2.8), w('tengo', 2.8, 3.1), w('que', 3.1, 3.2), w('ir.', 3.2, 3.5)] },
+  ]);
+  assert.deepEqual(lines.map(l => l.text), ['¡Está entrenado!', 'Bueno, ya me tengo que ir.']);
+});
+
+test('a pause that YouTube does not hear does not split a sentence', () => {
+  // WhisperX puts 3 s between "¡Está" and "entrenado!"; the captions have
+  // them back to back, so the pause was WhisperX's, not the speaker's.
+  const lines = toLines(
+    [{ text: '¡Está entrenado!', start: 0, end: 4, words: [w('¡Está', 0.2, 0.6), w('entrenado!', 3.6, 4)] }],
+    { captions: { events: [{ tStartMs: 200, segs: [{ utf8: 'está' }, { utf8: ' entrenado', tOffsetMs: 500 }] }] } },
+  );
+  assert.deepEqual(lines.map(l => l.text), ['¡Está entrenado!']);
 });
 
 test('a run-on sentence is cut at a comma', () => {
@@ -39,6 +61,13 @@ test('a run-on sentence is cut at a comma', () => {
   const lines = toLines([{ text: '', start: 0, end: 10, words }]);
   assert.ok(lines.every(l => l.words.length <= 14), lines.map(l => l.words.length).join(','));
   assert.equal(lines[0].text.endsWith('ocho,'), true);
+});
+
+test('a long sentence without a comma is cut in half, not one word from its end', () => {
+  const words = 'Ahora ha llegado el momento para el que me he preparado durante toda mi vida.'
+    .split(' ').map((t, i) => w(t, i * 0.3, i * 0.3 + 0.25));
+  const lines = toLines([{ text: '', start: 0, end: 5, words }]);
+  assert.deepEqual(lines.map(l => l.words.length), [8, 7]);
 });
 
 test('known Whisper hallucinations are dropped', () => {

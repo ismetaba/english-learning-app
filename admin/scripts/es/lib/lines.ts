@@ -33,6 +33,8 @@ const MAX_WORDS = 14;
 /** A silence this long between two words ends the line. */
 const PAUSE_SEC = 1.5;
 const SENTENCE_END = /[.?!…]["'»)\]]*$/;
+/** A word that carries on a sentence rather than starting one. */
+const CONTINUES = /^["'«(]*\p{Ll}/u;
 /** Whisper's training-data residue: credits and outros it "hears" in silence. */
 const HALLUCINATIONS = /amara\.org|subt[ií]tulos (realizados|por)|suscr[ií]bete/i;
 
@@ -101,7 +103,8 @@ function makeLine(words: Word[]): Line {
   };
 }
 
-/** Cuts a too-long run at its last comma within MAX_WORDS (or at MAX_WORDS). */
+/** Cuts a too-long run at its last comma within MAX_WORDS, or with no
+ *  comma into halves (a 15-word sentence is 8 + 7, not 14 + "vida."). */
 function splitLong(words: Word[]): Word[][] {
   const out: Word[][] = [];
   let rest = words;
@@ -110,7 +113,7 @@ function splitLong(words: Word[]): Word[][] {
     for (let k = MAX_WORDS - 1; k >= 3; k--) {
       if (/,$/.test(rest[k].word)) { cut = k; break; }
     }
-    const at = cut >= 0 ? cut + 1 : MAX_WORDS;
+    const at = cut >= 0 ? cut + 1 : rest.length <= 2 * MAX_WORDS ? Math.ceil(rest.length / 2) : MAX_WORDS;
     out.push(rest.slice(0, at));
     rest = rest.slice(at);
   }
@@ -273,7 +276,27 @@ export function toLines(segments: WhisperSegment[], opts: LineOptions = {}): Lin
   }
   const toVideo = (w: Word): Word =>
     offset ? { ...w, start: +(w.start + offset).toFixed(3), end: +(w.end + offset).toFixed(3) } : w;
-  return groups.map(ws => makeLine(ws.map(toVideo)));
+  return joinContinuations(groups).map(ws => makeLine(ws.map(toVideo)));
+}
+
+/** Puts a sentence cut in two back together ("¡Está" | "entrenado!"):
+ *  WhisperX ends segments mid-sentence and hears pauses the captions do
+ *  not, so once words are timed a line that has not ended its sentence
+ *  takes in the next when that one carries on in lowercase, the pause
+ *  between them is short and the two fit in a line. */
+function joinContinuations(groups: Word[][]): Word[][] {
+  const out: Word[][] = [];
+  for (const g of groups) {
+    const prev = out[out.length - 1];
+    const joins = prev && g.length > 0 &&
+      !SENTENCE_END.test(prev[prev.length - 1].word) &&
+      CONTINUES.test(g[0].word) &&
+      g[0].start - prev[prev.length - 1].end <= PAUSE_SEC &&
+      prev.length + g.length <= MAX_WORDS;
+    if (joins) out[out.length - 1] = [...prev, ...g];
+    else out.push(g);
+  }
+  return out;
 }
 
 const SCENE_MIN = 60;
