@@ -29,6 +29,56 @@ enum NativeLanguage: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Learning language
+
+/// The language the learner is LEARNING: the source language of the
+/// videos, words and patterns. Distinct from `NativeLanguage`, the
+/// translation language, which stays Turkish on both tracks
+/// (`NativeLanguage.es` is a Spanish *speaker*, not this).
+///
+/// `.en` is the original English corpus, `.es` the Latin American Spanish
+/// track. It picks the `?lang=` content the backend serves, the pattern
+/// catalog and the okunuş engine.
+enum LearningLanguage: String, Codable, CaseIterable, Identifiable {
+    case en, es
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .en: return "İngilizce"
+        case .es: return "İspanyolca"
+        }
+    }
+
+    /// Latin American Spanish, so not Spain's flag.
+    var flag: String {
+        switch self {
+        case .en: return "🇬🇧"
+        case .es: return "🇲🇽"
+        }
+    }
+
+    var queryItem: URLQueryItem { URLQueryItem(name: "lang", value: rawValue) }
+
+    // Ids are namespaced per language, so an id alone names its language
+    // (and its server): videos "es-<slug>", starter words "a2-es-<word>"
+    // (English "a2-<word>"), patterns "ser-estar-…". Everything else is
+    // English.
+
+    static func of(videoId: String) -> LearningLanguage { videoId.hasPrefix("es-") ? .es : .en }
+    static func of(wordId: String) -> LearningLanguage { wordId.hasPrefix("a2-es-") ? .es : .en }
+    static func of(patternId: String) -> LearningLanguage { patternId.hasPrefix("ser-estar-") ? .es : .en }
+
+    /// One stored word list serves both tracks; each screen shows the
+    /// active language's share of it.
+    func owns(wordId: String) -> Bool { Self.of(wordId: wordId) == self }
+    func owns(videoId: String) -> Bool { Self.of(videoId: videoId) == self }
+
+    func filter(wordIds: [String]) -> [String] {
+        wordIds.filter { owns(wordId: $0) }
+    }
+}
+
 // MARK: - Onboarding
 
 enum OnboardingLevel: String, Codable, CaseIterable {

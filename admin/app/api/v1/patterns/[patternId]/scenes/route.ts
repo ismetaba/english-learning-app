@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import type { Lang } from '@/lib/lang';
+import { ADJ_AFTER_COPULA, COPULAS_BY_PATTERN, COPULA_INTENSIFIERS } from '@/lib/es-copula';
+import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +48,10 @@ interface PatternFilter {
   /** SQL fragment that picks lines starting with the pattern. Must be
    *  prefixed with AND and reference `sl.text`. */
   sqlPredicate: string;
+  /** Learning language of the lines this pattern matches (default 'en').
+   *  The pattern id alone decides it, so a request never mixes English
+   *  and Spanish lines whatever ?lang= it carries. */
+  lang?: Lang;
 }
 
 /** Common-conversation adjectives that follow "I am ..." or "I'm ...".
@@ -187,10 +194,50 @@ function buildBeAdjPredicate(opts: {
     )`;
 }
 
+/** Spanish analog of `buildBeAdjPredicate` for the ser/estar +
+ *  adjective family. Spanish is pro-drop (the subject pronoun is usually
+ *  omitted: "Estoy cansado" = "Yorgunum"), so this keys on the COPULA
+ *  word itself rather than a sentence-leading pronoun prefix: any line
+ *  with a copula form from `copulas` immediately followed by an adjective
+ *  (or intensifier + adjective). Negation ("no estoy cansado") sits BEFORE
+ *  the copula, so it doesn't break the adjacency. The trim set adds the
+ *  inverted ¿ ¡ that open Spanish questions and exclamations. */
+function buildCopulaAdjPredicate(copulas: string[]): string {
+  const clean = `LOWER(TRIM(wt%.word, '.,!?;:"¿¡…' || char(39)))`;
+  const copulaIn = `${clean.replace(/wt%/g, 'wt1')} IN (${sqlList(copulas)})`;
+  const adj2 = `${clean.replace(/wt%/g, 'wt2')} IN (${sqlList(ADJ_AFTER_COPULA)})`;
+  const int2 = `${clean.replace(/wt%/g, 'wt2')} IN (${sqlList(COPULA_INTENSIFIERS)})`;
+  const adj3 = `${clean.replace(/wt%/g, 'wt3')} IN (${sqlList(ADJ_AFTER_COPULA)})`;
+
+  return `
+    AND EXISTS (
+      SELECT 1 FROM word_timestamps wt1
+      WHERE wt1.line_id = sl.id
+        AND ${copulaIn}
+        AND EXISTS (
+          SELECT 1 FROM word_timestamps wt2
+          WHERE wt2.line_id = sl.id
+            AND wt2.word_index = wt1.word_index + 1
+            AND (
+              -- copula + adjective ("estoy cansado")
+              ${adj2}
+              -- copula + intensifier + adjective ("es muy guapo")
+              OR (${int2} AND EXISTS (
+                SELECT 1 FROM word_timestamps wt3
+                WHERE wt3.line_id = sl.id
+                  AND wt3.word_index = wt2.word_index + 1
+                  AND ${adj3}
+              ))
+            )
+        )
+    )`;
+}
+
 /** Maps a pattern.id (mirrors PatternCatalog ids in iOS) to the SQL
- *  predicate that picks subtitle lines matching that pattern. We
- *  cover the BE + adjective family — "I am +", "You are +" — and
- *  leave room for the rest as the demand surfaces. */
+ *  predicate that picks subtitle lines matching that pattern. English
+ *  covers the BE + adjective family — "I am +", "You are +" — and
+ *  Spanish the ser/estar + adjective family (`lang: 'es'`), leaving
+ *  room for the rest as the demand surfaces. */
 const PATTERN_FILTERS: Record<string, PatternFilter> = {
   'be-adj-i': {
     label: 'I am + sıfat',
@@ -234,6 +281,33 @@ const PATTERN_FILTERS: Record<string, PatternFilter> = {
       contractionSlotIndex: 1,
     }),
   },
+
+  // ── Spanish: ser/estar + adjective ──────────────────────────────
+  'ser-estar-adj-yo': {
+    label: 'Yo soy/estoy + sıfat',
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-yo']),
+    lang: 'es',
+  },
+  'ser-estar-adj-tu': {
+    label: 'Tú eres/estás + sıfat',
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-tu']),
+    lang: 'es',
+  },
+  'ser-estar-adj-el': {
+    label: 'Él/Ella es/está + sıfat',
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-el']),
+    lang: 'es',
+  },
+  'ser-estar-adj-nosotros': {
+    label: 'Nosotros somos/estamos + sıfat',
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-nosotros']),
+    lang: 'es',
+  },
+  'ser-estar-adj-ellos': {
+    label: 'Ellos/Ellas son/están + sıfat',
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-ellos']),
+    lang: 'es',
+  },
 };
 
 /** One karaoke-ready sentence card — shape matches the iOS
@@ -254,6 +328,7 @@ export async function GET(
       );
     }
 
+    const lang = filter.lang ?? 'en';
     const limitRaw = parseInt(req.nextUrl.searchParams.get('limit') ?? '100', 10);
     const limit = Math.max(10, Math.min(300, Number.isFinite(limitRaw) ? limitRaw : 100));
 
@@ -285,6 +360,7 @@ export async function GET(
          JOIN clips c  ON c.id = sl.clip_id
          JOIN videos v ON v.id = c.video_id
          WHERE c.status = 'approved'
+           AND v.language = ?
            -- Note: dropped the v.poc=1 restriction once the akış started
            -- starving on the curated subset. clip.status='approved' is
            -- still the per-clip quality gate.
@@ -296,7 +372,7 @@ export async function GET(
            AND sl.structure IS NOT NULL
            ${filter.sqlPredicate}`,
       )
-      .all() as {
+      .all(lang) as {
       line_id: number;
       text: string;
       line_start: number;
@@ -343,7 +419,11 @@ export async function GET(
         wordCountByLine.set(row.line_id, row.c);
       }
     }
-    const usable = deduped.filter(r => (wordCountByLine.get(r.line_id) ?? 0) >= 3);
+    // Spanish is pro-drop, so a perfectly good "Estoy cansado" is only
+    // two words; the 3-word floor (tuned for "I am happy") would starve
+    // the ser/estar feed. Two words still karaoke cleanly.
+    const minWords = lang === 'es' ? 2 : 3;
+    const usable = deduped.filter(r => (wordCountByLine.get(r.line_id) ?? 0) >= minWords);
 
     // Pick a random sample so repeated visits don't always start with
     // the same first card. The cap is small enough (≤300) that fully
@@ -352,18 +432,8 @@ export async function GET(
 
     // Per-line word fetch — same shape vocab-feed uses so the iOS
     // VocabContext decoder works unchanged.
-    const wordsStmt = db.prepare(
-      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-              wt.starter_word_id,
-              vw.translation_tr AS starter_tr,
-              wtr.translation_tr AS word_tr
-       FROM word_timestamps wt
-       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-       LEFT JOIN word_translations wtr
-         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-       WHERE wt.line_id = ?
-       ORDER BY wt.word_index`,
-    );
+    // Spanish lines gloss from word_translations_es (lib/word-gloss.ts).
+    const wordRowsFor = prepareWordRows(db, lang);
 
     // Phrase dict — small enough to load once and reuse per line.
     const phraseRows = db
@@ -405,15 +475,7 @@ export async function GET(
     }
 
     const items = sampled.map(r => {
-      const wordRows = wordsStmt.all(r.line_id) as {
-        word: string;
-        start_time: number;
-        end_time: number;
-        word_index: number;
-        starter_word_id: string | null;
-        starter_tr: string | null;
-        word_tr: string | null;
-      }[];
+      const wordRows = wordRowsFor(r.line_id);
 
       return {
         lineId: r.line_id,
@@ -438,7 +500,8 @@ export async function GET(
           starterTr: w.starter_tr ?? null,
           translationTr: w.word_tr ?? null,
         })),
-        phrases: detectPhrases(wordRows),
+        // The phrase dictionary is English phrasal verbs.
+        phrases: lang === 'es' ? [] : detectPhrases(wordRows),
       };
     });
 

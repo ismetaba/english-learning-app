@@ -114,12 +114,14 @@ struct VocabView: View {
                     .environmentObject(appState)
             }
         }
-        .task(id: appState.progress.learnedWords) {
-            await vm.load(learnedWords: appState.progress.learnedWords)
+        .task(id: appState.learnedWordsInLearning) {
+            await vm.load(learnedWords: appState.learnedWordsInLearning)
         }
         // "Kelimelerimi gör" from another tab: back to the root (an old word
         // may still be pushed) and, in Akış, onto the word caught last.
         // Liste needs no more: it's newest first.
+        // A word of the other language left open when the learner switches.
+        .onChange(of: appState.learningLanguage) { _, _ in selectedWord = nil }
         .onChange(of: appState.wordsRoute) { _, _ in
             selectedWord = nil
             if mode == .feed { feedLandsOnNewestWord = true }
@@ -174,7 +176,7 @@ struct VocabView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 56)
 
-                if appState.progress.learnedWords.isEmpty {
+                if appState.learnedWordsInLearning.isEmpty {
                     emptyState
                         .padding(.horizontal, 20)
                         .padding(.top, 24)
@@ -183,7 +185,7 @@ struct VocabView: View {
                         .padding(.top, 64)
                 } else if let err = vm.errorMessage, vm.summaries.isEmpty {
                     ErrorState(message: err) {
-                        Task { await vm.load(learnedWords: appState.progress.learnedWords, forceRefresh: true) }
+                        Task { await vm.load(learnedWords: appState.learnedWordsInLearning, forceRefresh: true) }
                     }
                     .padding(.top, 64)
                 } else {
@@ -195,7 +197,7 @@ struct VocabView: View {
             }
         }
         .refreshable {
-            await vm.load(learnedWords: appState.progress.learnedWords, forceRefresh: true)
+            await vm.load(learnedWords: appState.learnedWordsInLearning, forceRefresh: true)
         }
     }
 
@@ -215,7 +217,7 @@ struct VocabView: View {
 
             // Only what the learner did: the words they added. Corpus counts
             // say nothing about their progress, so none are shown as such.
-            statColumn(value: "\(appState.progress.learnedWords.count)", label: "KELİME")
+            statColumn(value: "\(appState.learnedWordsInLearning.count)", label: "KELİME")
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -296,7 +298,7 @@ struct VocabView: View {
             spacing: 12,
         ) {
             ForEach(vm.summaries) { s in
-                VocabTile(summary: s) {
+                VocabTile(summary: s, learning: appState.learningLanguage) {
                     Haptics.medium()
                     selectedWord = s
                 }
@@ -309,6 +311,7 @@ struct VocabView: View {
 
 private struct VocabTile: View {
     let summary: StarterWordSummary
+    let learning: LearningLanguage
     let onTap: () -> Void
 
     var body: some View {
@@ -322,7 +325,7 @@ private struct VocabTile: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     // How to say it, in Turkish letters, when we know.
-                    if let reading = TurkishPhonetics.reading(for: summary.word) {
+                    if let reading = Okunus.reading(for: summary.word, learning: learning) {
                         Text(reading)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Theme.Color.textMuted)

@@ -59,62 +59,82 @@ enum APIError: LocalizedError, CustomDebugStringConvertible {
 actor APIClient {
     static let shared = APIClient()
 
-    private let base: URL
+    private let bases: [LearningLanguage: URL]
     private let session: URLSession
     private let decoder: JSONDecoder
 
     init() {
-        // Default to the deployed admin on fly.dev for ALL builds —
-        // both simulator and physical-device DEBUG hit production now.
-        // The set + structure + per-word TR pipeline lives on the
-        // remote DB so a phone on cellular can use the app without
-        // needing the Mac running. Set `ADMIN_API_BASE_URL` (env var
-        // for simulator, Info.plist for the device) to override —
-        // useful when iterating on local backend changes.
-        let envBase = ProcessInfo.processInfo.environment["ADMIN_API_BASE_URL"]
-        let plistBase = Bundle.main.object(forInfoDictionaryKey: "ADMIN_API_BASE_URL") as? String
-        let defaultBase = "https://english-learning-admin.fly.dev"
-        let baseString = envBase ?? plistBase ?? defaultBase
-        self.base = URL(string: baseString)!
-
+        let environment = ProcessInfo.processInfo.environment
+        let plist = { (key: String) in Bundle.main.object(forInfoDictionaryKey: key) as? String }
+        self.bases = Dictionary(uniqueKeysWithValues: LearningLanguage.allCases.map {
+            ($0, Self.baseURL(for: $0, environment: environment, plist: plist))
+        })
         self.session = URLSession(configuration: Self.makeSessionConfiguration())
         self.decoder = JSONDecoder()
     }
 
-    // MARK: - POC videos (Feynman video-first)
+    /// Each learning language has its own server, on fly.dev for ALL
+    /// builds — both simulator and physical-device DEBUG hit production,
+    /// so a phone on cellular can use the app without the Mac running.
+    /// English is the original admin; Spanish a separate deployment of the
+    /// same admin with a Spanish-only database. `ADMIN_API_BASE_URL` /
+    /// `ADMIN_API_BASE_URL_ES` (env var for the simulator, Info.plist for
+    /// a device) override them — useful when iterating on a local backend.
+    /// An empty value (an unset `$(VAR)` in the plist) is ignored.
+    static func baseURL(for lang: LearningLanguage, environment: [String: String],
+                        plist: (String) -> String?) -> URL {
+        let (key, fallback) = switch lang {
+        case .en: ("ADMIN_API_BASE_URL", "https://english-learning-admin.fly.dev")
+        case .es: ("ADMIN_API_BASE_URL_ES", "https://english-learning-es.fly.dev")
+        }
+        let configured = [environment[key], plist(key)]
+            .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty }
+        return configured.flatMap(URL.init(string:)) ?? URL(string: fallback)!
+    }
 
-    func fetchPocVideos() async throws -> [PocVideo] {
-        try await get("/api/v1/poc-videos")
+    // MARK: - POC videos (Feynman video-first)
+    //
+    // The list endpoints serve one learning language at a time (`lang`,
+    // also sent as ?lang=). Everything fetched by id goes to the server of
+    // the language the id names (ids are namespaced per language), and
+    // the backend reads the language from the record.
+
+    func fetchPocVideos(lang: LearningLanguage) async throws -> [PocVideo] {
+        try await get("/api/v1/poc-videos", on: lang, query: [lang.queryItem])
     }
 
     func fetchPocVideoClips(videoId: String) async throws -> [LessonClip] {
-        try await get("/api/v1/poc-videos/\(videoId)/clips")
+        try await get("/api/v1/poc-videos/\(videoId)/clips", on: .of(videoId: videoId))
     }
 
-    func fetchVideoSets() async throws -> [VideoSet] {
-        try await get("/api/v1/video-sets")
+    func fetchVideoSets(lang: LearningLanguage) async throws -> [VideoSet] {
+        try await get("/api/v1/video-sets", on: lang, query: [lang.queryItem])
     }
 
     func fetchStarterWordContexts(id: String) async throws -> StarterWordContexts {
-        try await get("/api/v1/starter-words/\(id)/contexts")
+        try await get("/api/v1/starter-words/\(id)/contexts", on: .of(wordId: id))
     }
 
+    /// `ids` come from one learning language's word list.
     func fetchStarterWordSummaries(ids: [String]) async throws -> [StarterWordSummary] {
-        guard !ids.isEmpty else { return [] }
+        guard let first = ids.first else { return [] }
         return try await get(
             "/api/v1/starter-words",
+            on: .of(wordId: first),
             query: [URLQueryItem(name: "ids", value: ids.joined(separator: ","))],
         )
     }
 
-    func fetchVocabFeed(poolIds: [String], includeDiscovery: Bool = true, limit: Int = 80) async throws -> VocabFeedResponse {
-        var query: [URLQueryItem] = []
+    func fetchVocabFeed(poolIds: [String], lang: LearningLanguage, includeDiscovery: Bool = true,
+                        limit: Int = 80) async throws -> VocabFeedResponse {
+        var query: [URLQueryItem] = [lang.queryItem]
         if !poolIds.isEmpty {
             query.append(URLQueryItem(name: "ids", value: poolIds.joined(separator: ",")))
         }
         query.append(URLQueryItem(name: "discovery", value: includeDiscovery ? "1" : "0"))
         query.append(URLQueryItem(name: "limit", value: String(limit)))
-        return try await get("/api/v1/vocab-feed", query: query)
+        return try await get("/api/v1/vocab-feed", on: lang, query: query)
     }
 
     /// Returns up to `limit` movie-clip scenes that open with the given
@@ -123,7 +143,7 @@ actor APIClient {
     /// render it.
     func fetchPatternScenes(patternId: String, limit: Int = 100) async throws -> PatternScenesResponse {
         let query = [URLQueryItem(name: "limit", value: String(limit))]
-        return try await get("/api/v1/patterns/\(patternId)/scenes", query: query)
+        return try await get("/api/v1/patterns/\(patternId)/scenes", on: .of(patternId: patternId), query: query)
     }
 
     // MARK: - Curriculum
@@ -232,8 +252,13 @@ actor APIClient {
 
     // MARK: - Core request
 
-    private func get<T: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws -> T {
-        guard let url = Self.makeURL(base: base, path: path, query: query) else { throw APIError.invalidURL }
+    /// `server` defaults to English: the legacy curriculum / lesson / vocab
+    /// set endpoints exist on the English server only.
+    private func get<T: Decodable>(_ path: String, on server: LearningLanguage = .en,
+                                   query: [URLQueryItem] = []) async throws -> T {
+        guard let base = bases[server], let url = Self.makeURL(base: base, path: path, query: query) else {
+            throw APIError.invalidURL
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"

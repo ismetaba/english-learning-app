@@ -3,7 +3,7 @@
 Run WhisperX transcription with word-level forced alignment.
 
 Usage:
-    python3 scripts/whisperx_transcribe.py <audio_path> <output_json> [--model base.en]
+    python3 scripts/whisperx_transcribe.py <audio_path> <output_json> [--model base.en] [--language en] [--keep-untimed]
 
 Outputs JSON with precise word-level timestamps from forced alignment.
 """
@@ -20,6 +20,13 @@ def main():
     parser.add_argument("output_json", help="Path to write output JSON")
     parser.add_argument("--model", default="base.en", help="Whisper model size (default: base.en)")
     parser.add_argument("--language", default="en", help="Language code (default: en)")
+    parser.add_argument(
+        "--keep-untimed",
+        action="store_true",
+        help="Keep words the aligner could not time (digits, symbols) with null start/end "
+        "instead of dropping them, so the caller can interpolate and the text stays whole",
+    )
+    parser.add_argument("--threads", type=int, default=4, help="CPU threads for transcription (default: 4)")
     args = parser.parse_args()
 
     if not os.path.exists(args.audio_path):
@@ -41,7 +48,11 @@ def main():
 
     # Step 1: Transcribe
     print("  Loading Whisper model...")
-    model = whisperx.load_model(args.model, device, compute_type=compute_type)
+    # Pinning the language skips Whisper's detection, which misfires on
+    # short or music-heavy clips.
+    model = whisperx.load_model(
+        args.model, device, compute_type=compute_type, language=args.language, threads=args.threads
+    )
 
     print("  Transcribing audio...")
     audio = whisperx.load_audio(args.audio_path)
@@ -67,6 +78,8 @@ def main():
                     "end": round(w["end"], 3),
                     "score": round(w.get("score", 0), 3),
                 })
+            elif args.keep_untimed:
+                words.append({"word": w["word"].strip(), "start": None, "end": None, "score": 0})
         segments.append({
             "text": seg.get("text", "").strip(),
             "start": round(seg.get("start", 0), 3),

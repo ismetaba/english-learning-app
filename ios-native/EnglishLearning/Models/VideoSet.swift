@@ -31,6 +31,17 @@ struct VideoSet: Codable, Identifiable, Hashable {
         return tr ?? description
     }
 
+    /// Up to four videos for the set's thumbnail mosaic, one per YouTube
+    /// video where the set has that many: a set cut from long sources
+    /// lists runs of scenes sharing one thumbnail. Repeats only fill the
+    /// tiles the set has no other video for.
+    var mosaicVideos: [PocVideo] {
+        var seen = Set<String>()
+        let distinct = videos.filter { seen.insert($0.youtubeVideoId).inserted }
+        let fill = videos.filter { v in !distinct.contains { $0.id == v.id } }
+        return Array((distinct + fill).prefix(4))
+    }
+
     /// Total runtime across all videos, in seconds. Computed from each
     /// video's duration estimate (clip count × ~1 minute heuristic when
     /// per-video duration isn't available — accurate enough for the

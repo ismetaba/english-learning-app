@@ -825,3 +825,98 @@ enum TurkishPhonetics {
         "week": "vik",
     ]
 }
+
+/// Turkish-letter okunuş for SPANISH words. Unlike `TurkishPhonetics`
+/// (a curated English → reading dictionary), Spanish spelling is almost
+/// fully phonetic, so this is a rule-based transducer: any word in, a
+/// Turkish-readable approximation out. Latin American pronunciation: no
+/// /θ/, so c(e/i) and z both read "s".
+///
+///   j, g(e/i)  → h   ("joven" → hoben, "gente" → hente)
+///   ll         → y   (yeísmo: "ellos" → eyos)
+///   ñ          → ny  ("niño" → ninyo)
+///   c(e/i), z  → s   ("feliz" → felis, "cinco" → sinko)
+///   c, qu, k   → k   ("casa" → kasa, "qué" → ke)
+///   v          → b   (Spanish merges b/v: "vivo" → bibo)
+///   h          → ∅   (silent: "hola" → ola)
+///   gu(e/i)    → g   (silent u: "guitarra" → gitarra)
+///   gü(e/i)    → gu  (the diaeresis restores the u)
+///   ch → ç, x → ks; vowels stay; acute accents are dropped.
+enum SpanishPhonetics {
+
+    static func reading(for raw: String) -> String? {
+        // The English cleaner lowercases and strips wrapping punctuation,
+        // ¿ and ¡ included.
+        let cleaned = TurkishPhonetics.clean(raw)
+        guard cleaned.contains(where: { $0.isLetter }) else { return nil }
+        if cleaned == "y" { return "i" }          // the word "y" (and)
+
+        let chars = Array(dropAcuteAccents(cleaned))
+        let n = chars.count
+        var out = ""
+        var i = 0
+        func at(_ k: Int) -> Character? { (k >= 0 && k < n) ? chars[k] : nil }
+        func isFront(_ c: Character?) -> Bool { c == "e" || c == "i" }
+
+        while i < n {
+            let c = chars[i]
+            let next = at(i + 1)
+            switch c {
+            case "c":
+                if next == "h" { out += "ç"; i += 2 }              // ch → ç
+                else if isFront(next) { out += "s"; i += 1 }      // ce/ci → s
+                else { out += "k"; i += 1 }
+            case "l":
+                if next == "l" { out += "y"; i += 2 }             // ll → y
+                else { out += "l"; i += 1 }
+            case "q":
+                // que/qui → k (the u is silent); a rare qua/quo keeps it.
+                if next == "u" && isFront(at(i + 2)) { out += "k"; i += 2 }
+                else { out += "k"; i += 1 }
+            case "g":
+                if next == "u" && isFront(at(i + 2)) { out += "g"; i += 2 }   // gue/gui
+                else if next == "ü" { out += "gu"; i += 2 }                   // güe/güi
+                else if isFront(next) { out += "h"; i += 1 }                  // ge/gi
+                else { out += "g"; i += 1 }
+            case "j": out += "h"; i += 1
+            case "h": i += 1
+            case "z": out += "s"; i += 1
+            case "v": out += "b"; i += 1
+            case "ñ": out += "ny"; i += 1
+            case "ü": out += "u"; i += 1
+            case "x": out += "ks"; i += 1
+            case "w": out += "v"; i += 1
+            default: out.append(c); i += 1                       // vowels, b d f k m n p r s t y
+            }
+        }
+        return out.isEmpty ? nil : out
+    }
+
+    /// á é í ó ú → a e i o u; ü and ñ stay, the scan reads them.
+    private static func dropAcuteAccents(_ s: String) -> String {
+        var r = s
+        for (accented, plain) in [("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u")] {
+            r = r.replacingOccurrences(of: accented, with: plain)
+        }
+        return r
+    }
+}
+
+/// The okunuş engine for the learning language, so each screen has one
+/// call site: English words read from the curated dictionary, Spanish
+/// words from the rules. The output is Turkish letters either way.
+enum Okunus {
+    static func reading(for raw: String, learning: LearningLanguage) -> String? {
+        switch learning {
+        case .es: return SpanishPhonetics.reading(for: raw)
+        case .en: return TurkishPhonetics.reading(for: raw)
+        }
+    }
+
+    /// A subtitle token as the starter banner shows it: letters and
+    /// apostrophes only ("happy." → "happy", "¿Está" → "Está"). Any
+    /// script's letters count, so Spanish keeps its accents and ñ.
+    static func displayWord(_ raw: String) -> String {
+        raw.replacingOccurrences(of: "[^\\p{L}']", with: "", options: .regularExpression)
+    }
+}

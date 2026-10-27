@@ -7,19 +7,22 @@ final class VocabFeedViewModel: ObservableObject {
     @Published var items: [VocabFeedItem] = []
     @Published var isLoading = true
     @Published var errorMessage: String? = nil
-    /// The pool `items` were fetched for; nil until a load succeeds.
+    /// The pool and learning language `items` were fetched for; nil until
+    /// a load succeeds.
     private(set) var loadedPool: [String]? = nil
+    private var loadedLang: LearningLanguage? = nil
 
-    /// The feed was never loaded, or the learner's pool changed since.
-    func isStale(for poolIds: [String]) -> Bool {
-        loadedPool != poolIds
+    /// The feed was never loaded, or the learner's pool (or learning
+    /// language) changed since.
+    func isStale(for poolIds: [String], lang: LearningLanguage) -> Bool {
+        loadedPool != poolIds || loadedLang != lang
     }
 
     /// Loads only when the feed is stale for `poolIds`, keeping the cards
     /// through the one `keepId` names when the response lands (see `load`).
-    func loadIfStale(poolIds: [String], keepingThrough keepId: () -> String?) async {
-        guard isStale(for: poolIds) else { return }
-        await load(poolIds: poolIds, keepingThrough: keepId)
+    func loadIfStale(poolIds: [String], lang: LearningLanguage, keepingThrough keepId: () -> String?) async {
+        guard isStale(for: poolIds, lang: lang) else { return }
+        await load(poolIds: poolIds, lang: lang, keepingThrough: keepId)
     }
 
     /// Fetches a fresh shuffle for `poolIds`. `keepingThrough` is asked once
@@ -27,13 +30,16 @@ final class VocabFeedViewModel: ObservableObject {
     /// have swiped during the fetch): the cards up to and including it stay
     /// where they are and only the ones after it are replaced. With nothing
     /// to keep, the feed starts with the word added last.
-    func load(poolIds: [String], keepingThrough keepId: () -> String? = { nil },
+    func load(poolIds: [String], lang: LearningLanguage, keepingThrough keepId: () -> String? = { nil },
               forceRefresh: Bool = false) async {
+        // Another language's cards can't be kept or spliced into this one.
+        if lang != loadedLang { items = [] }
         // The feed is pool-only: an empty pool has no cards, and the server
         // would scan the whole corpus just to say so.
         guard !poolIds.isEmpty else {
             items = []
             loadedPool = poolIds
+            loadedLang = lang
             errorMessage = nil
             isLoading = false
             return
@@ -47,6 +53,7 @@ final class VocabFeedViewModel: ObservableObject {
         do {
             let response = try await CurriculumRepository.shared.vocabFeed(
                 poolIds: poolIds,
+                lang: lang,
                 includeDiscovery: false,
                 limit: 80,
             )
@@ -61,6 +68,7 @@ final class VocabFeedViewModel: ObservableObject {
                 self.items = FeedOrder.leadingWithNewest(response.items, newestWordId: poolIds.last)
             }
             self.loadedPool = poolIds
+            self.loadedLang = lang
         } catch {
             // Cut short (Liste, another tab): this model outlives the feed,
             // so the load that follows must find it untouched.
@@ -100,7 +108,7 @@ struct VocabFeedView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if vm.items.isEmpty && appState.progress.learnedWords.isEmpty {
+            if vm.items.isEmpty && appState.learnedWordsInLearning.isEmpty {
                 // Nothing added yet: nothing to fetch, say how to fill it.
                 emptyState
             } else if vm.isLoading && vm.items.isEmpty {
@@ -109,7 +117,8 @@ struct VocabFeedView: View {
             } else if let err = vm.errorMessage, vm.items.isEmpty {
                 ErrorState(message: err) {
                     Task {
-                        await vm.load(poolIds: appState.progress.learnedWords, forceRefresh: true)
+                        await vm.load(poolIds: appState.learnedWordsInLearning, lang: appState.learningLanguage,
+                                      forceRefresh: true)
                         landOnNewestWordIfAsked()
                     }
                 }
@@ -165,7 +174,8 @@ struct VocabFeedView: View {
             // up the next time the screen appears, keeping the card they
             // are on when the response lands (the binding reads live
             // storage, so a swipe during the fetch counts).
-            await vm.loadIfStale(poolIds: appState.progress.learnedWords, keepingThrough: { visibleId })
+            await vm.loadIfStale(poolIds: appState.learnedWordsInLearning, lang: appState.learningLanguage,
+                                 keepingThrough: { visibleId })
             landOnNewestWordIfAsked()
         }
         // "Kelimelerimi gör": off any scene opened from here, back to the feed.
@@ -190,8 +200,8 @@ struct VocabFeedView: View {
     /// learner left. Only once the feed holds the current pool: before the
     /// reload is in, the new word has no card yet.
     private func landOnNewestWordIfAsked() {
-        let pool = appState.progress.learnedWords
-        guard landsOnNewestWord, !vm.isStale(for: pool) else { return }
+        let pool = appState.learnedWordsInLearning
+        guard landsOnNewestWord, !vm.isStale(for: pool, lang: appState.learningLanguage) else { return }
         landsOnNewestWord = false
         guard let landing = FeedOrder.landingId(in: vm.items, from: visibleId, newestWordId: pool.last),
               landing != visibleId else { return }
@@ -302,7 +312,7 @@ struct VocabReelCard: View {
 
     /// The word the learner added last (`learnedWords` is append-only).
     private var isNewestWord: Bool {
-        appState.progress.learnedWords.last == item.wordId
+        appState.learnedWordsInLearning.last == item.wordId
     }
 
     var body: some View {
@@ -675,7 +685,7 @@ struct VocabReelCard: View {
                     Spacer(minLength: 0)
                 }
                 // How to say it, in Turkish letters, when we know.
-                if let reading = TurkishPhonetics.reading(for: item.word) {
+                if let reading = Okunus.reading(for: item.word, learning: appState.learningLanguage) {
                     Text(reading)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))

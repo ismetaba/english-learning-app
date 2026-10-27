@@ -1,0 +1,10 @@
+[
+  { "youtubeId": "pw4nl8t9sxw", "slug": "peppa-chequeo-medico", "movieTitle": "Peppa Pig", "title": "Primer chequeo médico", "genre": "kids", "maxSec": 600 },
+  { "youtubeId": "DmEcAuUtTOw", "slug": "peppa-calor-y-frio", "movieTitle": "Peppa Pig", "title": "Aprende sobre el calor y el frío", "genre": "kids", "maxSec": 600 },
+  { "youtubeId": "nyXeI_R_Ruo", "slug": "peppa-fiesta-halloween", "movieTitle": "Peppa Pig", "title": "Primera fiesta de Halloween", "genre": "kids", "maxSec": 600 },
+  { "youtubeId": "JsGQizTuPSo", "slug": "super-easy-presentarse", "movieTitle": "Super Easy Spanish", "title": "Preséntate en español", "genre": "conversation" },
+  { "youtubeId": "gUGPeMAFZtA", "slug": "super-easy-supermercado", "movieTitle": "Super Easy Spanish", "title": "De compras en el supermercado", "genre": "conversation" },
+  { "youtubeId": "TXf3uH5YqM4", "slug": "super-easy-mercado-mexicano", "movieTitle": "Super Easy Spanish", "title": "Un mercado mexicano", "genre": "conversation" },
+  { "youtubeId": "IhJzQNKLPbs", "slug": "moana-moana-y-maui", "movieTitle": "Moana", "title": "Momentos divertidos de Moana y Maui", "genre": "animation" },
+  { "youtubeId": "1n3Lou0r_sE", "slug": "toy-story-llegada-de-buzz", "movieTitle": "Toy Story", "title": "La llegada de Buzz Lightyear", "genre": "animation" }
+]

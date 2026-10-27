@@ -65,11 +65,11 @@ actor CurriculumRepository {
 
     // MARK: - POC videos (Feynman)
 
-    func pocVideos(forceRefresh: Bool = false) async throws -> [PocVideo] {
+    func pocVideos(lang: LearningLanguage, forceRefresh: Bool = false) async throws -> [PocVideo] {
         // No caching — POC list changes during dev (we swap which video is
         // active) and a stale cache hides those swaps. Pull-to-refresh
         // shouldn't be a prerequisite to see the latest set.
-        try await APIClient.shared.fetchPocVideos()
+        try await APIClient.shared.fetchPocVideos(lang: lang)
     }
 
     func pocVideoClips(videoId: String, forceRefresh: Bool = false) async throws -> [LessonClip] {
@@ -92,10 +92,10 @@ actor CurriculumRepository {
         await ClipStore.shared.prefetch(videoId)
     }
 
-    func videoSets(forceRefresh: Bool = false) async throws -> [VideoSet] {
+    func videoSets(lang: LearningLanguage, forceRefresh: Bool = false) async throws -> [VideoSet] {
         // No caching for the same reason as pocVideos — set composition
         // is being curated live, stale cache hides the latest layout.
-        try await APIClient.shared.fetchVideoSets()
+        try await APIClient.shared.fetchVideoSets(lang: lang)
     }
 
     func starterWordContexts(id: String, forceRefresh: Bool = false) async throws -> StarterWordContexts {
@@ -119,12 +119,14 @@ actor CurriculumRepository {
         try await APIClient.shared.fetchStarterWordSummaries(ids: ids)
     }
 
-    func vocabFeed(poolIds: [String], includeDiscovery: Bool = true, limit: Int = 80) async throws -> VocabFeedResponse {
+    func vocabFeed(poolIds: [String], lang: LearningLanguage, includeDiscovery: Bool = true,
+                   limit: Int = 80) async throws -> VocabFeedResponse {
         // Never cache — the feed is intentionally re-shuffled on every
         // pull, so each visit feels fresh. Also lets the user pull
         // down to swap the rotation.
         try await APIClient.shared.fetchVocabFeed(
             poolIds: poolIds,
+            lang: lang,
             includeDiscovery: includeDiscovery,
             limit: limit,
         )

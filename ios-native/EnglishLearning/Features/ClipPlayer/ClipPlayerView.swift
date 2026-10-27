@@ -1336,7 +1336,7 @@ struct ClipPlayerView: View {
     /// Before the word is added "Ekle" is the hero; afterwards "Devam" is,
     /// and a caption says where the word went.
     private func starterChoice(for pause: StarterPause) -> some View {
-        let word = pause.word.word.replacingOccurrences(of: "[^A-Za-z']", with: "", options: .regularExpression)
+        let word = Okunus.displayWord(pause.word.word)
         let learned = alreadyLearned(pause)
         let justAdded = learned && !pause.wasPooled
 
@@ -1377,7 +1377,7 @@ struct ClipPlayerView: View {
                             .lineLimit(2)
                     }
                 }
-                if let okunus = TurkishPhonetics.reading(for: word) {
+                if let okunus = Okunus.reading(for: word, learning: appState.learningLanguage) {
                     Text(okunus)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Theme.Color.textMuted)

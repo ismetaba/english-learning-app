@@ -749,7 +749,7 @@ struct PatternReelCard: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .scaleEffect(phase == .active ? 1.14 : 1.0)
 
-            if let okunus = TurkishPhonetics.reading(for: w.word) {
+            if let okunus = Okunus.reading(for: w.word, learning: appState.learningLanguage) {
                 Text(okunus)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .italic()
@@ -795,7 +795,7 @@ struct PatternReelCard: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .scaleEffect(phase == .active ? 1.14 : 1.0)
 
-            if let okunus = TurkishPhonetics.reading(for: en) {
+            if let okunus = Okunus.reading(for: en, learning: appState.learningLanguage) {
                 Text(okunus)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .italic()

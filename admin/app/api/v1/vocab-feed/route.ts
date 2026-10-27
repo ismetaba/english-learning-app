@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { parseLang } from '@/lib/lang';
+import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -132,6 +134,7 @@ function shuffleWithCooldown<T extends { wordId: string }>(
  */
 export function GET(req: NextRequest) {
   try {
+    const lang = parseLang(req);
     const idsRaw = req.nextUrl.searchParams.get('ids') ?? '';
     const discovery = req.nextUrl.searchParams.get('discovery') !== '0';
     const limitRaw = parseInt(req.nextUrl.searchParams.get('limit') ?? '80', 10);
@@ -171,8 +174,10 @@ export function GET(req: NextRequest) {
          JOIN clips c            ON c.id = sl.clip_id
          JOIN videos v           ON v.id = c.video_id
          WHERE vw.id LIKE 'a2-%'
+           AND vw.language = ?
            AND c.status = 'approved'
            AND v.poc = 1
+           AND v.language = ?
            AND sl.text IS NOT NULL
            AND length(trim(sl.text)) > 0
            -- Drop pathological subtitle lines (a few "whoa whoa whoa…"
@@ -183,7 +188,7 @@ export function GET(req: NextRequest) {
            AND length(sl.text) <= 120
          ORDER BY (sl.structure IS NULL), sl.id, wt.id`,
       )
-      .all() as ContextRow[];
+      .all(lang, lang) as ContextRow[];
 
     // Dedupe by (word, sentence text) so the same line shared across
     // multiple curated clip variants only contributes once.
@@ -208,9 +213,9 @@ export function GET(req: NextRequest) {
           .prepare(
             `SELECT id, word, translation_tr, ipa, part_of_speech, cefr_level
              FROM vocab_words
-             WHERE id LIKE 'a2-%'`,
+             WHERE id LIKE 'a2-%' AND language = ?`,
           )
-          .all() as WordMetaRow[]
+          .all(lang) as WordMetaRow[]
       ).map(w => [w.id, w]),
     );
 
@@ -235,18 +240,8 @@ export function GET(req: NextRequest) {
 
     // Pull per-word words (the per-word starter / TR mapping is needed
     // for every chosen line, so we batch it up here).
-    const wordsStmt = db.prepare(
-      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-              wt.starter_word_id,
-              vw.translation_tr AS starter_tr,
-              wtr.translation_tr AS word_tr
-       FROM word_timestamps wt
-       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-       LEFT JOIN word_translations wtr
-         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-       WHERE wt.line_id = ?
-       ORDER BY wt.word_index`,
-    );
+    // Spanish lines gloss from word_translations_es (lib/word-gloss.ts).
+    const wordRowsFor = prepareWordRows(db, lang);
 
     // Load phrase translations once for the whole request — small dict
     // (~30 entries) keyed by lowercased phrase; cheap to scan.
@@ -320,15 +315,7 @@ export function GET(req: NextRequest) {
         // reads (an admin edit mid-request); skip it rather than 500.
         if (!meta || !line) continue;
 
-        const wordRows = wordsStmt.all(r.line_id) as {
-          word: string;
-          start_time: number;
-          end_time: number;
-          word_index: number;
-          starter_word_id: string | null;
-          starter_tr: string | null;
-          word_tr: string | null;
-        }[];
+        const wordRows = wordRowsFor(r.line_id);
 
         items.push({
           wordId: r.word_id,
@@ -361,7 +348,8 @@ export function GET(req: NextRequest) {
               starterTr: w.starter_tr ?? null,
               translationTr: w.word_tr ?? null,
             })),
-            phrases: detectPhrases(wordRows),
+            // The phrase dictionary is English phrasal verbs.
+            phrases: lang === 'es' ? [] : detectPhrases(wordRows),
           },
         });
       }
