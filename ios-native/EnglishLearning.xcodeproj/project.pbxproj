@@ -87,6 +87,7 @@
 		F15BEF240300C9701451EE3D /* VideoFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E838A54C77D3D01490201EEF /* VideoFeedView.swift */; };
 		F2BDD1DD313750013C4A72B1 /* CoursesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8AD28F480946D6F3919D9C /* CoursesView.swift */; };
 		F319FC06D18923FF642C4B28 /* OkunusCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 381E29611B6FF4086DEE9F57 /* OkunusCoverageTests.swift */; };
+		F40054BEBE9D10ED50B957DF /* LoopSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74DC824C2D2CC74093C42080 /* LoopSyncTests.swift */; };
 		F5F467DCB42BB7710E71C2CC /* RemoteThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A3A375F5D914C5F45C8A1B /* RemoteThumbnail.swift */; };
 		F73FB5B550CBEBD4A4F8EA69 /* LessonClipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FD576AE33C2C20A38A04F3 /* LessonClipsView.swift */; };
 		F81F4F7F971FB6AEBE8D223E /* VocabFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49279260F980A2348278F95 /* VocabFeedView.swift */; };
@@ -149,6 +150,7 @@
 		71E5E036D9B7957EC0F15AE1 /* Vocab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vocab.swift; sourceTree = "<group>"; };
 		71FD576AE33C2C20A38A04F3 /* LessonClipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonClipsView.swift; sourceTree = "<group>"; };
 		73580C34736B5F98A0916DFA /* YouTubePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerView.swift; sourceTree = "<group>"; };
+		74DC824C2D2CC74093C42080 /* LoopSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopSyncTests.swift; sourceTree = "<group>"; };
 		756A0731114E5150516F623C /* PlayerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProtocol.swift; sourceTree = "<group>"; };
 		7AA2A5CE1A51A714C118FCEC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7B8AD28F480946D6F3919D9C /* CoursesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoursesView.swift; sourceTree = "<group>"; };
@@ -262,6 +264,7 @@
 				388A73716C6AA10ABF8DE2BD /* Fixtures.swift */,
 				5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */,
 				36E34E4EC2DC428271D7DE37 /* KaraokeTimelineTests.swift */,
+				74DC824C2D2CC74093C42080 /* LoopSyncTests.swift */,
 				5D0948B281F0BB584F7C58E9 /* NetworkingTests.swift */,
 				381E29611B6FF4086DEE9F57 /* OkunusCoverageTests.swift */,
 				D0CB6C8FA0DC6B27CD802B52 /* OnboardingLevelTests.swift */,
@@ -691,6 +694,7 @@
 				D127DBAAAAF6E4CDDE93F90F /* Fixtures.swift in Sources */,
 				D14F2DCEFDC229C8F10F5D73 /* ImmersivePresenceTests.swift in Sources */,
 				895F08001953BF374BBE2568 /* KaraokeTimelineTests.swift in Sources */,
+				F40054BEBE9D10ED50B957DF /* LoopSyncTests.swift in Sources */,
 				6D3C09544DBEA0C70F71073A /* NetworkingTests.swift in Sources */,
 				F319FC06D18923FF642C4B28 /* OkunusCoverageTests.swift in Sources */,
 				33355DDC78D954A4A7EB278E /* OnboardingLevelTests.swift in Sources */,

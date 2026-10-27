@@ -62,7 +62,7 @@ final class KaraokeSync: ObservableObject {
         case .error:
             driver.setPlaying(false, hostTime: hostTime)
             frames.setRunning(false)
-        case .bridgeReady, .ready:
+        case .bridgeReady, .ready, .looped:
             break
         }
         step(hostTime)

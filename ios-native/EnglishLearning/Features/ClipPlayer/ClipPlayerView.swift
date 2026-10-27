@@ -122,9 +122,7 @@ struct ClipPlayerView: View {
     @State private var controlsHeight: CGFloat = 140
 
     /// Seeks to a line land this far before it so its first word isn't clipped.
-    private static let lineLeadIn: Double = 0.15
-    /// A looped line keeps playing this long after its last word.
-    private static let loopTail: Double = 0.2
+    private static let lineLeadIn = ClipTiming.lineLeadIn
     /// Auto-follow stays off this long after the learner scrolls.
     private static let manualScrollHold: TimeInterval = 4
     /// Less than this left in a clip window counts as its end: nothing to
@@ -1755,7 +1753,7 @@ struct ClipPlayerView: View {
         case .clipEnded:
             markFirstFrame()
             clipDidEnd()
-        case .bridgeReady, .ready, .error:
+        case .bridgeReady, .ready, .error, .looped:
             // Errors surface through `player.errorCode`.
             break
         }
@@ -1930,26 +1928,14 @@ struct ClipPlayerView: View {
         let lines = clip.lines
         guard lines.indices.contains(i) else { return }
         let start = max(0, lines[i].startTime - Self.lineLeadIn)
-        if isLooping {
-            player.setBounds(start: start, end: loopEnd(forLine: i), loop: true)
+        if isLooping, let loop = ClipTiming.loopWindow(forLine: i, in: lines) {
+            player.setBounds(start: loop.start, end: loop.end, loop: true)
         }
         closeStarterBanner()
         endStarterHint(markSeen: false)
         advancePending = false
         seek(to: start, play: true, pinning: i)
         resumeFollowing()
-    }
-
-    /// Where a loop of line `i` wraps: a little after its last word, but
-    /// before the next line would take over the karaoke.
-    private func loopEnd(forLine i: Int) -> Double {
-        let lines = clip.lines
-        let line = lines[i]
-        var end = line.endTime + Self.loopTail
-        if lines.indices.contains(i + 1) {
-            end = min(end, lines[i + 1].startTime - KaraokeTimeline.defaultLead - 0.01)
-        }
-        return max(end, line.endTime)
     }
 
     private func seekLine(offset: Int) {
@@ -1974,10 +1960,10 @@ struct ClipPlayerView: View {
     private func toggleLoop() {
         if isLooping {
             stopLooping()
-        } else if let i = sync.position.lineIndex, clip.lines.indices.contains(i) {
-            let start = max(0, clip.lines[i].startTime - Self.lineLeadIn)
+        } else if let i = sync.position.lineIndex, let loop = ClipTiming.loopWindow(forLine: i, in: clip.lines) {
+            let start = loop.start
             isLooping = true
-            player.setBounds(start: start, end: loopEnd(forLine: i), loop: true)
+            player.setBounds(start: start, end: loop.end, loop: true)
             closeStarterBanner()
             endStarterHint(markSeen: false)
             advancePending = false

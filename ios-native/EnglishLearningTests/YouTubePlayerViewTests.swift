@@ -172,3 +172,117 @@ final class YouTubePlayerWatchdogTests: XCTestCase {
         window.isHidden = true
     }
 }
+
+/// Merge review (2026-10-27): the controller forgot the window a screen set
+/// with `setBounds` (a looped line, or a clip window resumed mid-clip)
+/// whenever it reloaded or rebuilt the page. After "Tekrar dene", or after
+/// iOS reclaimed the web content process, the "Döngü" chip stayed on while
+/// the clip played to its end and advanced to the next one.
+final class YouTubePlayerLoopWindowTests: XCTestCase {
+    private let source = PlayerSource(videoId: "z8VDANXnJjc", start: 0, end: 30)
+    private let loop = PlayerCommand.setBounds(start: 10.2, end: 10.9, loop: true)
+
+    /// A web view whose page never loads; the tests deliver page messages.
+    private final class PagelessWebView: WKWebView {
+        override func loadHTMLString(_ string: String, baseURL: URL?) -> WKNavigation? { nil }
+    }
+
+    /// Everything the controller told the page, in order.
+    @MainActor
+    private final class ScriptLog {
+        var scripts: [String] = []
+        var all: String { scripts.joined(separator: "\n") }
+    }
+
+    /// A controller whose page is up (bridge and player ready).
+    @MainActor
+    private func readyPlayer() -> (YouTubePlayerController, WKWebView, ScriptLog) {
+        let controller = YouTubePlayerController(source: source, notificationCenter: NotificationCenter())
+        let log = ScriptLog()
+        controller.evaluate = { _, script in log.scripts.append(script) }
+        let web = PagelessWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        controller.attach(web)
+        controller.receive(["kind": "bridge"], from: web)
+        controller.receive(["kind": "ready"], from: web)
+        return (controller, web, log)
+    }
+
+    @MainActor
+    func test_retryKeepsTheLoopWindow() throws {
+        let (controller, web, log) = readyPlayer()
+        controller.setBounds(start: 10.2, end: 10.9, loop: true)
+        log.scripts.removeAll()
+
+        controller.retry()
+
+        let all = log.all
+        let load = try XCTUnwrap(all.range(of: "\"type\":\"load\""), "retry reloads the source")
+        let bounds = try XCTUnwrap(all.range(of: loop.javaScript), "the loop is gone after Tekrar dene")
+        XCTAssertLessThan(load.lowerBound, bounds.lowerBound, "the loop must follow the reload, which resets the window")
+        controller.detach(web)
+    }
+
+    @MainActor
+    func test_rebuiltPageKeepsTheLoopWindow() {
+        let (controller, web, log) = readyPlayer()
+        controller.setBounds(start: 10.2, end: 10.9, loop: true)
+        log.scripts.removeAll()
+
+        // iOS reclaims the page; the controller rebuilds it, and the new
+        // page's bridge takes the queued commands.
+        controller.webContentProcessDidTerminate(web)
+        controller.receive(["kind": "bridge"], from: web)
+
+        XCTAssertTrue(log.all.contains(loop.javaScript), "the rebuilt page plays the whole clip instead of the loop")
+        controller.detach(web)
+    }
+
+    @MainActor
+    func test_retryBeforeThePlayerCameUpKeepsTheLoopWindow() {
+        let controller = YouTubePlayerController(source: source, notificationCenter: NotificationCenter())
+        let log = ScriptLog()
+        controller.evaluate = { _, script in log.scripts.append(script) }
+        let web = PagelessWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        controller.attach(web)
+        controller.receive(["kind": "bridge"], from: web)
+        controller.setBounds(start: 10.2, end: 10.9, loop: true)
+        log.scripts.removeAll()
+
+        // The YouTube player never came up: retry builds a fresh page.
+        controller.retry()
+        controller.receive(["kind": "bridge"], from: web)
+
+        XCTAssertTrue(log.all.contains(loop.javaScript), "the fresh page plays the whole clip instead of the loop")
+        controller.detach(web)
+    }
+
+    @MainActor
+    func test_theLatestWindowIsTheOneRestored() {
+        let (controller, web, log) = readyPlayer()
+        controller.setBounds(start: 10.2, end: 10.9, loop: true)
+        // Döngü off: back to the clip window.
+        let clipWindow = PlayerCommand.setBounds(start: 0, end: 30, loop: false)
+        controller.setBounds(start: 0, end: 30, loop: false)
+        log.scripts.removeAll()
+
+        controller.webContentProcessDidTerminate(web)
+        controller.receive(["kind": "bridge"], from: web)
+
+        XCTAssertFalse(log.all.contains(loop.javaScript), "a loop the learner turned off came back")
+        XCTAssertTrue(log.all.contains(clipWindow.javaScript))
+        controller.detach(web)
+    }
+
+    @MainActor
+    func test_aNewLoadForgetsTheWindow() {
+        let (controller, web, log) = readyPlayer()
+        controller.setBounds(start: 10.2, end: 10.9, loop: true)
+        controller.load(PlayerSource(videoId: "kzZQYnvw-6E", start: 10, end: 20))
+        log.scripts.removeAll()
+
+        controller.retry()
+
+        XCTAssertFalse(log.all.contains("setBounds"), "the previous clip's window was applied to the next clip")
+        controller.detach(web)
+    }
+}

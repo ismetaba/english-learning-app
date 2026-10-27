@@ -111,6 +111,25 @@ test('a looping sentence window wraps without stalling or drifting', { skip }, a
   } finally { await p.close(); }
 });
 
+test('every loop wrap is announced, so the karaoke can follow even a very short loop', { skip }, async () => {
+  // "No!": ClipTiming.loopWindow gives short lines 0.2-0.33 s. The app
+  // turns the loop on as toggleLoop does: setBounds, seek, play.
+  const p = await openPlayer(browser, { videoId: 'vidC', start: 18, end: 30, autoplay: true });
+  try {
+    await p.waitFor((e) => timesWhilePlaying(e).length > 0, 5000, 'playing');
+    const before = (await p.events()).length;
+    await p.driver.setBounds({ start: 20.5, end: 20.75, loop: true });
+    await p.driver.seek(20.5);
+    await p.driver.play();
+    await p.waitFor((e) => e.slice(before).filter((x) => x.type === 'loop').length >= 3, 4000,
+      'three announced loop wraps (a wrap sent as a plain tick looks like jitter to the karaoke clock)');
+    const evts = (await p.events()).slice(before);
+    const loops = evts.filter((x) => x.type === 'loop');
+    assert.ok(loops.every((x) => Math.abs(x.t - 20.5) < 0.01), `a wrap announced ${loops.map((x) => x.t)}; expected the window start 20.5`);
+    assert.ok(!evts.some((x) => x.type === 'clipEnd'), 'a looping window must never end the clip');
+  } finally { await p.close(); }
+});
+
 test('an unplayable video surfaces an error instead of a silent black frame', { skip }, async () => {
   const p = await openPlayer(browser, { videoId: 'BLOCKED0001', start: 0, end: 20, autoplay: true });
   try {

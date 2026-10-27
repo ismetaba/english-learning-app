@@ -630,7 +630,7 @@ struct CinemaPlayerView: View {
             markFirstFrame()
             creditClip(at: index)
             next()
-        case .bridgeReady, .ready, .error:
+        case .bridgeReady, .ready, .error, .looped:
             // Errors surface through `player.errorCode`.
             break
         }

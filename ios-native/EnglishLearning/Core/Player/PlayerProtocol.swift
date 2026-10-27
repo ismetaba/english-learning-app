@@ -96,6 +96,8 @@ enum PlayerEvent: Equatable {
     case time(Double, isPlaying: Bool)
     /// The clip window's end was reached (fired once per load/seek).
     case clipEnded(Double)
+    /// A looping window wrapped back to its start `t`: a new pass begins.
+    case looped(Double)
     case error(Int)
 
     /// Decodes a `WKScriptMessage.body`; nil for anything malformed.

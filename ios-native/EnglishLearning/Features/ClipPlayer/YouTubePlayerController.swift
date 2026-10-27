@@ -40,6 +40,11 @@ final class YouTubePlayerController: ObservableObject {
     /// (`CACurrentMediaTime()`) it was received at: the karaoke clock's
     /// time base.
     var onEvent: ((PlayerEvent, Double) -> Void)?
+    /// Runs a script in the page. Tests swap it to record what the page is
+    /// told without starting WebKit's content process.
+    var evaluate: @MainActor (WKWebView, String) -> Void = { web, script in
+        web.evaluateJavaScript(script, completionHandler: nil)
+    }
 
     private weak var webView: WKWebView?
     /// A page has been handed to `webView` (it may still be loading).
@@ -147,7 +152,7 @@ final class YouTubePlayerController: ObservableObject {
     /// current source again.
     func detach(_ webView: WKWebView) {
         guard self.webView === webView else { return }
-        if hasPage { webView.evaluateJavaScript(PlayerCommand.destroyJavaScript, completionHandler: nil) }
+        if hasPage { evaluate(webView, PlayerCommand.destroyJavaScript) }
         self.webView = nil
         hasPage = false
         bridgeReady = false
@@ -192,6 +197,8 @@ final class YouTubePlayerController: ObservableObject {
         case .clipEnded(let t):
             lastMediaTime = t
             madeProgress()
+        case .looped:
+            break
         case .error(let code):
             cancelWatchdog()
             awaitingProgress = false
@@ -203,7 +210,7 @@ final class YouTubePlayerController: ObservableObject {
 
     private func send(_ command: PlayerCommand) {
         if bridgeReady, let webView {
-            webView.evaluateJavaScript(command.javaScript, completionHandler: nil)
+            evaluate(webView, command.javaScript)
         } else {
             pending.append(command)
         }
@@ -214,7 +221,7 @@ final class YouTubePlayerController: ObservableObject {
         guard bridgeReady, let webView, !pending.isEmpty else { return }
         let script = pending.map(\.javaScript).joined(separator: "\n")
         pending.removeAll()
-        webView.evaluateJavaScript(script, completionHandler: nil)
+        evaluate(webView, script)
     }
 
     /// Hands the web view a fresh page for the current source. The page

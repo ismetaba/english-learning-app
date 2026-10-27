@@ -106,6 +106,26 @@ enum ClipTiming {
     /// Longest silence a trimmed window keeps after the last line: enough
     /// to land the sentence, short of YouTube's own end screen.
     static let maxTailSilence: Double = 1.5
+
+    // MARK: - Line loop
+
+    /// Seeks to a line land this far before it so its first word isn't clipped.
+    static let lineLeadIn: Double = 0.15
+    /// A looped line keeps playing this long after its last word.
+    static let loopTail: Double = 0.2
+
+    /// The window a loop of line `i` plays: from its lead-in to a little
+    /// after its last word, but before the next line would take over the
+    /// karaoke. Nil for an index outside `lines`.
+    static func loopWindow(forLine i: Int, in lines: [ClipLine]) -> PlaybackWindow? {
+        guard lines.indices.contains(i) else { return nil }
+        let line = lines[i]
+        var end = line.endTime + loopTail
+        if lines.indices.contains(i + 1) {
+            end = min(end, lines[i + 1].startTime - KaraokeTimeline.defaultLead - 0.01)
+        }
+        return PlaybackWindow(start: max(0, line.startTime - lineLeadIn), end: max(end, line.endTime))
+    }
 }
 
 enum PrimaryClip {

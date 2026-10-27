@@ -47,6 +47,31 @@ struct SyncDriver {
 
     mutating func jump(to mediaTime: Double, hostTime: Double) { clock.jump(to: mediaTime, hostTime: hostTime) }
 
+    /// The clock is advancing (frames are worth rendering).
+    var isPlaying: Bool { clock.isPlaying }
+
+    /// Applies one page event, received at `hostTime`. Ticks that predate
+    /// a seek are the caller's to drop (`KaraokeSync`).
+    mutating func handle(_ event: PlayerEvent, hostTime: Double) {
+        switch event {
+        case .time(let t, let playing):
+            tick(mediaTime: t, hostTime: hostTime, isPlaying: playing)
+        case .state(let state):
+            // Buffering doesn't advance the media, so it freezes the clock
+            // like a pause does.
+            setPlaying(state == .playing, hostTime: hostTime)
+        case .clipEnded(let t):
+            tick(mediaTime: t, hostTime: hostTime, isPlaying: false)
+            // A loop never ends the window, so a jump's pin is spent; a
+            // replay from the start mustn't find it.
+            pin(line: nil)
+        case .error:
+            setPlaying(false, hostTime: hostTime)
+        case .bridgeReady, .ready, .looped:
+            break
+        }
+    }
+
     /// Advances to `hostTime`; returns true when `position` changed.
     @discardableResult
     mutating func update(hostTime: Double) -> Bool {

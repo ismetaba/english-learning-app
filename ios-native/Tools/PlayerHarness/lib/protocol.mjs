@@ -56,6 +56,7 @@ export function normalize(msg) {
     case 'time': return { type: 'time', t: Number(msg.t), playing: msg.playing === true, at: msg.at };
     case 'state': return { type: 'state', state: Number(msg.s), at: msg.at };
     case 'clipEnd': return { type: 'clipEnd', t: Number(msg.t), at: msg.at };
+    case 'loop': return { type: 'loop', t: Number(msg.t), at: msg.at };
     case 'error': return { type: 'error', code: Number(msg.code), at: msg.at };
     default: return { type: 'other', raw: msg, at: msg.at };
   }
