@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import type { Lang } from '@/lib/lang';
 import { ADJ_AFTER_COPULA, COPULAS_BY_PATTERN, COPULA_INTENSIFIERS } from '@/lib/es-copula';
-import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
+import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -432,23 +432,8 @@ export async function GET(
 
     // Per-line word fetch — same shape vocab-feed uses so the iOS
     // VocabContext decoder works unchanged.
-    const englishWords = db.prepare(
-      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-              wt.starter_word_id,
-              vw.translation_tr AS starter_tr,
-              wtr.translation_tr AS word_tr
-       FROM word_timestamps wt
-       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-       LEFT JOIN word_translations wtr
-         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-       WHERE wt.line_id = ?
-       ORDER BY wt.word_index`,
-    );
     // Spanish lines gloss from word_translations_es (lib/word-gloss.ts).
-    const wordRowsFor =
-      lang === 'es'
-        ? prepareEsWordRows(db)
-        : (lineId: number) => englishWords.all(lineId) as KaraokeWordRow[];
+    const wordRowsFor = prepareWordRows(db, lang);
 
     // Phrase dict — small enough to load once and reuse per line.
     const phraseRows = db

@@ -159,6 +159,22 @@ test('pattern scenes take their language from the pattern', async () => {
   assert.deepEqual(await texts('be-adj-i', '?lang=es'), ['I am happy.']);
 });
 
+test('Spanish requests never read the English gloss table', async () => {
+  // The Spanish content database is built without word_translations; a
+  // Spanish request must not depend on it.
+  const { getDb } = await import('../lib/db');
+  const db = getDb();
+  db.exec('ALTER TABLE word_translations RENAME TO word_translations_off');
+  try {
+    await call('poc-videos/[id]/clips', '/api/v1/poc-videos/es-vid/clips', { id: 'es-vid' });
+    await call('vocab-feed', '/api/v1/vocab-feed?ids=a2-es-feliz&lang=es');
+    await call('patterns/[patternId]/scenes', '/api/v1/patterns/ser-estar-adj-yo/scenes', { patternId: 'ser-estar-adj-yo' });
+    await call('starter-words/[id]/contexts', '/api/v1/starter-words/a2-es-feliz/contexts', { id: 'a2-es-feliz' });
+  } finally {
+    db.exec('ALTER TABLE word_translations_off RENAME TO word_translations');
+  }
+});
+
 test('starter contexts gloss words from the starter’s language', async () => {
   const es = await call('starter-words/[id]/contexts', '/api/v1/starter-words/a2-es-feliz/contexts', { id: 'a2-es-feliz' });
   assert.equal(es.contextCount, 1);

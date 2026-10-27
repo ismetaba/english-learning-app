@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
+import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -122,24 +122,9 @@ export async function GET(
       is_poc: number;
     }[];
 
-    const englishWords = db.prepare(
-      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-              wt.starter_word_id,
-              vw.translation_tr AS starter_tr,
-              wtr.translation_tr AS word_tr
-       FROM word_timestamps wt
-       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-       LEFT JOIN word_translations wtr
-         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-       WHERE wt.line_id = ?
-       ORDER BY wt.word_index`,
-    );
     // The starter's own language picks the gloss table (starter ids are
     // namespaced per language: a2-<word> / a2-es-<word>).
-    const wordRowsFor =
-      word.language === 'es'
-        ? prepareEsWordRows(db)
-        : (lineId: number) => englishWords.all(lineId) as KaraokeWordRow[];
+    const wordRowsFor = prepareWordRows(db, word.language === 'es' ? 'es' : 'en');
 
     // Dedupe by line text — one canonical context per unique sentence.
     const seen = new Set<string>();

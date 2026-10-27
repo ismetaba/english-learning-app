@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Database from 'better-sqlite3';
 import { getDb } from '@/lib/db';
-import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
+import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -93,26 +93,6 @@ function parseStructure(raw: string | null): Structure | null {
 }
 
 function prepareClipStatements(db: Database.Database, language: string) {
-  // Per-word Turkish gloss is sourced from `word_translations`, keyed
-  // by a lowercase + sentence-punctuation-trimmed surface form (so
-  // "I'm" / "I'm." / "i'm" all collapse to the same row). Independent
-  // from the starter set's curated TR (vw.translation_tr) so the
-  // client can show both — the starter banner uses the curated one,
-  // the inline gloss uses this wider but shallower table. Spanish lines
-  // gloss from word_translations_es instead (see lib/word-gloss.ts).
-  const englishWords = db.prepare(
-    `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-            wt.starter_word_id,
-            vw.translation_tr AS starter_tr,
-            wtr.translation_tr AS word_tr
-     FROM word_timestamps wt
-     LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-     LEFT JOIN word_translations wtr
-       ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-     WHERE wt.line_id = ?
-     ORDER BY wt.word_index`,
-  );
-
   return {
     // Skip lines without word_timestamps — they can't carry structure
     // tags or per-word karaoke / TR gloss, so they'd render as plain
@@ -137,10 +117,7 @@ function prepareClipStatements(db: Database.Database, language: string) {
        ORDER BY sl.start_time`,
     ),
 
-    words:
-      language === 'es'
-        ? prepareEsWordRows(db)
-        : (lineId: number) => englishWords.all(lineId) as KaraokeWordRow[],
+    words: prepareWordRows(db, language === 'es' ? 'es' : 'en'),
   };
 }
 

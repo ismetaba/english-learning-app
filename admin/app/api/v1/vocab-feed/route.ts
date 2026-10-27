@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { parseLang } from '@/lib/lang';
-import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
+import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -240,23 +240,8 @@ export function GET(req: NextRequest) {
 
     // Pull per-word words (the per-word starter / TR mapping is needed
     // for every chosen line, so we batch it up here).
-    const englishWords = db.prepare(
-      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-              wt.starter_word_id,
-              vw.translation_tr AS starter_tr,
-              wtr.translation_tr AS word_tr
-       FROM word_timestamps wt
-       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-       LEFT JOIN word_translations wtr
-         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-       WHERE wt.line_id = ?
-       ORDER BY wt.word_index`,
-    );
     // Spanish lines gloss from word_translations_es (lib/word-gloss.ts).
-    const wordRowsFor =
-      lang === 'es'
-        ? prepareEsWordRows(db)
-        : (lineId: number) => englishWords.all(lineId) as KaraokeWordRow[];
+    const wordRowsFor = prepareWordRows(db, lang);
 
     // Load phrase translations once for the whole request — small dict
     // (~30 entries) keyed by lowercased phrase; cheap to scan.
