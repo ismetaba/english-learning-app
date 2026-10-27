@@ -57,7 +57,10 @@ export async function oembedOk(youtubeId: string): Promise<boolean> {
 /** 16 kHz mono WAV of [startSec, startSec + maxSec) of the video's audio. */
 export function audioWav(youtubeId: string, dir: string, startSec = 0, maxSec?: number): string {
   fs.mkdirSync(dir, { recursive: true });
-  const wav = path.join(dir, 'audio.wav');
+  // One file per window: screening leaves the whole video's audio behind,
+  // and a selection's window must not be served that.
+  const window = startSec || maxSec ? `-${startSec}-${maxSec ?? 'end'}` : '';
+  const wav = path.join(dir, `audio${window}.wav`);
   if (fs.existsSync(wav)) return wav;
   let raw = fs.readdirSync(dir).find(f => f.startsWith('raw.'));
   if (!raw) {
@@ -70,8 +73,8 @@ export function audioWav(youtubeId: string, dir: string, startSec = 0, maxSec?: 
     raw = fs.readdirSync(dir).find(f => f.startsWith('raw.'));
     if (!raw) throw new Error(`${youtubeId}: yt-dlp produced no audio`);
   }
-  const window = ['-ss', String(startSec), ...(maxSec ? ['-t', String(maxSec)] : [])];
-  execFileSync(FFMPEG, ['-loglevel', 'error', '-y', ...window, '-i', path.join(dir, raw),
+  const cut = ['-ss', String(startSec), ...(maxSec ? ['-t', String(maxSec)] : [])];
+  execFileSync(FFMPEG, ['-loglevel', 'error', '-y', ...cut, '-i', path.join(dir, raw),
     '-ar', '16000', '-ac', '1', wav]);
   return wav;
 }
@@ -136,7 +139,9 @@ export function autoCaptions(youtubeId: string, dir: string): Json3 | null {
 /** WhisperX segments with aligned words. Times are relative to the WAV,
  *  so callers add the window's startSec to get video time. */
 export function transcribe(wav: string, threads = 8): WhisperSegment[] {
-  const out = path.join(path.dirname(wav), `whisper-${WHISPER_MODEL}.json`);
+  // Named after the audio's window, as audioWav names the audio.
+  const window = path.basename(wav, '.wav').replace(/^audio/, '');
+  const out = path.join(path.dirname(wav), `whisper-${WHISPER_MODEL}${window}.json`);
   if (!fs.existsSync(out)) {
     execFileSync(
       WHISPERX_PYTHON,

@@ -247,7 +247,10 @@ async function tagAll() {
 
 /** Hand-written glosses for the most frequent function words, which the
  *  model glosses from whichever sentence it saw first ("si" in "Si
- *  recuerdan…" came back as "-ıp -madığı"). Keys are esGlossKey forms. */
+ *  recuerdan…" came back as "-ıp -madığı"), and for frequent verb forms
+ *  it got wrong: tener as "sahip" where Turkish says "-im var", and
+ *  commands as nouns or passives ("espera" = "bekleyiş"). Keys are
+ *  esGlossKey forms. */
 const GLOSS_OVERRIDES: Record<string, string> = {
   el: '(belirli, eril)', la: '(belirli, dişil)', los: '(belirli, çoğul)', las: '(belirli, çoğul)',
   un: 'bir', una: 'bir', unos: 'birkaç', unas: 'birkaç', al: "-e (a + el)", del: "-in (de + el)",
@@ -265,6 +268,12 @@ const GLOSS_OVERRIDES: Record<string, string> = {
   soy: '-im (ser)', eres: '-sin (ser)', es: '-dir (ser)', somos: '-iz (ser)', son: '-dirler (ser)',
   estoy: '-im (estar)', estás: '-sin (estar)', está: '-dir (estar)', estamos: '-iz (estar)',
   están: '-dirler (estar)', hay: 'var',
+  tengo: '-im var / (que) -malıyım', tienes: '-in var', tiene: '-i var', tenemos: '-imiz var',
+  tienen: '-leri var', quiero: 'istiyorum', vamos: 'hadi / gidiyoruz', tal: 'öyle (qué tal: nasıl)',
+  hace: 'yapıyor / (süre) önce', fue: 'oldu / gitti', importa: 'önemli', veces: 'kez, defa',
+  vale: 'tamam / değer', claro: 'tabii', alto: 'dur! / yüksek',
+  habla: 'konuş / konuşuyor', ven: 'gel', espera: 'bekle', escucha: 'dinle', corre: 'koş',
+  ayuda: 'yardım (et)', dame: 'bana ver', dime: 'bana söyle',
 };
 
 const GLOSS_SYS = `You give Turkish glosses for a Spanish-learning app. Each item is a Spanish word with a sentence it appears in. Answer with the word's meaning IN THAT SENTENCE as the short Turkish gloss a learner sees under the word: 1-3 words. Conjugated verbs get the matching conjugated Turkish form ("quiero" → "istiyorum", "está" → "-dir / bulunuyor"). Articles and prepositions get the closest Turkish word or a short hint in parentheses ("el" → "(belirli)", "de" → "-in, -den"). Names get the name itself. Keep each "word" exactly as given.`;
@@ -356,6 +365,12 @@ type LemmaInfo = { lemma: string; pos: string; tr: string; cefr: string };
 
 const STARTER_COUNT = 50;
 
+/** Starter meanings the model got wrong or doubled ("ahí" = "orada,
+ *  orada"; "claro", which the films say as "¡Claro!", as "açık, net"). */
+const STARTER_TR_OVERRIDES: Record<string, string> = {
+  ahí: 'orada', claro: 'tabii, açık', pasar: 'geçmek, olmak',
+};
+
 /** ASCII id stem: accents dropped, ñ → n ("niño" → "nino"). */
 const idStem = (lemma: string) => lemma.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z]+/g, '-');
 
@@ -409,7 +424,7 @@ async function vocabAll() {
       let id = `a2-es-${idStem(g.info.lemma)}`;
       while ([...idOf.values()].includes(id)) id += '-2';
       for (const f of g.forms) idOf.set(f, id);
-      insertWord.run(id, g.info.lemma, g.info.pos, g.info.tr, rank + 1, g.info.cefr);
+      insertWord.run(id, g.info.lemma, g.info.pos, STARTER_TR_OVERRIDES[g.info.lemma] ?? g.info.tr, rank + 1, g.info.cefr);
     });
     const perClip = new Map<string, { clip: number; word: string; line: number; n: number }>();
     for (const t of tokens) {

@@ -456,5 +456,145 @@
     "movieTitle": "Kung Fu Panda 3",
     "title": "Po conoce a Kai",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "BM2NLt9XvFA",
+    "slug": "intensamente-escenas-divertidas",
+    "movieTitle": "Intensa-Mente",
+    "title": "Las escenas más divertidas",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "GeieXIwy_Qc",
+    "slug": "monstruos-vs-aliens-susan-y-derek",
+    "movieTitle": "Monstruos vs Aliens",
+    "title": "Susan y Derek",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "NKSFA9RFHbU",
+    "slug": "monstruos-vs-aliens-el-boton",
+    "movieTitle": "Monstruos vs Aliens",
+    "title": "El botón",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "xBu1M4A4Azk",
+    "slug": "los-pinguinos-de-madagascar-mision",
+    "movieTitle": "Los pingüinos de Madagascar",
+    "title": "Misión de pingüinos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "qT8ZVJ7euO0",
+    "slug": "madagascar-2-cachorros-exploradores",
+    "movieTitle": "Madagascar 2",
+    "title": "Los cachorros exploradores",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "AajUGQsFtKY",
+    "slug": "madagascar-2-los-pinguinos-y-el-avion",
+    "movieTitle": "Madagascar 2",
+    "title": "Los pingüinos y el avión",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "8d9FLIZpByU",
+    "slug": "kung-fu-panda-4-la-camaleona",
+    "movieTitle": "Kung Fu Panda 4",
+    "title": "La aparición de la Camaleona",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "NJS3axIEKpA",
+    "slug": "kung-fu-panda-4-la-taberna",
+    "movieTitle": "Kung Fu Panda 4",
+    "title": "Pelea en la taberna",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "6EtEjDq1EWs",
+    "slug": "toy-story-leccion-a-sid",
+    "movieTitle": "Toy Story",
+    "title": "Una lección para Sid",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "kbt6MdiIXxs",
+    "slug": "toy-story-los-juguetes-mutantes",
+    "movieTitle": "Toy Story",
+    "title": "Los juguetes mutantes",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "LEucnwfTc0c",
+    "slug": "cars-3-la-disculpa-de-rayo",
+    "movieTitle": "Cars 3",
+    "title": "La disculpa de Rayo McQueen",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "qRTQ64JYLu4",
+    "slug": "ralph-rompe-internet-buzzztube",
+    "movieTitle": "Ralph rompe internet",
+    "title": "BuzzzTube",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Hf6XQMc24Rc",
+    "slug": "zootopia-el-pasado-de-nick",
+    "movieTitle": "Zootopia",
+    "title": "El pasado de Nick",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "X1a8z-2lUgI",
+    "slug": "raya-invocacion-del-ultimo-dragon",
+    "movieTitle": "Raya y el último dragón",
+    "title": "La invocación del último dragón",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "wbq52z_rNis",
+    "slug": "raya-sisu-se-convierte-en-humana",
+    "movieTitle": "Raya y el último dragón",
+    "title": "Sisu se convierte en humana",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "7CV7S7j21kk",
+    "slug": "mi-villano-favorito-4-el-final",
+    "movieTitle": "Mi villano favorito 4",
+    "title": "El final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "cgNbq_Cg6zQ",
+    "slug": "minions-2-dia-de-profesiones",
+    "movieTitle": "Minions: nace un villano",
+    "title": "El día de profesiones",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "vEXLNp-VFkc",
+    "slug": "como-entrenar-a-tu-dragon-3-furia-luminosa",
+    "movieTitle": "Cómo entrenar a tu dragón 3",
+    "title": "Chimuelo conoce a la Furia Luminosa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "ANuiXfGPi24",
+    "slug": "hercules-hades-y-las-harpias",
+    "movieTitle": "Hércules",
+    "title": "Hades y las Moiras",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "GVS9mBrwdqk",
+    "slug": "el-planeta-del-tesoro-billy-bones",
+    "movieTitle": "El planeta del tesoro",
+    "title": "Billy Bones",
+    "genre": "animation"
   }
 ]

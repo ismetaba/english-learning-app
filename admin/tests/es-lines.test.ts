@@ -75,6 +75,8 @@ test('known Whisper hallucinations are dropped', () => {
     { text: 'Adiós.', start: 0, end: 1, words: [w('Adiós.', 0, 0.6)] },
     { text: 'Subtítulos realizados por la comunidad de Amara.org', start: 2, end: 4,
       words: 'Subtítulos realizados por la comunidad de Amara.org'.split(' ').map((t, i) => w(t, 2 + i * 0.2, 2.15 + i * 0.2)) },
+    { text: 'Gracias por ver el video.', start: 5, end: 6,
+      words: 'Gracias por ver el video.'.split(' ').map((t, i) => w(t, 5 + i * 0.2, 5.15 + i * 0.2)) },
   ]);
   assert.deepEqual(lines.map(l => l.text), ['Adiós.']);
 });
