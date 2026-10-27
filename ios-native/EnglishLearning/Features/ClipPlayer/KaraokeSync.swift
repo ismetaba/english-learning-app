@@ -17,8 +17,9 @@ final class KaraokeSync: ObservableObject {
     private(set) var time: Double = 0
 
     private var driver: SyncDriver
-    /// After we seek, ticks the page sent before the seek landed can still
-    /// arrive; they'd yank the highlight back to the old spot for a frame.
+    /// After we seek, ticks (and loop wraps) the page sent before the seek
+    /// landed can still arrive; they'd yank the highlight back to the old
+    /// spot for a frame.
     private var pendingSeek: (target: Double, until: Double)?
     private let frames = FrameTicker()
 
@@ -40,31 +41,19 @@ final class KaraokeSync: ObservableObject {
 
     func handle(_ event: PlayerEvent, hostTime: Double) {
         switch event {
-        case .time(let t, let playing):
+        case .time(let t, _), .looped(let t):
+            // A wrap is a position report like a tick: one the page sent
+            // before our seek landed (the old loop's) is just as stale,
+            // and one near the target lands the seek.
             if let seek = pendingSeek {
                 if hostTime < seek.until, abs(t - seek.target) > 1.0 { return }
                 pendingSeek = nil
             }
-            driver.tick(mediaTime: t, hostTime: hostTime, isPlaying: playing)
-            frames.setRunning(playing)
-        case .state(let state):
-            // Buffering doesn't advance the media, so it freezes the clock
-            // like a pause does.
-            let playing = state == .playing
-            driver.setPlaying(playing, hostTime: hostTime)
-            frames.setRunning(playing)
-        case .clipEnded(let t):
-            driver.tick(mediaTime: t, hostTime: hostTime, isPlaying: false)
-            // A loop never ends the window, so a jump's pin is spent; a
-            // replay from the start mustn't find it.
-            driver.pin(line: nil)
-            frames.setRunning(false)
-        case .error:
-            driver.setPlaying(false, hostTime: hostTime)
-            frames.setRunning(false)
-        case .bridgeReady, .ready, .looped:
+        case .state, .clipEnded, .error, .bridgeReady, .ready:
             break
         }
+        driver.handle(event, hostTime: hostTime)
+        frames.setRunning(driver.isPlaying)
         step(hostTime)
     }
 

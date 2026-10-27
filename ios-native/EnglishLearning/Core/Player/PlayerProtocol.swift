@@ -8,11 +8,14 @@ import Foundation
 //                 seek{t} | setBounds{start,end|null,loop} | setRate{rate} |
 //                 setMuted{muted}
 //   page → Swift  postMessage to `ytBridge`, `kind` = bridge | ready |
-//                 time{t,playing} | state{s} | clipEnd{t} | error{code}
+//                 time{t,playing} | state{s} | clipEnd{t} | loop{t} |
+//                 error{code}
 //
 // The page owns the clip window: it stops (or loops) at `end` itself and
 // reports `clipEnd` once, so a clip's ending never depends on Swift
-// catching a late tick.
+// catching a late tick. Each loop wrap back to the window start `t` is a
+// `loop`, not a `time` tick: a short loop's step back would pass for tick
+// jitter.
 
 /// What the player should load: a YouTube video and the media window to
 /// play inside it.
@@ -117,6 +120,9 @@ enum PlayerEvent: Equatable {
         case "clipEnd":
             guard let t = number(message["t"]) else { return nil }
             return .clipEnded(t)
+        case "loop":
+            guard let t = number(message["t"]) else { return nil }
+            return .looped(t)
         case "error":
             guard let code = integer(message["code"]) else { return nil }
             return .error(code)

@@ -8,9 +8,10 @@
 //     setBounds{start,end|null,loop} | setRate{rate} | setMuted{muted};
 //     window.__player.destroy() on teardown.
 //   JS -> Swift: postMessage({kind, ...}) with `kind` = bridge | ready |
-//     time{t,playing} | state{s} | clipEnd{t} | error{code}
+//     time{t,playing} | state{s} | clipEnd{t} | loop{t} | error{code}
 //   One page serves the player's whole lifetime: the next clip is a `load`
-//   command, and the page itself enforces the clip window (loop / clipEnd).
+//   command, and the page itself enforces the clip window (loop / clipEnd),
+//   announcing every wrap back to the window start `t` as `loop`.
 //
 // The page is the one the app builds (`YouTubeEmbedHTML.make(source:rate:muted:)`),
 // printed by the `embed-html` tool. It is built once per test process:

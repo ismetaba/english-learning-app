@@ -46,7 +46,8 @@ extension YouTubeEmbedHTML {
     // player, not across the async WebKit bridge:
     //  - commands before the YouTube player is ready are queued, not dropped;
     //  - the clip window [start, end) is enforced here: at end - END_EPS it
-    //    loops (seekTo start) or pauses and posts `clipEnd` exactly once;
+    //    loops (seekTo start, posting `loop` on every wrap) or pauses and
+    //    posts `clipEnd` exactly once;
     //  - rate and mute are page state, re-applied on every PLAYING because
     //    the API resets the rate to 1 on each load;
     //  - the playhead is posted ~every 100ms while playing/buffering, right
@@ -190,10 +191,17 @@ extension YouTubeEmbedHTML {
             send('clipEnd', { t: t });
           }
 
+          // A wrap is announced as `loop`, not as a time tick: a short loop
+          // steps back less than the app's clock holds as tick jitter.
+          // It counts as a playhead post, so de-duplication and the tick
+          // spacing carry on from it.
           function wrap() {
             markSeek(win.start);
             player.seekTo(win.start, true);
-            postTime(win.start);
+            if (errored) return;
+            lastTime = { t: win.start, playing: state === S.PLAYING };
+            lastTimeAt = nowMs();
+            send('loop', { t: win.start });
           }
 
           function bounds(c) {

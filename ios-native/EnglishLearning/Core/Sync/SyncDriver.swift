@@ -50,8 +50,8 @@ struct SyncDriver {
     /// The clock is advancing (frames are worth rendering).
     var isPlaying: Bool { clock.isPlaying }
 
-    /// Applies one page event, received at `hostTime`. Ticks that predate
-    /// a seek are the caller's to drop (`KaraokeSync`).
+    /// Applies one page event, received at `hostTime`. Ticks and loop wraps
+    /// that predate a seek are the caller's to drop (`KaraokeSync`).
     mutating func handle(_ event: PlayerEvent, hostTime: Double) {
         switch event {
         case .time(let t, let playing):
@@ -65,9 +65,15 @@ struct SyncDriver {
             // A loop never ends the window, so a jump's pin is spent; a
             // replay from the start mustn't find it.
             pin(line: nil)
+        case .looped(let t):
+            // A wrap is a seek the page made: a short loop steps back less
+            // than the clock holds as jitter, so it jumps. It keeps the
+            // loop's pin and the play state, so every pass shows the
+            // looped line from its lead-in.
+            jump(to: t, hostTime: hostTime)
         case .error:
             setPlaying(false, hostTime: hostTime)
-        case .bridgeReady, .ready, .looped:
+        case .bridgeReady, .ready:
             break
         }
     }

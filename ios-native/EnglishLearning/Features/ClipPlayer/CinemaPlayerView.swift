@@ -626,11 +626,16 @@ struct CinemaPlayerView: View {
         case .time(let t, let playing):
             if playing { markFirstFrame() }
             onTick?(index, t)
+        case .looped(let t):
+            // The page only wraps while playing: a playing tick at the
+            // window start.
+            markFirstFrame()
+            onTick?(index, t)
         case .clipEnded:
             markFirstFrame()
             creditClip(at: index)
             next()
-        case .bridgeReady, .ready, .error, .looped:
+        case .bridgeReady, .ready, .error:
             // Errors surface through `player.errorCode`.
             break
         }

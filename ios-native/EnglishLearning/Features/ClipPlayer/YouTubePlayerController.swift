@@ -61,6 +61,10 @@ final class YouTubePlayerController: ObservableObject {
     private var isAppActive = true
     private var lifecycle: Set<AnyCancellable> = []
     private var lastMediaTime: Double?
+    /// The window last set with `setBounds` since the last `load`. A reload
+    /// puts the page back on the source's own window, so retries and page
+    /// rebuilds set this one again.
+    private var bounds: PlayerCommand?
     /// Bumped by every page report of `isReady` / `state` (see `resetStatus`).
     private var readyRevision = 0
     private var stateRevision = 0
@@ -86,6 +90,8 @@ final class YouTubePlayerController: ObservableObject {
         clearError()
         clearSlowStart()
         lastMediaTime = nil
+        // A new clip has its own window.
+        bounds = nil
         // Whatever is still queued was meant for the previous source.
         pending.removeAll { $0.isSupersededByLoad }
         if hasPage {
@@ -103,9 +109,11 @@ final class YouTubePlayerController: ObservableObject {
     func seek(to time: Double) { send(.seek(time)) }
 
     /// Changes the clip window without reloading the video (loop one line,
-    /// then go back to the whole clip).
+    /// then go back to the whole clip). Kept until the next `load`.
     func setBounds(start: Double, end: Double?, loop: Bool) {
-        send(.setBounds(start: start, end: end, loop: loop))
+        let command = PlayerCommand.setBounds(start: start, end: end, loop: loop)
+        bounds = command
+        send(command)
     }
 
     /// Survives later loads: the page re-applies it whenever playback starts.
@@ -120,7 +128,8 @@ final class YouTubePlayerController: ObservableObject {
         if hasPage { send(.setMuted(muted)) }
     }
 
-    /// Loads the current source again, e.g. from an error screen.
+    /// Loads the current source again, e.g. from an error screen, in the
+    /// window last set with `setBounds`.
     func retry() {
         guard let source else { return }
         clearError()
@@ -134,6 +143,7 @@ final class YouTubePlayerController: ObservableObject {
             // start over with a fresh page.
             loadPage()
         }
+        restoreBounds()
     }
 
     // MARK: - View plumbing (YouTubePlayerView)
@@ -163,10 +173,11 @@ final class YouTubePlayerController: ObservableObject {
 
     /// iOS reclaims a web view's content process under memory pressure
     /// (typically while backgrounded), leaving a black view behind. Rebuild
-    /// the page, paused where the learner was.
+    /// the page, paused where the learner was, in the window they were in.
     func webContentProcessDidTerminate(_ webView: WKWebView) {
         guard self.webView === webView else { return }
         loadPage(resumingAt: lastMediaTime)
+        restoreBounds()
     }
 
     /// A message the page posted to `YouTubeEmbedHTML.messageHandlerName`.
@@ -197,8 +208,10 @@ final class YouTubePlayerController: ObservableObject {
         case .clipEnded(let t):
             lastMediaTime = t
             madeProgress()
-        case .looped:
-            break
+        case .looped(let t):
+            // A wrap is a new pass, not a stall.
+            lastMediaTime = t
+            madeProgress()
         case .error(let code):
             cancelWatchdog()
             awaitingProgress = false
@@ -222,6 +235,15 @@ final class YouTubePlayerController: ObservableObject {
         let script = pending.map(\.javaScript).joined(separator: "\n")
         pending.removeAll()
         evaluate(webView, script)
+    }
+
+    /// Sets the screen's window again after a reload put the page back on
+    /// the source's. Goes after the load, and on a rebuilt page after its
+    /// resume seek: the page's `setBounds` keeps the playhead where it is,
+    /// so it keeps the restored one. One still queued lands anyway.
+    private func restoreBounds() {
+        guard let bounds, !pending.contains(where: \.isSetBounds) else { return }
+        send(bounds)
     }
 
     /// Hands the web view a fresh page for the current source. The page
@@ -362,5 +384,9 @@ private extension PlayerCommand {
         case .load, .play, .pause, .seek, .setBounds: return true
         case .setRate, .setMuted: return false
         }
+    }
+
+    var isSetBounds: Bool {
+        if case .setBounds = self { return true } else { return false }
     }
 }
