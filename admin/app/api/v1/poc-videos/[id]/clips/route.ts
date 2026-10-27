@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Database from 'better-sqlite3';
 import { getDb } from '@/lib/db';
+import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -28,12 +29,12 @@ export async function GET(
 
     const video = db
       .prepare(
-        `SELECT id, youtube_video_id, title, movie_title
+        `SELECT id, youtube_video_id, title, movie_title, language
          FROM videos
          WHERE id = ? AND poc = 1`,
       )
       .get(id) as
-      | { id: string; youtube_video_id: string; title: string; movie_title: string }
+      | { id: string; youtube_video_id: string; title: string; movie_title: string; language: string }
       | undefined;
     if (!video) {
       return NextResponse.json(
@@ -53,7 +54,9 @@ export async function GET(
 
     // Prepared once per request and reused for every clip / line (a
     // video has ~15 clips × ~25 lines).
-    const stmts = prepareClipStatements(db);
+    // The video's own language picks the word-gloss table, so a clip
+    // request needs no ?lang= (video ids are unique across languages).
+    const stmts = prepareClipStatements(db, video.language);
     const formatted = clips.map(clip => formatClip(clip, video, stmts));
 
     return NextResponse.json(formatted, { headers: CORS_HEADERS });
@@ -89,7 +92,27 @@ function parseStructure(raw: string | null): Structure | null {
   }
 }
 
-function prepareClipStatements(db: Database.Database) {
+function prepareClipStatements(db: Database.Database, language: string) {
+  // Per-word Turkish gloss is sourced from `word_translations`, keyed
+  // by a lowercase + sentence-punctuation-trimmed surface form (so
+  // "I'm" / "I'm." / "i'm" all collapse to the same row). Independent
+  // from the starter set's curated TR (vw.translation_tr) so the
+  // client can show both — the starter banner uses the curated one,
+  // the inline gloss uses this wider but shallower table. Spanish lines
+  // gloss from word_translations_es instead (see lib/word-gloss.ts).
+  const englishWords = db.prepare(
+    `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
+            wt.starter_word_id,
+            vw.translation_tr AS starter_tr,
+            wtr.translation_tr AS word_tr
+     FROM word_timestamps wt
+     LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
+     LEFT JOIN word_translations wtr
+       ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
+     WHERE wt.line_id = ?
+     ORDER BY wt.word_index`,
+  );
+
   return {
     // Skip lines without word_timestamps — they can't carry structure
     // tags or per-word karaoke / TR gloss, so they'd render as plain
@@ -114,24 +137,10 @@ function prepareClipStatements(db: Database.Database) {
        ORDER BY sl.start_time`,
     ),
 
-    // Per-word Turkish gloss is sourced from `word_translations`, keyed
-    // by a lowercase + sentence-punctuation-trimmed surface form (so
-    // "I'm" / "I'm." / "i'm" all collapse to the same row). Independent
-    // from the starter set's curated TR (vw.translation_tr) so the
-    // client can show both — the starter banner uses the curated one,
-    // the inline gloss uses this wider but shallower table.
-    words: db.prepare(
-      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-              wt.starter_word_id,
-              vw.translation_tr AS starter_tr,
-              wtr.translation_tr AS word_tr
-       FROM word_timestamps wt
-       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-       LEFT JOIN word_translations wtr
-         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-       WHERE wt.line_id = ?
-       ORDER BY wt.word_index`,
-    ),
+    words:
+      language === 'es'
+        ? prepareEsWordRows(db)
+        : (lineId: number) => englishWords.all(lineId) as KaraokeWordRow[],
   };
 }
 
@@ -153,7 +162,6 @@ function formatClip(
     end_time: number;
     structure: string | null;
   }[];
-  const wordsStmt = stmts.words;
 
   return {
     id: clip.id,
@@ -162,15 +170,7 @@ function formatClip(
     startTime: clip.start_time,
     endTime: clip.end_time,
     lines: lines.map(line => {
-      const words = wordsStmt.all(line.id) as {
-        word: string;
-        start_time: number;
-        end_time: number;
-        word_index: number;
-        starter_word_id: string | null;
-        starter_tr: string | null;
-        word_tr: string | null;
-      }[];
+      const words = stmts.words(line.id);
       return {
         id: line.id,
         speaker: line.speaker,

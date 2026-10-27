@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getVideoSets } from '@/lib/db';
+import { parseLang } from '@/lib/lang';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,9 +19,9 @@ export function OPTIONS() {
  * same videos under set headers so the iOS feed can render them as a
  * curriculum.
  */
-export function GET() {
+export function GET(req: Request) {
   try {
-    const sets = getVideoSets();
+    const sets = getVideoSets(parseLang(req));
     return NextResponse.json(sets, { headers: CORS_HEADERS });
   } catch (error) {
     console.error('Error fetching video sets:', error);

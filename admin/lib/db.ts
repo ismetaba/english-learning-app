@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import type { Lang } from './lang';
 
 function findRepoRoot(): string {
   let dir = process.cwd();
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS videos (
   genre TEXT,
   difficulty TEXT DEFAULT 'intermediate',
   duration_seconds INTEGER,
+  language TEXT NOT NULL DEFAULT 'en',
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -124,7 +126,8 @@ CREATE TABLE IF NOT EXISTS vocab_words (
   example_sentence TEXT,
   example_translation_tr TEXT,
   frequency_rank INTEGER,
-  cefr_level TEXT
+  cefr_level TEXT,
+  language TEXT NOT NULL DEFAULT 'en'
 );
 
 CREATE TABLE IF NOT EXISTS vocab_sets (
@@ -179,6 +182,15 @@ CREATE TABLE IF NOT EXISTS phrase_translations (
   translation_tr TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Per-word Turkish gloss for Spanish words, keyed by esGlossKey()
+-- (lib/word-gloss.ts). Separate from the English word_translations so
+-- words spelled alike in both languages ("no", "son", "me") keep their
+-- own meaning.
+CREATE TABLE IF NOT EXISTS word_translations_es (
+  word_lower TEXT PRIMARY KEY,
+  translation_tr TEXT
+);
 `;
 
 /// Common phrasal verbs that show up in the POC corpus + a handful of
@@ -231,6 +243,23 @@ export function getDb(): Database.Database {
       // Column already exists — ignore
     }
 
+    // Language dimension: the learning language a video's content is in
+    // ('en' for the original English corpus, 'es' for the Spanish track);
+    // Turkish stays the translation language either way. DEFAULT 'en'
+    // backfills every existing row, so clients that send no ?lang= keep
+    // their exact behavior. The indexes are created here, after the
+    // ALTERs — inside SCHEMA they would run against a database that has no
+    // language column yet and abort the whole migration.
+    for (const table of ['videos', 'vocab_words']) {
+      try {
+        _db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT NOT NULL DEFAULT 'en'`);
+      } catch {
+        // Column already exists — ignore
+      }
+    }
+    _db.exec('CREATE INDEX IF NOT EXISTS idx_videos_language ON videos(language)');
+    _db.exec('CREATE INDEX IF NOT EXISTS idx_vocab_words_language ON vocab_words(language)');
+
     // Seed phrase translations. INSERT OR IGNORE so existing entries
     // (including any operator-edited ones) survive a redeploy; new
     // additions to PHRASE_SEEDS just get added on next boot.
@@ -254,6 +283,7 @@ export interface Video {
   genre: string | null;
   difficulty: string;
   duration_seconds: number | null;
+  language?: string;
   created_at: string;
   updated_at: string;
   clip_count?: number;
@@ -283,7 +313,7 @@ export interface PocVideo {
   starter_words: PocStarterWord[];
 }
 
-export function getPocVideos(): PocVideo[] {
+export function getPocVideos(lang: Lang = 'en'): PocVideo[] {
   const db = getDb();
   // Aggregates over healthy clips only (the same band used in selection),
   // line counts over all approved clips. Starter coverage is grouped per
@@ -317,10 +347,10 @@ export function getPocVideos(): PocVideo[] {
             AND c.wpm BETWEEN 80 AND 200
             AND c.avg_sentence_len BETWEEN 3 AND 12) AS avg_sentence_len
        FROM videos v
-       WHERE v.poc = 1
+       WHERE v.poc = 1 AND v.language = ?
        ORDER BY v.movie_title, v.title`,
     )
-    .all() as Omit<PocVideo, 'starter_words'>[];
+    .all(lang) as Omit<PocVideo, 'starter_words'>[];
 
   const wordsStmt = db.prepare(
     `SELECT vw.id, vw.word, vw.translation_tr AS tr, SUM(cv.occurrence_count) AS occurrences
@@ -357,7 +387,7 @@ export interface VideoSet {
  * toward the 7-context mastery threshold without forcing extra reps
  * of the same scene.
  */
-export function getVideoSets(): VideoSet[] {
+export function getVideoSets(lang: Lang = 'en'): VideoSet[] {
   const db = getDb();
 
   const sets = db
@@ -392,7 +422,7 @@ export function getVideoSets(): VideoSet[] {
           AND c.avg_sentence_len BETWEEN 3 AND 12) AS avg_sentence_len
      FROM videos v
      JOIN video_set_items vsi ON vsi.video_id = v.id
-     WHERE vsi.set_id = ?
+     WHERE vsi.set_id = ? AND v.language = ?
      ORDER BY vsi.sort_order`,
   );
 
@@ -406,16 +436,21 @@ export function getVideoSets(): VideoSet[] {
      ORDER BY occurrences DESC`,
   );
 
-  return sets.map(set => {
-    const videos = videoStmt.all(set.id) as Omit<PocVideo, 'starter_words'>[];
-    return {
-      ...set,
-      videos: videos.map(v => ({
-        ...v,
-        starter_words: wordsStmt.all(v.id) as PocStarterWord[],
-      })),
-    };
-  });
+  return sets
+    .map(set => {
+      const videos = videoStmt.all(set.id, lang) as Omit<PocVideo, 'starter_words'>[];
+      return {
+        ...set,
+        videos: videos.map(v => ({
+          ...v,
+          starter_words: wordsStmt.all(v.id) as PocStarterWord[],
+        })),
+      };
+    })
+    // A set is curated for one learning language; drop the sets with no
+    // video in the requested one so the Spanish set never shows up empty
+    // in the English feed (and vice versa).
+    .filter(set => set.videos.length > 0);
 }
 
 export function getAllVideos(): Video[] {
@@ -437,9 +472,9 @@ export function getVideo(id: string): Video | undefined {
 export function createVideo(video: Omit<Video, 'created_at' | 'updated_at' | 'clip_count'>): void {
   const db = getDb();
   db.prepare(`
-    INSERT INTO videos (id, youtube_video_id, title, movie_title, genre, difficulty, duration_seconds)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(video.id, video.youtube_video_id, video.title, video.movie_title, video.genre, video.difficulty, video.duration_seconds);
+    INSERT INTO videos (id, youtube_video_id, title, movie_title, genre, difficulty, duration_seconds, language)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(video.id, video.youtube_video_id, video.title, video.movie_title, video.genre, video.difficulty, video.duration_seconds, video.language ?? 'en');
 }
 
 // ── Clip helpers ─────────────────────────────────────────────────

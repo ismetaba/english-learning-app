@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -53,7 +54,7 @@ export async function GET(
 
     const word = db
       .prepare(
-        `SELECT id, word, translation_tr, ipa, part_of_speech, cefr_level
+        `SELECT id, word, translation_tr, ipa, part_of_speech, cefr_level, language
          FROM vocab_words
          WHERE id = ?`,
       )
@@ -65,6 +66,7 @@ export async function GET(
           ipa: string | null;
           part_of_speech: string | null;
           cefr_level: string | null;
+          language: string;
         }
       | undefined;
     if (!word) {
@@ -120,7 +122,7 @@ export async function GET(
       is_poc: number;
     }[];
 
-    const wordsStmt = db.prepare(
+    const englishWords = db.prepare(
       `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
               wt.starter_word_id,
               vw.translation_tr AS starter_tr,
@@ -132,6 +134,12 @@ export async function GET(
        WHERE wt.line_id = ?
        ORDER BY wt.word_index`,
     );
+    // The starter's own language picks the gloss table (starter ids are
+    // namespaced per language: a2-<word> / a2-es-<word>).
+    const wordRowsFor =
+      word.language === 'es'
+        ? prepareEsWordRows(db)
+        : (lineId: number) => englishWords.all(lineId) as KaraokeWordRow[];
 
     // Dedupe by line text — one canonical context per unique sentence.
     const seen = new Set<string>();
@@ -140,15 +148,7 @@ export async function GET(
       if (seen.has(r.text)) continue;
       seen.add(r.text);
 
-      const wordRows = wordsStmt.all(r.line_id) as {
-        word: string;
-        start_time: number;
-        end_time: number;
-        word_index: number;
-        starter_word_id: string | null;
-        starter_tr: string | null;
-        word_tr: string | null;
-      }[];
+      const wordRows = wordRowsFor(r.line_id);
 
       contexts.push({
         lineId: r.line_id,

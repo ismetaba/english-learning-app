@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS videos (
   genre TEXT,
   difficulty TEXT DEFAULT 'intermediate',
   duration_seconds INTEGER,
+  language TEXT NOT NULL DEFAULT 'en',
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -114,7 +115,8 @@ CREATE TABLE IF NOT EXISTS vocab_words (
   example_sentence TEXT,
   example_translation_tr TEXT,
   frequency_rank INTEGER,
-  cefr_level TEXT
+  cefr_level TEXT,
+  language TEXT NOT NULL DEFAULT 'en'
 );
 
 CREATE TABLE IF NOT EXISTS vocab_sets (
