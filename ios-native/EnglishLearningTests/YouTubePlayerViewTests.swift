@@ -286,3 +286,128 @@ final class YouTubePlayerLoopWindowTests: XCTestCase {
         controller.detach(web)
     }
 }
+
+/// The learner saw "Bu video şu an oynatılamıyor" on Spanish scenes that
+/// then played fine after "Tekrar dene". The simulator showed YouTube's
+/// error 2 ("Video isteği geçersiz") on a reel card whose next card, same
+/// video, played at once, and the same windows load cleanly in desktop
+/// Chrome and in a lone WKWebView: the failure is transient. A transient
+/// YouTube failure (error 2 or 5) is now worth one silent retry before the
+/// error screen; permanent ones (removed, blocked, embedding disabled) still
+/// show at once. The load watchdog is not retried: it has already waited
+/// `loadTimeout`, and a second wait would be worse than the error screen.
+final class YouTubePlayerTransientErrorTests: XCTestCase {
+    private let source = PlayerSource(videoId: "QzhSWvQYYTo", start: 52.2, end: 57.3, autoplay: true, loop: true)
+
+    private final class PagelessWebView: WKWebView {
+        override func loadHTMLString(_ string: String, baseURL: URL?) -> WKNavigation? { nil }
+    }
+
+    @MainActor
+    private final class ScriptLog {
+        var scripts: [String] = []
+        var all: String { scripts.joined(separator: "\n") }
+        func count(_ needle: String) -> Int { all.components(separatedBy: needle).count - 1 }
+    }
+
+    @MainActor
+    private func readyPlayer() -> (YouTubePlayerController, WKWebView, ScriptLog) {
+        let controller = YouTubePlayerController(source: source, notificationCenter: NotificationCenter())
+        let log = ScriptLog()
+        controller.evaluate = { _, script in log.scripts.append(script) }
+        let web = PagelessWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        controller.attach(web)
+        controller.receive(["kind": "bridge"], from: web)
+        controller.receive(["kind": "ready"], from: web)
+        return (controller, web, log)
+    }
+
+    @MainActor
+    func test_reproduces_aTransientYouTubeErrorReachesTheLearner() {
+        for code in [2, 5] {
+            let (controller, web, log) = readyPlayer()
+            log.scripts.removeAll()
+
+            controller.receive(["kind": "error", "code": code], from: web)
+
+            XCTAssertNil(controller.errorCode, "error \(code), which Tekrar dene clears, went straight to the screen")
+            XCTAssertEqual(log.count("\"type\":\"load\""), 1, "error \(code): the source is loaded again by itself")
+            controller.detach(web)
+        }
+    }
+
+    /// The card was playing (or asked to): after the silent reload it plays
+    /// on, as it does after the learner's Tekrar dene.
+    @MainActor
+    func test_theSilentRetryKeepsPlaying() throws {
+        let (controller, web, log) = readyPlayer()
+        controller.play()
+        log.scripts.removeAll()
+
+        controller.receive(["kind": "error", "code": 2], from: web)
+
+        let all = log.all
+        let load = try XCTUnwrap(all.range(of: "\"type\":\"load\""))
+        let play = try XCTUnwrap(all.range(of: "\"type\":\"play\"", range: load.upperBound..<all.endIndex),
+                                 "the reload must be followed by play")
+        XCTAssertLessThan(load.lowerBound, play.lowerBound)
+        controller.detach(web)
+    }
+
+    /// The source autoplays, but the card was paused (the learner, or a
+    /// swipe away): the silent reload must not start it behind their back.
+    @MainActor
+    func test_theSilentRetryKeepsAPausedCardPaused() {
+        let (controller, web, log) = readyPlayer()
+        controller.pause()
+        log.scripts.removeAll()
+
+        controller.receive(["kind": "error", "code": 5], from: web)
+
+        XCTAssertNil(controller.errorCode)
+        XCTAssertEqual(log.count("\"type\":\"load\""), 1)
+        XCTAssertTrue(log.all.contains("\"autoplay\":false"), "the reload autoplays a paused card")
+        XCTAssertFalse(log.all.contains("\"type\":\"play\""), "a paused card was told to play")
+        controller.detach(web)
+    }
+
+    /// One silent retry per load: a failure that repeats is real.
+    @MainActor
+    func test_aRepeatedFailureIsShown() {
+        let (controller, web, _) = readyPlayer()
+        controller.receive(["kind": "error", "code": 2], from: web)
+        controller.receive(["kind": "error", "code": 2], from: web)
+        XCTAssertEqual(controller.errorCode, 2)
+
+        // A new clip gets its own retry.
+        controller.load(PlayerSource(videoId: "2M4HROpx2hY", start: 66.8, end: 69.1))
+        controller.receive(["kind": "error", "code": 5], from: web)
+        XCTAssertNil(controller.errorCode)
+        controller.detach(web)
+    }
+
+    @MainActor
+    func test_permanentErrorsAreShownAtOnce() {
+        for code in [100, 101, 150, 152, 153] {
+            let (controller, web, log) = readyPlayer()
+            log.scripts.removeAll()
+            controller.receive(["kind": "error", "code": code], from: web)
+            XCTAssertEqual(controller.errorCode, code)
+            XCTAssertFalse(log.all.contains("\"type\":\"load\""), "error \(code) can't succeed on a reload")
+            controller.detach(web)
+        }
+    }
+
+    /// The learner's own Tekrar dene keeps working after a silent retry.
+    @MainActor
+    func test_manualRetryAfterAShownErrorStillReloads() {
+        let (controller, web, log) = readyPlayer()
+        controller.receive(["kind": "error", "code": 2], from: web)
+        controller.receive(["kind": "error", "code": 2], from: web)
+        log.scripts.removeAll()
+        controller.retry()
+        XCTAssertNil(controller.errorCode)
+        XCTAssertTrue(log.all.contains("\"type\":\"load\""))
+        controller.detach(web)
+    }
+}

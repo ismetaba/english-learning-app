@@ -206,6 +206,15 @@ enum YouTubeError {
     /// Code used when the player never became ready.
     static let loadTimeoutCode = -1
 
+    /// Failures a reload of the same clip usually gets past, so the player
+    /// retries them once before the learner sees them: 2 came on a reel
+    /// card whose next card, same video, played at once, and the same
+    /// window loads cleanly on its own; 5 is the HTML5 player tripping.
+    /// Removed, blocked and embed-refused videos (100, 101, 150, 152, 153)
+    /// fail the same way every time, and `loadTimeoutCode` has already
+    /// waited out a whole timeout.
+    static func isTransient(_ code: Int) -> Bool { code == 2 || code == 5 }
+
     /// Codes are the IFrame API's `onError` values, plus `loadTimeoutCode`.
     static func message(forCode code: Int) -> String {
         switch code {

@@ -25,6 +25,8 @@ final class YouTubePlayerController: ObservableObject {
     @Published private(set) var isReady = false
     /// Last `onError` code, or `YouTubeError.loadTimeoutCode` (the player
     /// never came up within `loadTimeout`). Cleared by `load` and `retry`.
+    /// A transient code (`YouTubeError.isTransient`) only lands here when
+    /// the silent reload it gets first fails too.
     @Published private(set) var errorCode: Int?
     /// The player is up but the load hasn't started within `loadTimeout`
     /// (slow network, stuck buffering). Not an error: screens show a small
@@ -68,6 +70,17 @@ final class YouTubePlayerController: ObservableObject {
     /// Bumped by every page report of `isReady` / `state` (see `resetStatus`).
     private var readyRevision = 0
     private var stateRevision = 0
+    /// A transient failure may still be reloaded once without the learner
+    /// seeing it. Each `load` and each `retry` (Tekrar dene) get one: a
+    /// failure that repeats right away is real.
+    private var canRetrySilently = true
+    /// Whether the screen wants the page playing: the loaded source's
+    /// autoplay, then `play` / `pause`, until the window ends. A reload
+    /// restarts the page from the source's autoplay instead, so a silent
+    /// one must carry this over itself: a card that moved off screen or
+    /// that the learner paused stays paused, one that was told to play
+    /// plays on.
+    private var wantsPlayback: Bool
 
     private static let pageBaseURL = URL(string: YouTubeEmbedHTML.origin)
 
@@ -78,6 +91,7 @@ final class YouTubePlayerController: ObservableObject {
         self.source = source
         self.rate = rate
         self.isMuted = muted
+        self.wantsPlayback = source?.autoplay ?? false
         observeAppLifecycle(notificationCenter)
     }
 
@@ -90,8 +104,9 @@ final class YouTubePlayerController: ObservableObject {
         clearError()
         clearSlowStart()
         lastMediaTime = nil
-        // A new clip has its own window.
+        // A new clip has its own window, and its own silent retry.
         bounds = nil
+        canRetrySilently = true
         // Whatever is still queued was meant for the previous source.
         pending.removeAll { $0.isSupersededByLoad }
         if hasPage {
@@ -132,6 +147,9 @@ final class YouTubePlayerController: ObservableObject {
     /// window last set with `setBounds`.
     func retry() {
         guard let source else { return }
+        // A fresh attempt: a transient failure on it is retried silently
+        // again rather than put straight back on screen.
+        canRetrySilently = true
         clearError()
         clearSlowStart()
         lastMediaTime = nil
@@ -207,6 +225,9 @@ final class YouTubePlayerController: ObservableObject {
             if isPlaying { madeProgress() }
         case .clipEnded(let t):
             lastMediaTime = t
+            // The page stopped at the window's end; a reload must not
+            // replay it.
+            wantsPlayback = false
             madeProgress()
         case .looped(let t):
             // A wrap is a new pass, not a stall.
@@ -216,12 +237,34 @@ final class YouTubePlayerController: ObservableObject {
             cancelWatchdog()
             awaitingProgress = false
             clearSlowStart()
-            errorCode = code
+            if !retryIfTransient(code) { errorCode = code }
         }
+        // A silently retried error still stopped the player: the karaoke
+        // clock stops with it until the reload plays.
         onEvent?(event, hostTime)
     }
 
+    /// Loads the source again in place, once per load, instead of showing
+    /// a transient failure (`YouTubeError.isTransient`); false when the
+    /// error is the learner's to see. Like Tekrar dene, it reloads in the
+    /// window last set with `setBounds`, then asks for playback again if
+    /// the screen wanted it. Only a player that is up reports these codes,
+    /// so the load goes to it rather than to a fresh page.
+    private func retryIfTransient(_ code: Int) -> Bool {
+        guard YouTubeError.isTransient(code), canRetrySilently,
+              bridgeReady, isReady, var reload = source else { return false }
+        canRetrySilently = false
+        reload.autoplay = wantsPlayback
+        lastMediaTime = nil
+        send(.load(reload))
+        armWatchdog()
+        restoreBounds()
+        if reload.autoplay { send(.play) }
+        return true
+    }
+
     private func send(_ command: PlayerCommand) {
+        if let wants = command.playbackIntent { wantsPlayback = wants }
         if bridgeReady, let webView {
             evaluate(webView, command.javaScript)
         } else {
@@ -255,6 +298,8 @@ final class YouTubePlayerController: ObservableObject {
             page.autoplay = false
             pending.insert(.seek(time), at: 0)
         }
+        // The page starts as `page` says, then takes the queued commands.
+        wantsPlayback = pending.reduce(page.autoplay) { $1.playbackIntent ?? $0 }
         hasPage = true
         bridgeReady = false
         resetStatus()
@@ -388,5 +433,16 @@ private extension PlayerCommand {
 
     var isSetBounds: Bool {
         if case .setBounds = self { return true } else { return false }
+    }
+
+    /// Whether the page should play after this command; nil if it doesn't
+    /// say.
+    var playbackIntent: Bool? {
+        switch self {
+        case .load(let source): return source.autoplay
+        case .play: return true
+        case .pause: return false
+        case .seek, .setBounds, .setRate, .setMuted: return nil
+        }
     }
 }
