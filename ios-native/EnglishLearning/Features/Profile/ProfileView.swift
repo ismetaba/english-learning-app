@@ -12,6 +12,7 @@ struct ProfileView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 22) {
                         header
+                        learningLanguageSection
                         statsGrid
                         aboutCard
                         Spacer().frame(height: 120)
@@ -43,25 +44,51 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Learning language
+
+    /// Which language the tabs teach. Progress is kept for both; the
+    /// counters below show the chosen one's.
+    private var learningLanguageSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("ÖĞRENDİĞİN DİL")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.Color.textSecondary)
+                .tracking(0.6)
+            HStack(spacing: 12) {
+                ForEach(LearningLanguage.allCases) { lang in
+                    Button {
+                        guard appState.learningLanguage != lang else { return }
+                        Haptics.selection()
+                        appState.learningLanguage = lang
+                    } label: {
+                        LearningLanguageTile(lang: lang, selected: appState.learningLanguage == lang)
+                    }
+                    .buttonStyle(.pressable)
+                    .accessibilityAddTraits(appState.learningLanguage == lang ? .isSelected : [])
+                }
+            }
+        }
+    }
+
     // MARK: - Stats grid
 
     private var statsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             ProfileStat(
                 icon: "film.fill",
-                value: appState.progress.watchedVideos.count,
+                value: appState.watchedVideoCountInLearning,
                 label: "İZLENEN VİDEO",
                 color: Theme.Color.primary
             )
             ProfileStat(
                 icon: "character.book.closed.fill",
-                value: appState.progress.learnedWords.count,
+                value: appState.learnedWordsInLearning.count,
                 label: "EKLENEN KELİME",
                 color: Theme.Color.accent
             )
             ProfileStat(
                 icon: "puzzlepiece.fill",
-                value: appState.completedPatterns.count,
+                value: appState.completedPatternCountInLearning,
                 label: "TAMAMLANAN KALIP",
                 color: Theme.Color.levelElementary
             )
@@ -95,6 +122,32 @@ struct ProfileView: View {
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Theme.Color.backgroundCard.opacity(0.5))
+        )
+    }
+}
+
+struct LearningLanguageTile: View {
+    let lang: LearningLanguage
+    let selected: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(lang.flag)
+                .font(.system(size: 24))
+            Text(lang.displayName)
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .foregroundStyle(selected ? Theme.Color.primary : Theme.Color.textSecondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(selected ? Theme.Color.primarySoft : Theme.Color.backgroundCard.opacity(0.75))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(selected ? Theme.Color.primary : Theme.Color.border, lineWidth: selected ? 1.5 : 1)
         )
     }
 }

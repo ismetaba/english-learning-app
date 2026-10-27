@@ -7,15 +7,22 @@ final class VideoFeedViewModel: ObservableObject {
     @Published var sets: [VideoSet] = []
     @Published var isLoading = true
     @Published var errorMessage: String? = nil
+    /// The learning language `sets` belong to.
+    private var loadedLang: LearningLanguage? = nil
 
-    func load(forceRefresh: Bool = false) async {
+    func load(lang: LearningLanguage, forceRefresh: Bool = false) async {
+        // Another language's sets must not linger while this one loads.
+        if lang != loadedLang { sets = [] }
         // A refresh over cards on screen stays quiet; with nothing on screen
         // (a retry from the error state) the spinner shows.
         if !forceRefresh || sets.isEmpty { isLoading = true }
         errorMessage = nil
         do {
-            self.sets = try await CurriculumRepository.shared.videoSets(forceRefresh: forceRefresh)
+            self.sets = try await CurriculumRepository.shared.videoSets(lang: lang, forceRefresh: forceRefresh)
+            self.loadedLang = lang
         } catch {
+            // Superseded by a language switch: the newer load owns the state.
+            if VocabViewModel.isCancellation(error) { return }
             self.errorMessage = error.localizedDescription
         }
         isLoading = false
@@ -38,7 +45,7 @@ struct VideoFeedView: View {
                     LoadingState(label: appState.t.t("loading"))
                 } else if let err = vm.errorMessage, vm.sets.isEmpty {
                     ErrorState(message: err) {
-                        Task { await vm.load(forceRefresh: true) }
+                        Task { await vm.load(lang: appState.learningLanguage, forceRefresh: true) }
                     }
                 } else {
                     content
@@ -54,7 +61,10 @@ struct VideoFeedView: View {
             .onAppear { prefetchNextVideos() }
             .onChange(of: vm.sets) { _, _ in prefetchNextVideos() }
         }
-        .task { await vm.load() }
+        // Reloads when the learner switches the learning language, and
+        // closes a set of the other language left open on this tab.
+        .task(id: appState.learningLanguage) { await vm.load(lang: appState.learningLanguage) }
+        .onChange(of: appState.learningLanguage) { _, _ in selectedSet = nil }
     }
 
     /// The first unwatched video of each set (where its CTA starts).
@@ -92,7 +102,7 @@ struct VideoFeedView: View {
                 Spacer().frame(height: 140) // Tab bar clearance.
             }
         }
-        .refreshable { await vm.load(forceRefresh: true) }
+        .refreshable { await vm.load(lang: appState.learningLanguage, forceRefresh: true) }
     }
 
     private var heroHeader: some View {

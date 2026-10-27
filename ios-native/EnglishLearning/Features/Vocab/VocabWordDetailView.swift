@@ -110,7 +110,7 @@ struct VocabWordDetailView: View {
 
             // How to say it: the Turkish-letter okunuş when we know it,
             // otherwise the IPA when the word has one.
-            if let reading = TurkishPhonetics.reading(for: summary.word) {
+            if let reading = Okunus.reading(for: summary.word, learning: appState.learningLanguage) {
                 Text(reading)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Theme.Color.textMuted)

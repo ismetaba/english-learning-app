@@ -114,6 +114,16 @@ struct Pattern: Identifiable, Hashable {
 
 enum PatternCatalog {
 
+    /// The pattern path for the learning language: English keeps its
+    /// BE / V1 / there-is / want-to catalog, Spanish starts with ser/estar
+    /// + adjective (the analog of BE + adjective).
+    static func catalog(for learning: LearningLanguage) -> [Pattern] {
+        switch learning {
+        case .en: return all
+        case .es: return spanishAll
+        }
+    }
+
     static let all: [Pattern] = [
         // BE + adjective (4 conjugations)
         beAdjI, beAdjYou, beAdjHeSheIt, beAdjWeThey,
@@ -123,6 +133,12 @@ enum PatternCatalog {
         thereIsAre,
         // want to + verb (4 conjugations)
         wantToI, wantToYou, wantToWeThey, wantToHeSheIt,
+    ]
+
+    /// ser/estar + adjective, one row per subject.
+    static let spanishAll: [Pattern] = [
+        serEstarAdjYo, serEstarAdjTu, serEstarAdjEl,
+        serEstarAdjNosotros, serEstarAdjEllos,
     ]
 
     // MARK: BE + adjective ------------------------------------------------
@@ -683,5 +699,274 @@ enum PatternCatalog {
             "\"to\"'dan sonra fiilin V1 hali gelir (eat, NOT eating).",
         icon: "person.fill.questionmark",
         videoStructureId: nil
+    )
+
+    // MARK: ser / estar + adjetivo (Spanish) --------------------------
+    //
+    // İspanyolca'da "olmak" iki fiildir: SER (kalıcı özellik — boy, karakter,
+    // meslek) ve ESTAR (geçici durum — ruh hali, yorgunluk, yer). İkisi de
+    // sıfatla kullanılır; hangi fiilin geldiği anlamı belirler. İspanyolca
+    // özneyi sık düşürür ("Estoy cansado" = "Yorgunum"), o yüzden örneklerde
+    // özne parantezle gösterilir.
+
+    static let serEstarAdjYo = Pattern(
+        id: "ser-estar-adj-yo",
+        familyTr: "ser / estar + sıfat",
+        familyTrCaps: "SER / ESTAR + SIFAT",
+        titleTr: "Yo + soy / estoy + sıfat",
+        titleEn: "Yo + soy/estoy + adjetivo",
+        summaryTr: "Kendinden bahsederken: \"(Ben) yorgunum\".",
+        introTr:
+            "Kendi durumunu söylersin. Kalıcı özellik için \"soy\", geçici " +
+            "durum için \"estoy\" gelir. İspanyolca'da \"yo\" çoğu zaman düşer: " +
+            "\"Estoy cansado\" = \"Yorgunum\".",
+        formula: [
+            PatternToken(text: "yo", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "soy / estoy", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            PatternExample(subject: "Yo", subjectTr: "Ben",
+                           verb: "estoy", verbTr: "(durum)",
+                           rest: "cansado", restTr: "yorgun",
+                           tr: "Yorgunum.",
+                           subjectPhonetic: "yo",
+                           verbPhonetic: "estoy",
+                           restPhonetic: "kansado"),
+            PatternExample(subject: "Yo", subjectTr: "Ben",
+                           verb: "soy", verbTr: "(özellik)",
+                           rest: "feliz", restTr: "mutlu",
+                           tr: "Mutluyum.",
+                           subjectPhonetic: "yo",
+                           verbPhonetic: "soy",
+                           restPhonetic: "felis"),
+            PatternExample(subject: "Yo", subjectTr: "Ben",
+                           verb: "estoy", verbTr: "(durum)",
+                           rest: "listo", restTr: "hazır",
+                           tr: "Hazırım.",
+                           subjectPhonetic: "yo",
+                           verbPhonetic: "estoy",
+                           restPhonetic: "listo"),
+            PatternExample(subject: "Yo", subjectTr: "Ben",
+                           verb: "soy", verbTr: "(özellik)",
+                           rest: "alto", restTr: "uzun boylu",
+                           tr: "Uzun boyluyum.",
+                           subjectPhonetic: "yo",
+                           verbPhonetic: "soy",
+                           restPhonetic: "alto"),
+        ],
+        tipTr:
+            "ser (soy) = kalıcı özellik, estar (estoy) = geçici durum. " +
+            "\"Soy alto\" (hep uzunum) ama \"Estoy cansado\" (şu an yorgunum).",
+        icon: "person.fill",
+        videoStructureId: "ser-estar-adj-yo"
+    )
+
+    static let serEstarAdjTu = Pattern(
+        id: "ser-estar-adj-tu",
+        familyTr: "ser / estar + sıfat",
+        familyTrCaps: "SER / ESTAR + SIFAT",
+        titleTr: "Tú + eres / estás + sıfat",
+        titleEn: "Tú + eres/estás + adjetivo",
+        summaryTr: "Karşındakine: \"Naziksin\", \"Yorgunsun\".",
+        introTr:
+            "Karşındakinin durumunu söylersin. Kalıcı özellik için \"eres\", " +
+            "geçici durum için \"estás\" kullanılır.",
+        formula: [
+            PatternToken(text: "tú", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "eres / estás", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            PatternExample(subject: "Tú", subjectTr: "Sen",
+                           verb: "eres", verbTr: "(özellik)",
+                           rest: "amable", restTr: "nazik",
+                           tr: "Naziksin.",
+                           subjectPhonetic: "tu",
+                           verbPhonetic: "eres",
+                           restPhonetic: "amable"),
+            PatternExample(subject: "Tú", subjectTr: "Sen",
+                           verb: "estás", verbTr: "(durum)",
+                           rest: "cansado", restTr: "yorgun",
+                           tr: "Yorgunsun.",
+                           subjectPhonetic: "tu",
+                           verbPhonetic: "estas",
+                           restPhonetic: "kansado"),
+            PatternExample(subject: "Tú", subjectTr: "Sen",
+                           verb: "eres", verbTr: "(özellik)",
+                           rest: "guapo", restTr: "yakışıklı",
+                           tr: "Yakışıklısın.",
+                           subjectPhonetic: "tu",
+                           verbPhonetic: "eres",
+                           restPhonetic: "guapo"),
+            PatternExample(subject: "Tú", subjectTr: "Sen",
+                           verb: "estás", verbTr: "(durum)",
+                           rest: "listo", restTr: "hazır",
+                           tr: "Hazırsın.",
+                           subjectPhonetic: "tu",
+                           verbPhonetic: "estas",
+                           restPhonetic: "listo"),
+        ],
+        tipTr:
+            "\"Eres guapo\" (yakışıklısın — özellik) ama \"Estás cansado\" " +
+            "(yorgunsun — şu anki durum).",
+        icon: "person.fill.checkmark",
+        videoStructureId: "ser-estar-adj-tu"
+    )
+
+    static let serEstarAdjEl = Pattern(
+        id: "ser-estar-adj-el",
+        familyTr: "ser / estar + sıfat",
+        familyTrCaps: "SER / ESTAR + SIFAT",
+        titleTr: "Él / Ella + es / está + sıfat",
+        titleEn: "Él/Ella + es/está + adjetivo",
+        summaryTr: "Üçüncü kişi: \"O güçlü\", \"O hasta\".",
+        introTr:
+            "Él (erkek) ve Ella (kadın) için \"es\" (özellik) veya \"está\" " +
+            "(durum) gelir. Türkçede \"O … -dır\" anlamı verir.",
+        formula: [
+            PatternToken(text: "él / ella", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "es / está", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            PatternExample(subject: "Ella", subjectTr: "O (kadın)",
+                           verb: "es", verbTr: "(özellik)",
+                           rest: "fuerte", restTr: "güçlü",
+                           tr: "O güçlü.",
+                           subjectPhonetic: "eya",
+                           verbPhonetic: "es",
+                           restPhonetic: "fuerte"),
+            PatternExample(subject: "Él", subjectTr: "O (erkek)",
+                           verb: "está", verbTr: "(durum)",
+                           rest: "enfermo", restTr: "hasta",
+                           tr: "O hasta.",
+                           subjectPhonetic: "el",
+                           verbPhonetic: "esta",
+                           restPhonetic: "enfermo"),
+            PatternExample(subject: "Él", subjectTr: "O (erkek)",
+                           verb: "es", verbTr: "(özellik)",
+                           rest: "alto", restTr: "uzun boylu",
+                           tr: "O uzun boylu.",
+                           subjectPhonetic: "el",
+                           verbPhonetic: "es",
+                           restPhonetic: "alto"),
+            PatternExample(subject: "Ella", subjectTr: "O (kadın)",
+                           verb: "está", verbTr: "(durum)",
+                           rest: "contenta", restTr: "memnun",
+                           tr: "O memnun.",
+                           subjectPhonetic: "eya",
+                           verbPhonetic: "esta",
+                           restPhonetic: "kontenta"),
+        ],
+        tipTr:
+            "Sıfat özneye uyar: erkek için -o (cansado), kadın için -a " +
+            "(cansada). \"Ella está contenta\", \"Él está contento\".",
+        icon: "person.2.fill",
+        videoStructureId: "ser-estar-adj-el"
+    )
+
+    static let serEstarAdjNosotros = Pattern(
+        id: "ser-estar-adj-nosotros",
+        familyTr: "ser / estar + sıfat",
+        familyTrCaps: "SER / ESTAR + SIFAT",
+        titleTr: "Nosotros + somos / estamos + sıfat",
+        titleEn: "Nosotros + somos/estamos + adjetivo",
+        summaryTr: "Çoğul (biz): \"Arkadaşız\", \"Yorgunuz\".",
+        introTr:
+            "\"Nosotros\" (biz) için \"somos\" (özellik) veya \"estamos\" " +
+            "(durum) gelir. Sıfat çoğul olur: -os / -as eki alır.",
+        formula: [
+            PatternToken(text: "nosotros", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "somos / estamos", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            PatternExample(subject: "Nosotros", subjectTr: "Biz",
+                           verb: "somos", verbTr: "(özellik)",
+                           rest: "jóvenes", restTr: "genç",
+                           tr: "Biz genciz.",
+                           subjectPhonetic: "nosotros",
+                           verbPhonetic: "somos",
+                           restPhonetic: "hobenes"),
+            PatternExample(subject: "Nosotros", subjectTr: "Biz",
+                           verb: "estamos", verbTr: "(durum)",
+                           rest: "cansados", restTr: "yorgun",
+                           tr: "Yorgunuz.",
+                           subjectPhonetic: "nosotros",
+                           verbPhonetic: "estamos",
+                           restPhonetic: "kansados"),
+            PatternExample(subject: "Nosotras", subjectTr: "Biz (kadınlar)",
+                           verb: "estamos", verbTr: "(durum)",
+                           rest: "listas", restTr: "hazır",
+                           tr: "Hazırız.",
+                           subjectPhonetic: "nosotras",
+                           verbPhonetic: "estamos",
+                           restPhonetic: "listas"),
+            PatternExample(subject: "Nosotros", subjectTr: "Biz",
+                           verb: "somos", verbTr: "(özellik)",
+                           rest: "felices", restTr: "mutlu",
+                           tr: "Mutluyuz.",
+                           subjectPhonetic: "nosotros",
+                           verbPhonetic: "somos",
+                           restPhonetic: "felises"),
+        ],
+        tipTr:
+            "Sıfat çoğul olur: cansado → cansados, lista → listas. " +
+            "Grup karışıksa (erkek+kadın) eril çoğul (-os) kullanılır.",
+        icon: "person.3.fill",
+        videoStructureId: "ser-estar-adj-nosotros"
+    )
+
+    static let serEstarAdjEllos = Pattern(
+        id: "ser-estar-adj-ellos",
+        familyTr: "ser / estar + sıfat",
+        familyTrCaps: "SER / ESTAR + SIFAT",
+        titleTr: "Ellos / Ellas + son / están + sıfat",
+        titleEn: "Ellos/Ellas + son/están + adjetivo",
+        summaryTr: "Çoğul (onlar): \"Uzun boylular\", \"Meşguller\".",
+        introTr:
+            "\"Ellos\" (onlar, eril) ve \"Ellas\" (onlar, dişil) için \"son\" " +
+            "(özellik) veya \"están\" (durum) gelir.",
+        formula: [
+            PatternToken(text: "ellos / ellas", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "son / están", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            PatternExample(subject: "Ellos", subjectTr: "Onlar",
+                           verb: "son", verbTr: "(özellik)",
+                           rest: "altos", restTr: "uzun boylu",
+                           tr: "Onlar uzun boylu.",
+                           subjectPhonetic: "eyos",
+                           verbPhonetic: "son",
+                           restPhonetic: "altos"),
+            PatternExample(subject: "Ellos", subjectTr: "Onlar",
+                           verb: "están", verbTr: "(durum)",
+                           rest: "ocupados", restTr: "meşgul",
+                           tr: "Onlar meşgul.",
+                           subjectPhonetic: "eyos",
+                           verbPhonetic: "estan",
+                           restPhonetic: "okupados"),
+            PatternExample(subject: "Ellas", subjectTr: "Onlar (kadınlar)",
+                           verb: "están", verbTr: "(durum)",
+                           rest: "contentas", restTr: "memnun",
+                           tr: "Onlar memnun.",
+                           subjectPhonetic: "eyas",
+                           verbPhonetic: "estan",
+                           restPhonetic: "kontentas"),
+            PatternExample(subject: "Ellos", subjectTr: "Onlar",
+                           verb: "son", verbTr: "(özellik)",
+                           rest: "simpáticos", restTr: "cana yakın",
+                           tr: "Onlar cana yakın.",
+                           subjectPhonetic: "eyos",
+                           verbPhonetic: "son",
+                           restPhonetic: "simpatikos"),
+        ],
+        tipTr:
+            "\"ll\" → \"y\" okunur: ellos = \"eyos\". Karışık grupta (erkek + " +
+            "kadın) eril çoğul kullanılır: ellos, contentos.",
+        icon: "person.3.fill",
+        videoStructureId: "ser-estar-adj-ellos"
     )
 }

@@ -21,7 +21,7 @@ struct PatternsView: View {
                             .padding(.horizontal, 20)
 
                         PatternsPath(
-                            patterns: PatternCatalog.all,
+                            patterns: PatternCatalog.catalog(for: appState.learningLanguage),
                             isCompleted: { appState.isPatternCompleted($0) },
                             onTap: { selected = $0 }
                         )
@@ -37,6 +37,8 @@ struct PatternsView: View {
                 PatternIntroView(pattern: pattern, onFinished: { selected = nil })
                     .environmentObject(appState)
             }
+            // A pattern of the other language left open when the learner switches.
+            .onChange(of: appState.learningLanguage) { _, _ in selected = nil }
         }
     }
 

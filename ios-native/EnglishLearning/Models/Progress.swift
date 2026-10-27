@@ -29,6 +29,54 @@ enum NativeLanguage: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Learning language
+
+/// The language the learner is LEARNING: the source language of the
+/// videos, words and patterns. Distinct from `NativeLanguage`, the
+/// translation language, which stays Turkish on both tracks
+/// (`NativeLanguage.es` is a Spanish *speaker*, not this).
+///
+/// `.en` is the original English corpus, `.es` the Latin American Spanish
+/// track. It picks the `?lang=` content the backend serves, the pattern
+/// catalog and the okunuş engine.
+enum LearningLanguage: String, Codable, CaseIterable, Identifiable {
+    case en, es
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .en: return "İngilizce"
+        case .es: return "İspanyolca"
+        }
+    }
+
+    /// Latin American Spanish, so not Spain's flag.
+    var flag: String {
+        switch self {
+        case .en: return "🇬🇧"
+        case .es: return "🇲🇽"
+        }
+    }
+
+    var queryItem: URLQueryItem { URLQueryItem(name: "lang", value: rawValue) }
+
+    /// Starter ids are namespaced by the backend: "a2-<word>" English,
+    /// "a2-es-<word>" Spanish. One stored word list serves both tracks and
+    /// each screen shows the active language's share of it.
+    func owns(wordId: String) -> Bool {
+        wordId.hasPrefix("a2-es-") == (self == .es)
+    }
+
+    /// Spanish video ids are "es-<slug>"; every other id is English.
+    func owns(videoId: String) -> Bool {
+        videoId.hasPrefix("es-") == (self == .es)
+    }
+
+    func filter(wordIds: [String]) -> [String] {
+        wordIds.filter { owns(wordId: $0) }
+    }
+}
+
 // MARK: - Onboarding
 
 enum OnboardingLevel: String, Codable, CaseIterable {

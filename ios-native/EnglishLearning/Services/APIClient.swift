@@ -82,17 +82,22 @@ actor APIClient {
     }
 
     // MARK: - POC videos (Feynman video-first)
+    //
+    // The list endpoints serve one learning language at a time (`lang`).
+    // Everything fetched by id (clips, starter contexts, pattern scenes)
+    // needs no language: ids are namespaced per language and the backend
+    // reads the language from the record.
 
-    func fetchPocVideos() async throws -> [PocVideo] {
-        try await get("/api/v1/poc-videos")
+    func fetchPocVideos(lang: LearningLanguage) async throws -> [PocVideo] {
+        try await get("/api/v1/poc-videos", query: [lang.queryItem])
     }
 
     func fetchPocVideoClips(videoId: String) async throws -> [LessonClip] {
         try await get("/api/v1/poc-videos/\(videoId)/clips")
     }
 
-    func fetchVideoSets() async throws -> [VideoSet] {
-        try await get("/api/v1/video-sets")
+    func fetchVideoSets(lang: LearningLanguage) async throws -> [VideoSet] {
+        try await get("/api/v1/video-sets", query: [lang.queryItem])
     }
 
     func fetchStarterWordContexts(id: String) async throws -> StarterWordContexts {
@@ -107,8 +112,9 @@ actor APIClient {
         )
     }
 
-    func fetchVocabFeed(poolIds: [String], includeDiscovery: Bool = true, limit: Int = 80) async throws -> VocabFeedResponse {
-        var query: [URLQueryItem] = []
+    func fetchVocabFeed(poolIds: [String], lang: LearningLanguage, includeDiscovery: Bool = true,
+                        limit: Int = 80) async throws -> VocabFeedResponse {
+        var query: [URLQueryItem] = [lang.queryItem]
         if !poolIds.isEmpty {
             query.append(URLQueryItem(name: "ids", value: poolIds.joined(separator: ",")))
         }

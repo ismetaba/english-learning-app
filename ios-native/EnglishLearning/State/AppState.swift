@@ -11,6 +11,14 @@ final class AppState: ObservableObject {
     @Published var nativeLanguage: NativeLanguage = .tr {
         didSet { persistLanguage() ; rebuildTranslations() }
     }
+    /// The language being LEARNED: the videos, words and patterns the tabs
+    /// show. Turkish stays the translation language. Stored on its own key
+    /// so the `UserProgress` decoder is untouched, and `.en` until the
+    /// learner picks Spanish in Profile, so existing installs keep the
+    /// English app.
+    @Published var learningLanguage: LearningLanguage = .en {
+        didSet { defaults.set(learningLanguage.rawValue, forKey: Keys.learningLanguage) }
+    }
     @Published private(set) var progress: UserProgress = UserProgress() {
         didSet { persistProgress() }
     }
@@ -65,6 +73,7 @@ final class AppState: ObservableObject {
     // MARK: - UserDefaults keys
     private enum Keys {
         static let nativeLanguage = "native_language"
+        static let learningLanguage = "learning_language_v1"
         static let completedPatterns = "completed_patterns_v1"
         static let playbackRate = "playback_rate_v1"
         static let hasCaughtFirstWord = "has_caught_first_word_v1"
@@ -81,6 +90,10 @@ final class AppState: ObservableObject {
         if let raw = defaults.string(forKey: Keys.nativeLanguage),
            let lang = NativeLanguage(rawValue: raw) {
             nativeLanguage = lang
+        }
+        if let raw = defaults.string(forKey: Keys.learningLanguage),
+           let lang = LearningLanguage(rawValue: raw) {
+            learningLanguage = lang
         }
         // A blob that can't be decoded has already been backed up by
         // `ProgressPersistence`, so starting fresh can't destroy it.
@@ -135,6 +148,24 @@ final class AppState: ObservableObject {
 
     func exitImmersive(_ token: UUID) {
         presence.exit(token)
+    }
+
+    // MARK: - The active language's share of the progress
+    //
+    // Progress is stored once for both tracks (ids are namespaced per
+    // language); screens count and list the active language's part.
+
+    /// Words added in the learning language, oldest first.
+    var learnedWordsInLearning: [String] {
+        learningLanguage.filter(wordIds: progress.learnedWords)
+    }
+
+    var watchedVideoCountInLearning: Int {
+        progress.watchedVideos.filter { learningLanguage.owns(videoId: $0) }.count
+    }
+
+    var completedPatternCountInLearning: Int {
+        completedPatterns.intersection(PatternCatalog.catalog(for: learningLanguage).map(\.id)).count
     }
 
     // MARK: - Pattern progress
