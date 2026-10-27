@@ -311,3 +311,13 @@ export function toScenes(lines: Line[]): Line[][] {
   }
   return scenes;
 }
+
+/** The set player treats a scene as short only with this much dialogue
+ *  (PrimaryClip.shortSceneMinLines in the iOS app). */
+export const MIN_SCENE_LINES = 8;
+
+/** Scenes worth a place in a set: one that is mostly silent action
+ *  (fewer than MIN_SCENE_LINES lines) is left out. */
+export function playableScenes(scenes: Line[][]): Line[][] {
+  return scenes.filter(s => s.length >= MIN_SCENE_LINES);
+}

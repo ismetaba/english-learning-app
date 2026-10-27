@@ -23,7 +23,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { esGlossKey } from '../../lib/word-gloss';
 import { JsonCache } from './lib/cache';
-import { toLines, toScenes, type Line } from './lib/lines';
+import { playableScenes, toLines, toScenes, type Line } from './lib/lines';
 import { chat, chatJson } from './lib/lmstudio';
 import { audioWav, autoCaptions, transcribe } from './lib/media';
 
@@ -87,7 +87,7 @@ db.transaction(() => {
     // WhisperX times start at the audio window, the captions' at the
     // video's 0 s: toLines takes the window's start and returns video time.
     const lines = toLines(segments, { captions, offset });
-    const scenes = toScenes(lines);
+    const scenes = playableScenes(toScenes(lines));
     sourceWpm.set(sel.youtubeId, speechWpm(lines));
     scenes.forEach((scene, n) => {
       const id = scenes.length > 1 ? `es-${sel.slug}-${n + 1}` : `es-${sel.slug}`;

@@ -3,7 +3,7 @@
 //   npx tsx --test tests/es-lines.test.ts
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toLines, toScenes, type Line } from '../scripts/es/lib/lines';
+import { playableScenes, toLines, toScenes, type Line } from '../scripts/es/lib/lines';
 
 const w = (word: string, start: number | null, end: number | null, score = 0.8) => ({ word, start, end, score });
 
@@ -77,4 +77,15 @@ test('scenes run 60-150 s, cut at a pause, and a short tail joins the last scene
   }
   assert.equal(scenes[0][scenes[0].length - 1].start, 92, 'first cut after the pause');
   assert.equal(scenes.flat().length, lines.length, 'no line lost');
+});
+
+test('a scene with too little dialogue for the set player is left out', () => {
+  // 70 s of action with 5 lines, then a 60 s stretch of steady talk.
+  const lines: Line[] = [];
+  for (const t of [0, 15, 30, 45, 60]) lines.push(line(t, t + 2));
+  for (let t = 100; t < 160; t += 4) lines.push(line(t, t + 3));
+  const scenes = playableScenes(toScenes(lines));
+  assert.equal(scenes.length, 1);
+  assert.equal(scenes[0][0].start, 100);
+  assert.ok(scenes.every(s => s.length >= 8));
 });

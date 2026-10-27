@@ -139,5 +139,119 @@
     "movieTitle": "Buscando a Nemo",
     "title": "Nemo desobedece a Marlín",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "1HvIA0yE1Cc",
+    "slug": "toy-story-3-jugando-sucio",
+    "movieTitle": "Toy Story 3",
+    "title": "Jugando sucio",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "tQ7I8zWDZwk",
+    "slug": "toy-story-3-buzz-reiniciado",
+    "movieTitle": "Toy Story 3",
+    "title": "Buzz reiniciado",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Drqt1eSlRG0",
+    "slug": "toy-story-4-woody-y-buzz",
+    "movieTitle": "Toy Story 4",
+    "title": "Woody y Buzz",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "eBLtZ57j8zg",
+    "slug": "toy-story-4-mejores-momentos",
+    "movieTitle": "Toy Story 4",
+    "title": "Los mejores momentos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "3MxgCu2yeow",
+    "slug": "monsters-inc-waternoose-arrestado",
+    "movieTitle": "Monsters Inc",
+    "title": "Waternoose es arrestado",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "WPaX-e2C0QY",
+    "slug": "buscando-a-dory-manos",
+    "movieTitle": "Buscando a Dory",
+    "title": "¡Manos!",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "zoYYw8cbRgA",
+    "slug": "buscando-a-dory-viaje-de-campo",
+    "movieTitle": "Buscando a Dory",
+    "title": "El viaje de campo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "UBq1sCz0kn4",
+    "slug": "luca-silencio-bruno",
+    "movieTitle": "Luca",
+    "title": "¡Silencio, Bruno!",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "_AB631IiUJg",
+    "slug": "luca-giulia-marcovaldo",
+    "movieTitle": "Luca",
+    "title": "Giulia Marcovaldo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "vIOYAi7HzFg",
+    "slug": "wall-e-robots-renegados",
+    "movieTitle": "Wall-E",
+    "title": "Robots renegados",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "OdwE-0UWeQU",
+    "slug": "frozen-2-anna-y-elsa-juntas",
+    "movieTitle": "Frozen 2",
+    "title": "Anna y Elsa salvan el día",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "TtGaksIHF9E",
+    "slug": "frozen-2-el-barco-de-sus-padres",
+    "movieTitle": "Frozen 2",
+    "title": "El barco de sus padres",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "70QwbrsPZiU",
+    "slug": "moana-y-maui-bromas",
+    "movieTitle": "Moana",
+    "title": "Moana y Maui: las mejores bromas",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "C4ysq5IbQ3I",
+    "slug": "encanto-los-madrigal-desayunan",
+    "movieTitle": "Encanto",
+    "title": "Los Madrigal desayunan",
+    "genre": "animation",
+    "maxSec": 152
+  },
+  {
+    "youtubeId": "5M1TgOcLndA",
+    "slug": "encanto-isabela-y-mirabel",
+    "movieTitle": "Encanto",
+    "title": "La pelea de Isabela y Mirabel",
+    "genre": "animation",
+    "maxSec": 130
+  },
+  {
+    "youtubeId": "mKx05irYAlQ",
+    "slug": "ralph-vanellope-aprende-a-manejar",
+    "movieTitle": "Ralph el demoledor",
+    "title": "Vanellope aprende a manejar",
+    "genre": "animation"
   }
 ]
