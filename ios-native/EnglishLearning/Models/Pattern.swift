@@ -135,10 +135,11 @@ enum PatternCatalog {
         wantToI, wantToYou, wantToWeThey, wantToHeSheIt,
     ]
 
-    /// ser/estar + adjective, one row per subject.
+    /// ser/estar + adjective, one row per subject. `serEstarAdjNosotros`
+    /// waits off the path until the Spanish corpus has scenes for it (the
+    /// first set has none, and an empty reel is a dead end).
     static let spanishAll: [Pattern] = [
-        serEstarAdjYo, serEstarAdjTu, serEstarAdjEl,
-        serEstarAdjNosotros, serEstarAdjEllos,
+        serEstarAdjYo, serEstarAdjTu, serEstarAdjEl, serEstarAdjEllos,
     ]
 
     // MARK: BE + adjective ------------------------------------------------
