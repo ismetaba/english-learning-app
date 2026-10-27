@@ -66,7 +66,10 @@ extension YouTubeEmbedHTML {
           var LOAD_FAILED = \#(YouTubeError.loadTimeoutCode);
           var S = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3, CUED: 5 };
           var TICK_MS = 50;           // end-of-window checks while playing/buffering
-          var TIME_GAP_MS = 75;       // playhead posts every other tick (~100ms)
+          // Playhead posts every other tick (~100ms). Timers only ever fire
+          // late: at 75 a post tick 25ms late made the next one look early,
+          // so it was skipped and the gap grew to ~150ms on a busy page.
+          var TIME_GAP_MS = 60;
           var END_EPS = 0.03;         // stop/wrap this close to `end`, before the API ends the video
           var SEEK_SLOP = 0.5;        // readings this close to a seek target are post-seek
           var SEEK_SETTLE_MS = 1500;  // after this, trust readings again whatever they say
