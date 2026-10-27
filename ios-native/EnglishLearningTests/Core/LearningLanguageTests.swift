@@ -35,3 +35,37 @@ final class LearningLanguageTests: XCTestCase {
         XCTAssertEqual(LearningLanguage.es.filter(wordIds: learned), ["a2-es-feliz", "a2-es-casa"])
     }
 }
+
+/// Each learning language has its own server: English the original admin,
+/// Spanish the separate Spanish-only deployment.
+final class LanguageServerTests: XCTestCase {
+
+    func test_idsNameTheirLanguage() {
+        XCTAssertEqual(LearningLanguage.of(videoId: "es-peppa-calor-y-frio-2"), .es)
+        XCTAssertEqual(LearningLanguage.of(videoId: "storks-wolves-love-babies"), .en)
+        XCTAssertEqual(LearningLanguage.of(wordId: "a2-es-gustar"), .es)
+        XCTAssertEqual(LearningLanguage.of(wordId: "a2-make"), .en)
+        XCTAssertEqual(LearningLanguage.of(patternId: "ser-estar-adj-el"), .es)
+        XCTAssertEqual(LearningLanguage.of(patternId: "be-adj-i"), .en)
+    }
+
+    func test_defaultServers() {
+        let none: (String) -> String? = { _ in nil }
+        XCTAssertEqual(APIClient.baseURL(for: .en, environment: [:], plist: none).absoluteString,
+                       "https://english-learning-admin.fly.dev")
+        XCTAssertEqual(APIClient.baseURL(for: .es, environment: [:], plist: none).absoluteString,
+                       "https://english-learning-es.fly.dev")
+    }
+
+    /// The environment wins over Info.plist, each language has its own key,
+    /// and an empty value (an unset $(VAR) in the plist) is ignored rather
+    /// than crashing the app.
+    func test_overrides() {
+        let env = ["ADMIN_API_BASE_URL_ES": "http://localhost:3939"]
+        let plist: (String) -> String? = { $0 == "ADMIN_API_BASE_URL" ? "" : "http://plist.example" }
+        XCTAssertEqual(APIClient.baseURL(for: .es, environment: env, plist: plist).absoluteString,
+                       "http://localhost:3939")
+        XCTAssertEqual(APIClient.baseURL(for: .en, environment: env, plist: plist).absoluteString,
+                       "https://english-learning-admin.fly.dev")
+    }
+}

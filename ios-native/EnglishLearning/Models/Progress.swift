@@ -60,17 +60,19 @@ enum LearningLanguage: String, Codable, CaseIterable, Identifiable {
 
     var queryItem: URLQueryItem { URLQueryItem(name: "lang", value: rawValue) }
 
-    /// Starter ids are namespaced by the backend: "a2-<word>" English,
-    /// "a2-es-<word>" Spanish. One stored word list serves both tracks and
-    /// each screen shows the active language's share of it.
-    func owns(wordId: String) -> Bool {
-        wordId.hasPrefix("a2-es-") == (self == .es)
-    }
+    // Ids are namespaced per language, so an id alone names its language
+    // (and its server): videos "es-<slug>", starter words "a2-es-<word>"
+    // (English "a2-<word>"), patterns "ser-estar-…". Everything else is
+    // English.
 
-    /// Spanish video ids are "es-<slug>"; every other id is English.
-    func owns(videoId: String) -> Bool {
-        videoId.hasPrefix("es-") == (self == .es)
-    }
+    static func of(videoId: String) -> LearningLanguage { videoId.hasPrefix("es-") ? .es : .en }
+    static func of(wordId: String) -> LearningLanguage { wordId.hasPrefix("a2-es-") ? .es : .en }
+    static func of(patternId: String) -> LearningLanguage { patternId.hasPrefix("ser-estar-") ? .es : .en }
+
+    /// One stored word list serves both tracks; each screen shows the
+    /// active language's share of it.
+    func owns(wordId: String) -> Bool { Self.of(wordId: wordId) == self }
+    func owns(videoId: String) -> Bool { Self.of(videoId: videoId) == self }
 
     func filter(wordIds: [String]) -> [String] {
         wordIds.filter { owns(wordId: $0) }
