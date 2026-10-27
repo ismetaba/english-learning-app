@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import type { Lang } from '@/lib/lang';
+import { ADJ_AFTER_COPULA, COPULAS_BY_PATTERN, COPULA_INTENSIFIERS } from '@/lib/es-copula';
 import { prepareEsWordRows, type KaraokeWordRow } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
@@ -106,70 +107,6 @@ const ADJ_INTENSIFIERS = [
   'so', 'very', 'really', 'totally', 'quite', 'super', 'extremely',
   'absolutely', 'completely', 'truly', 'honestly', 'actually', 'too',
   'pretty', 'kinda', 'sort', 'kind',
-];
-
-/** Spanish words that complete ser/estar as a predicate ("estoy
- *  cansado", "es muy guapo"), with the gender/number variants (-o/-a/
- *  -os/-as) Spanish adjectives agree in. "bien"/"mal" are adverbs but
- *  fill the same slot in beginner staples ("Estoy bien" = İyiyim).
- *  Lowercased; accents as written in the subtitles, plus a few common
- *  unaccented spellings. */
-const ADJ_AFTER_COPULA = [
-  // estar-leaning states / moods
-  'bien', 'mal',
-  'feliz', 'felices', 'triste', 'tristes',
-  'contento', 'contenta', 'contentos', 'contentas',
-  'cansado', 'cansada', 'cansados', 'cansadas',
-  'ocupado', 'ocupada', 'ocupados', 'ocupadas',
-  'enfermo', 'enferma', 'enfermos', 'enfermas',
-  'listo', 'lista', 'listos', 'listas',
-  'nervioso', 'nerviosa', 'nerviosos', 'nerviosas',
-  'preocupado', 'preocupada', 'preocupados', 'preocupadas',
-  'emocionado', 'emocionada', 'emocionados', 'emocionadas',
-  'sorprendido', 'sorprendida', 'perdido', 'perdida',
-  'enojado', 'enojada', 'enojados', 'enojadas', 'enfadado', 'enfadada',
-  'aburrido', 'aburrida', 'asustado', 'asustada', 'asustados', 'asustadas',
-  'seguro', 'segura', 'seguros', 'seguras',
-  'solo', 'sola', 'solos', 'solas', 'libre', 'libres',
-  'loco', 'loca', 'locos', 'locas',
-  'despierto', 'despierta', 'dormido', 'dormida', 'muerto', 'muerta',
-  'mojado', 'mojada', 'lleno', 'llena', 'vacío', 'vacía',
-  // ser-leaning traits
-  'alto', 'alta', 'altos', 'altas', 'bajo', 'baja', 'bajos', 'bajas',
-  'joven', 'jóvenes', 'viejo', 'vieja', 'viejos', 'viejas',
-  'nuevo', 'nueva', 'guapo', 'guapa', 'guapos', 'guapas',
-  'feo', 'fea', 'feos', 'feas', 'bonito', 'bonita', 'bonitos', 'bonitas',
-  'lindo', 'linda', 'lindos', 'lindas', 'hermoso', 'hermosa', 'precioso', 'preciosa',
-  'fuerte', 'fuertes', 'débil', 'débiles',
-  'rico', 'rica', 'ricos', 'ricas', 'pobre', 'pobres',
-  'bueno', 'buena', 'buenos', 'buenas', 'malo', 'mala', 'malos', 'malas',
-  'grande', 'grandes', 'pequeño', 'pequeña', 'pequeños', 'pequeñas', 'enorme', 'enormes',
-  'gordo', 'gorda', 'flaco', 'flaca', 'delgado', 'delgada',
-  'inteligente', 'inteligentes', 'amable', 'amables',
-  'simpático', 'simpática', 'tonto', 'tonta',
-  'importante', 'importantes', 'famoso', 'famosa',
-  'divertido', 'divertida', 'divertidos', 'divertidas',
-  'delicioso', 'deliciosa', 'emocionante', 'maravilloso', 'maravillosa',
-  'fantástico', 'fantástica', 'estupendo', 'estupenda',
-  'perfecto', 'perfecta', 'increíble', 'increíbles', 'increible',
-  'difícil', 'difíciles', 'fácil', 'fáciles',
-  'caro', 'cara', 'barato', 'barata', 'rápido', 'rápida',
-  'lento', 'lenta', 'limpio', 'limpia', 'sucio', 'sucia',
-  'frío', 'fría', 'caliente', 'calientes',
-  // high-frequency conversational + description adjectives
-  'normal', 'normales', 'real', 'reales', 'mejor', 'mejores', 'peor', 'peores',
-  'igual', 'iguales', 'diferente', 'diferentes', 'posible', 'posibles', 'imposible',
-  'rubio', 'rubia', 'rubios', 'rubias', 'moreno', 'morena', 'morenos', 'morenas',
-  'mayor', 'mayores', 'menor', 'menores',
-  'raro', 'rara', 'claro', 'clara', 'cierto', 'cierta',
-  'genial', 'geniales', 'tranquilo', 'tranquila',
-  'sincero', 'sincera', 'serio', 'seria',
-];
-
-/** Spanish intensifiers between a copula and an adjective:
- *  "es muy guapo", "estoy tan cansado". */
-const COPULA_INTENSIFIERS = [
-  'muy', 'tan', 'súper', 'super', 'bastante', 'demasiado', 'realmente',
 ];
 
 function sqlList(words: string[]): string {
@@ -348,27 +285,27 @@ const PATTERN_FILTERS: Record<string, PatternFilter> = {
   // ── Spanish: ser/estar + adjective ──────────────────────────────
   'ser-estar-adj-yo': {
     label: 'Yo soy/estoy + sıfat',
-    sqlPredicate: buildCopulaAdjPredicate(['soy', 'estoy']),
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-yo']),
     lang: 'es',
   },
   'ser-estar-adj-tu': {
     label: 'Tú eres/estás + sıfat',
-    sqlPredicate: buildCopulaAdjPredicate(['eres', 'estás']),
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-tu']),
     lang: 'es',
   },
   'ser-estar-adj-el': {
     label: 'Él/Ella es/está + sıfat',
-    sqlPredicate: buildCopulaAdjPredicate(['es', 'está']),
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-el']),
     lang: 'es',
   },
   'ser-estar-adj-nosotros': {
     label: 'Nosotros somos/estamos + sıfat',
-    sqlPredicate: buildCopulaAdjPredicate(['somos', 'estamos']),
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-nosotros']),
     lang: 'es',
   },
   'ser-estar-adj-ellos': {
     label: 'Ellos/Ellas son/están + sıfat',
-    sqlPredicate: buildCopulaAdjPredicate(['son', 'están']),
+    sqlPredicate: buildCopulaAdjPredicate(COPULAS_BY_PATTERN['ser-estar-adj-ellos']),
     lang: 'es',
   },
 };
