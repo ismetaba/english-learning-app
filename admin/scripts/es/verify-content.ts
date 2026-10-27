@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import { MIN_SCENE_LINES } from './lib/lines';
+import { MIN_SCENE_LINES, MIN_SCENE_SEC } from './lib/lines';
 import type { Json3 } from './lib/media';
 
 const [dbPath, workDir] = process.argv.slice(2);
@@ -95,7 +95,9 @@ for (const v of videos) {
   console.log(`${v.id.padEnd(46)} ${String(v.lines).padStart(5)}  ${sync}`);
   if (v.untranslated) problems.push(`${v.id}: ${v.untranslated} untranslated lines`);
   if (v.untagged > Math.max(1, v.lines * 0.02)) problems.push(`${v.id}: ${v.untagged} untagged lines`);
-  if (v.end - v.start > MAX_SCENE_SEC) problems.push(`${v.id}: scene of ${Math.round(v.end - v.start)} s`);
+  if (v.end - v.start > MAX_SCENE_SEC || v.end - v.start < MIN_SCENE_SEC) {
+    problems.push(`${v.id}: scene of ${Math.round(v.end - v.start)} s`);
+  }
   if (v.lines < MIN_SCENE_LINES) problems.push(`${v.id}: only ${v.lines} lines`);
 }
 

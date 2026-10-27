@@ -89,3 +89,32 @@ test('a scene with too little dialogue for the set player is left out', () => {
   assert.equal(scenes[0][0].start, 100);
   assert.ok(scenes.every(s => s.length >= 8));
 });
+
+test('a long silence ends a scene, and a stray line at its edge is dropped', () => {
+  // A lone "Gracias." at 0 s, 60 s of action, then steady talk for 70 s
+  // ending in one line left after a 20 s pause.
+  const lines: Line[] = [line(0, 1)];
+  for (let t = 61; t < 131; t += 4) lines.push(line(t, t + 3));
+  lines.push(line(154, 155));
+  const scenes = toScenes(lines);
+  assert.equal(scenes.length, 1);
+  assert.equal(scenes[0][0].start, 61, 'the lone line before the silence is gone');
+  assert.equal(scenes[0][scenes[0].length - 1].start, 129, 'so is the one after the last pause');
+});
+
+test('a scene keeps a pause that is part of the action', () => {
+  // 30 s of talk, a 20 s chase, 30 s of talk: one scene, nothing dropped.
+  const lines: Line[] = [];
+  for (let t = 0; t < 30; t += 3) lines.push(line(t, t + 2));
+  for (let t = 50; t < 80; t += 3) lines.push(line(t, t + 2));
+  const scenes = toScenes(lines);
+  assert.equal(scenes.length, 1);
+  assert.equal(scenes[0].length, lines.length);
+});
+
+test('a scene too short to follow is left out', () => {
+  // Eight quick lines in 16 s: enough dialogue, but over before it starts.
+  const quick: Line[] = [];
+  for (let t = 0; t < 16; t += 2) quick.push(line(t, t + 1.5));
+  assert.deepEqual(playableScenes([quick]), []);
+});

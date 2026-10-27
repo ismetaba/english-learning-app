@@ -253,5 +253,208 @@
     "movieTitle": "Ralph el demoledor",
     "title": "Vanellope aprende a manejar",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "UwKGi24Dk8M",
+    "slug": "grandes-heroes-hiro-conoce-a-baymax",
+    "movieTitle": "Grandes héroes",
+    "title": "Hiro conoce a Baymax",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "i2hYuBT9ppY",
+    "slug": "grandes-heroes-la-casa-de-fred",
+    "movieTitle": "Grandes héroes",
+    "title": "La casa de Fred",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "yhNqnvUrVyw",
+    "slug": "zootopia-club-de-naturalistas",
+    "movieTitle": "Zootopia",
+    "title": "El club de naturalistas",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "zzkVWoIVdB4",
+    "slug": "gato-con-botas-el-ultimo-deseo-el-lobo",
+    "movieTitle": "El Gato con Botas: el último deseo",
+    "title": "El Gato conoce al Lobo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "yD6GHC8tNlg",
+    "slug": "madagascar-3-dubois-al-acecho",
+    "movieTitle": "Madagascar 3",
+    "title": "Dubois está al acecho",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "0-SIAC8gdzU",
+    "slug": "como-entrenar-a-tu-dragon-el-primer-vuelo",
+    "movieTitle": "Cómo entrenar a tu dragón",
+    "title": "El primer vuelo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "3SQwQEo4A7E",
+    "slug": "como-entrenar-a-tu-dragon-2-estoico-y-valka",
+    "movieTitle": "Cómo entrenar a tu dragón 2",
+    "title": "Estoico se reencuentra con Valka",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "wGXvvmrkSWE",
+    "slug": "mi-villano-favorito-3-el-compromiso-de-margo",
+    "movieTitle": "Mi villano favorito 3",
+    "title": "El compromiso de Margo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uHLQfDl7X-w",
+    "slug": "mi-villano-favorito-3-agnes-y-el-unicornio",
+    "movieTitle": "Mi villano favorito 3",
+    "title": "Agnes quiere ese unicornio",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "zORCFhOAxxo",
+    "slug": "canta-se-derrumba-el-teatro",
+    "movieTitle": "Canta",
+    "title": "Se derrumba el teatro Moon",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "TCaT6n9Ec6c",
+    "slug": "mascotas-la-iniciacion",
+    "movieTitle": "La vida secreta de tus mascotas",
+    "title": "La iniciación",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "4J_biqa0l0c",
+    "slug": "mascotas-2-max-y-duke-en-la-granja",
+    "movieTitle": "La vida secreta de tus mascotas 2",
+    "title": "Max y Duke en la granja",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "bUAEeW7lpjI",
+    "slug": "la-era-de-hielo-gas-de-la-risa",
+    "movieTitle": "La era de hielo",
+    "title": "Gas de la risa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "hCX9zKpHikU",
+    "slug": "la-era-de-hielo-introduccion",
+    "movieTitle": "La era de hielo",
+    "title": "La migración",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "aAMT4ALbR5A",
+    "slug": "ratatouille-anton-ego",
+    "movieTitle": "Ratatouille",
+    "title": "Anton Ego pide perspectiva",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "UND7XDWgLF0",
+    "slug": "cars-las-500-y-media-de-radiador-springs",
+    "movieTitle": "Cars",
+    "title": "Las 500 ½ de Radiador Springs",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "wzm7T9Pdl0M",
+    "slug": "bichos-el-circo",
+    "movieTitle": "Bichos",
+    "title": "El espectáculo del circo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Ynd106rsFuE",
+    "slug": "red-mei-se-convierte-en-panda",
+    "movieTitle": "Red",
+    "title": "Mei se convierte en panda rojo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "owaOp9tbG3E",
+    "slug": "megamente-se-vuelve-bueno",
+    "movieTitle": "Megamente",
+    "title": "Megamente se vuelve bueno",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Q4YqY5iVDSc",
+    "slug": "el-rey-leon-todo-lo-que-toca-la-luz",
+    "movieTitle": "El rey león",
+    "title": "Todo lo que toca la luz",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "0jvopE1nCYI",
+    "slug": "lilo-y-stitch-pato-es-un-pez",
+    "movieTitle": "Lilo y Stitch",
+    "title": "Pato es un pez",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "ZR0oQRHpThE",
+    "slug": "lilo-y-stitch-el-juicio-de-jumba",
+    "movieTitle": "Lilo y Stitch",
+    "title": "El juicio de Jumba",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "M_TmcfMyqGc",
+    "slug": "las-locuras-del-emperador-el-restaurante",
+    "movieTitle": "Las locuras del emperador",
+    "title": "El restaurante",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "PMuhIyrUwvU",
+    "slug": "bolt-saltan-del-camion",
+    "movieTitle": "Bolt",
+    "title": "Bolt y Mittens saltan del camión",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Gyh2u94Eibk",
+    "slug": "spider-man-un-nuevo-universo-peter-parker",
+    "movieTitle": "Spider-Man: un nuevo universo",
+    "title": "La historia de Peter Parker",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "tgBlXXGi47c",
+    "slug": "los-tipos-malos-los-conejillos-de-indias",
+    "movieTitle": "Los tipos malos",
+    "title": "Los conejillos de indias",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "orVr8cWTf0c",
+    "slug": "los-tipos-malos-el-robo-del-banco",
+    "movieTitle": "Los tipos malos",
+    "title": "El robo del banco",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "0CpLRr3vldM",
+    "slug": "minions-scarlet-y-la-tortura",
+    "movieTitle": "Minions",
+    "title": "La tortura",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "dJQVLTKB2CQ",
+    "slug": "kung-fu-panda-3-po-conoce-a-kai",
+    "movieTitle": "Kung Fu Panda 3",
+    "title": "Po conoce a Kai",
+    "genre": "animation"
   }
 ]

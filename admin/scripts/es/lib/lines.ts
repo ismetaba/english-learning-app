@@ -279,12 +279,31 @@ export function toLines(segments: WhisperSegment[], opts: LineOptions = {}): Lin
 const SCENE_MIN = 60;
 const SCENE_MAX = 150;
 const SCENE_TARGET = 90;
+/** A pause this long is not part of a scene: nobody learns from a minute
+ *  of silent action, so it ends one scene and the next starts after it. */
+const MAX_SILENCE_SEC = 40;
+/** A line or two this far from the rest of a scene is a stray (a lone
+ *  "Gracias." before the action), not where the scene starts or ends. */
+const STRAY_GAP_SEC = 15;
+const STRAY_MAX_LINES = 2;
 
 /** Groups lines into scenes of SCENE_MIN-SCENE_MAX seconds, cutting where
  *  the dialogue pauses longest (ties go to the cut nearest SCENE_TARGET).
  *  When the rest of the video fits in one scene it stays one scene, so no
- *  stub is left at the end. */
+ *  stub is left at the end. A pause over MAX_SILENCE_SEC always ends a
+ *  scene, and stray lines at a scene's edges (or alone between two
+ *  silences) are dropped. */
 export function toScenes(lines: Line[]): Line[][] {
+  const runs: Line[][] = [];
+  for (const l of lines) {
+    const run = runs[runs.length - 1];
+    if (run && l.start - run[run.length - 1].end <= MAX_SILENCE_SEC) run.push(l);
+    else runs.push([l]);
+  }
+  return runs.flatMap(splitRun).map(dropStrays).filter(s => s.length > STRAY_MAX_LINES);
+}
+
+function splitRun(lines: Line[]): Line[][] {
   const scenes: Line[][] = [];
   let s = 0;
   while (s < lines.length) {
@@ -312,12 +331,29 @@ export function toScenes(lines: Line[]): Line[][] {
   return scenes;
 }
 
+function dropStrays(scene: Line[]): Line[] {
+  let a = 0;
+  let b = scene.length;
+  const gapAfter = (i: number) => scene[i + 1].start - scene[i].end;
+  for (let k = 0; k < STRAY_MAX_LINES && a + k < b - 1; k++) {
+    if (gapAfter(a + k) > STRAY_GAP_SEC) { a += k + 1; break; }
+  }
+  for (let k = 0; k < STRAY_MAX_LINES && b - 2 - k >= a; k++) {
+    if (gapAfter(b - 2 - k) > STRAY_GAP_SEC) { b -= k + 1; break; }
+  }
+  return scene.slice(a, b);
+}
+
 /** The set player treats a scene as short only with this much dialogue
  *  (PrimaryClip.shortSceneMinLines in the iOS app). */
 export const MIN_SCENE_LINES = 8;
 
+/** Shorter than this, a scene is over before it starts. */
+export const MIN_SCENE_SEC = 30;
+
 /** Scenes worth a place in a set: one that is mostly silent action
- *  (fewer than MIN_SCENE_LINES lines) is left out. */
+ *  (fewer than MIN_SCENE_LINES lines) or a fragment (under MIN_SCENE_SEC)
+ *  is left out. */
 export function playableScenes(scenes: Line[][]): Line[][] {
-  return scenes.filter(s => s.length >= MIN_SCENE_LINES);
+  return scenes.filter(s => s.length >= MIN_SCENE_LINES && s[s.length - 1].end - s[0].start >= MIN_SCENE_SEC);
 }
