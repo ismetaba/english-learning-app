@@ -47,8 +47,9 @@ export async function chat(system: string, user: string, opts: ChatOptions = {})
   return null;
 }
 
-export async function chatJson<T>(system: string, user: string, schema: object, maxTokens = 600): Promise<T | null> {
-  const raw = await chat(system, user, { schema, maxTokens });
+export async function chatJson<T>(system: string, user: string, schema: object, maxTokens = 600,
+                                  temperature = 0): Promise<T | null> {
+  const raw = await chat(system, user, { schema, maxTokens, temperature });
   if (!raw) return null;
   try {
     return JSON.parse(raw) as T;

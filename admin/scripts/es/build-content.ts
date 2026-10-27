@@ -11,7 +11,7 @@
 //   4. glosses   a short Turkish gloss per distinct word (word_translations_es)
 //   5. vocab     starter words: the set's frequent A1-A2 content words,
 //                linked to every form they appear in
-//   6. set       the "İspanyolca Başlangıç" video set, slowest source first
+//   6. sets      speed-ordered video sets (İspanyolca 1, 2, …), slowest first
 //
 //   npx tsx scripts/es/build-content.ts scripts/es/selection.json <work-dir> <out.db>
 //
@@ -204,6 +204,20 @@ function validStructure(t: Structure | null, n: number): t is Structure {
   return all.length === n && new Set(all).size === n && all.every(i => Number.isInteger(i) && i >= 0 && i < n);
 }
 
+/** The model's near-misses, made whole: it splits a clitic off its verb
+ *  ("Atrépenlo." tagged as [0] verb + [1] clitic), and now and then puts a
+ *  word in two buckets ("¿Ha visto…": 0 in aux_verb and rest). Indices past
+ *  the line are dropped, a doubled word keeps its first bucket (subject,
+ *  aux_verb, rest), and a word left out goes to rest. */
+function repairStructure(t: Structure, n: number): Structure {
+  const seen = new Set<number>();
+  const keep = (xs: number[]) => xs.filter(i => Number.isInteger(i) && i >= 0 && i < n && !seen.has(i) && seen.add(i));
+  const out = { subject: keep(t.subject), aux_verb: keep(t.aux_verb), rest: keep(t.rest) };
+  for (let i = 0; i < n; i++) if (!seen.has(i)) out.rest.push(i);
+  out.rest.sort((a, b) => a - b);
+  return out;
+}
+
 async function tagAll() {
   const cache = new JsonCache<Structure>(path.join(workDir, 'cache-tag.json'));
   const update = db.prepare('UPDATE subtitle_lines SET structure = ? WHERE id = ?');
@@ -212,11 +226,15 @@ async function tagAll() {
     const l = allLines[i];
     const tokens = l.text.split(' ');
     let t: Structure | null = cache.get(l.text) ?? null;
-    for (let attempt = 0; !validStructure(t, tokens.length) && attempt < 2; attempt++) {
+    // Deterministic first; a greedy answer that doesn't cover every token
+    // comes back the same, so the last tries sample a little.
+    for (let attempt = 0; !validStructure(t, tokens.length) && attempt < 4; attempt++) {
       const list = tokens.map((w, k) => `[${k},${JSON.stringify(w)}]`).join(',');
-      t = await chatJson<Structure>(TAG_SYS, `${TAG_FEWSHOT}\n\nNow tag this sentence.\ntokens=[${list}]`, TAG_SCHEMA, 300);
+      t = await chatJson<Structure>(TAG_SYS, `${TAG_FEWSHOT}\n\nNow tag this sentence.\ntokens=[${list}]`, TAG_SCHEMA, 300,
+        attempt < 2 ? 0 : 0.6);
       if (validStructure(t, tokens.length)) cache.set(l.text, t);
     }
+    if (!validStructure(t, tokens.length) && t) t = repairStructure(t, tokens.length);
     if (validStructure(t, tokens.length)) update.run(JSON.stringify(t), l.id);
     else failed++;
     if ((i + 1) % 100 === 0) console.log(`tag ${i + 1}/${allLines.length}`);
@@ -410,21 +428,49 @@ async function vocabAll() {
 
 // ── 6. Set ───────────────────────────────────────────────────────────
 
-function buildSet() {
-  db.prepare(
+/** A set holds about this many scene videos; a film's scenes stay together. */
+const SET_SIZE = 22;
+/** A last set smaller than this joins the one before it. */
+const MIN_SET_SIZE = 10;
+
+/** Speed-ordered sets: "İspanyolca 1" holds the slowest sources, each next
+ *  set faster ones, so a learner moves up in speed set by set. A source's
+ *  scenes stay together, in story order. */
+function buildSets() {
+  const sources = [...new Set(videoOrder.map(v => v.youtubeId))]
+    .sort((a, b) => sourceWpm.get(a)! - sourceWpm.get(b)!);
+  const groups: string[][] = [];
+  let current: string[] = [];
+  for (const yt of sources) {
+    current.push(...videoOrder.filter(v => v.youtubeId === yt).map(v => v.id));
+    if (current.length >= SET_SIZE) { groups.push(current); current = []; }
+  }
+  if (current.length) {
+    if (current.length < MIN_SET_SIZE && groups.length) groups[groups.length - 1].push(...current);
+    else groups.push(current);
+  }
+  const insertSet = db.prepare(
     `INSERT INTO video_sets (id, title, title_tr, description, description_tr, difficulty, sort_order)
-     VALUES ('es-set-1', 'Spanish Starter', 'İspanyolca Başlangıç',
-             'Animated film scenes in Latin American Spanish, slowest first.',
-             'Pixar, Disney ve DreamWorks filmlerinden Latin Amerika İspanyolcası sahneler, en yavaştan başlayarak.',
-             'beginner', 100)`,
-  ).run();
-  // Slowest source first; a source's scenes stay in story order.
-  const order = [...videoOrder].sort(
-    (a, b) => (sourceWpm.get(a.youtubeId)! - sourceWpm.get(b.youtubeId)!) ||
-      videoOrder.indexOf(a) - videoOrder.indexOf(b),
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
-  const insert = db.prepare('INSERT INTO video_set_items (set_id, video_id, sort_order) VALUES (?, ?, ?)');
-  order.forEach((v, i) => insert.run('es-set-1', v.id, i + 1));
+  const insertItem = db.prepare('INSERT INTO video_set_items (set_id, video_id, sort_order) VALUES (?, ?, ?)');
+  groups.forEach((ids, g) => {
+    const n = g + 1;
+    const first = g === 0;
+    insertSet.run(
+      `es-set-${n}`,
+      `Spanish ${n}`,
+      `İspanyolca ${n}`,
+      first ? 'Animated film scenes in Latin American Spanish, the slowest first.'
+        : 'Animated film scenes in Latin American Spanish, a little faster.',
+      first ? 'Pixar, Disney ve DreamWorks filmlerinden Latin Amerika İspanyolcası sahneler. En yavaş konuşulanlarla başla.'
+        : 'Pixar, Disney ve DreamWorks filmlerinden biraz daha hızlı konuşulan sahneler.',
+      first ? 'beginner' : 'elementary',
+      100 + n,
+    );
+    ids.forEach((id, i) => insertItem.run(`es-set-${n}`, id, i + 1));
+  });
+  console.log(`sets: ${groups.map((ids, g) => `İspanyolca ${g + 1} (${ids.length})`).join(', ')}`);
 }
 
 (async () => {
@@ -432,7 +478,7 @@ function buildSet() {
   await tagAll();
   await glossAll();
   await vocabAll();
-  buildSet();
+  buildSets();
   const n = (sql: string) => (db.prepare(sql).get() as { n: number }).n;
   console.log(
     `\nDone: ${n('SELECT COUNT(*) n FROM videos')} scene videos, ${n('SELECT COUNT(*) n FROM subtitle_lines')} lines` +
