@@ -674,5 +674,75 @@
     "movieTitle": "Turbo",
     "title": "El final",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "bjtGoCwoh8g",
+    "slug": "cars-2-mate-conoce-a-finn",
+    "movieTitle": "Cars 2",
+    "title": "Mate conoce a Finn McMissile",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "kDsYOHYD96M",
+    "slug": "wish-valentino-habla",
+    "movieTitle": "Wish: el poder de los deseos",
+    "title": "Valentino habla por primera vez",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "UOBHp93uQLE",
+    "slug": "mi-villano-favorito-2-el-macho",
+    "movieTitle": "Mi villano favorito 2",
+    "title": "La historia de El Macho",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "3iIu51Zxjrs",
+    "slug": "shrek-tercero-burro-y-gato-cambian-de-voz",
+    "movieTitle": "Shrek tercero",
+    "title": "Burro y el Gato cambian de cuerpo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "qsK4kOSABIQ",
+    "slug": "kung-fu-panda-2-po-conoce-a-shen",
+    "movieTitle": "Kung Fu Panda 2",
+    "title": "Po conoce a Shen",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uHN_k5Zhnn4",
+    "slug": "madagascar-3-alex-en-el-trapecio",
+    "movieTitle": "Madagascar 3",
+    "title": "Alex en el trapecio",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "FQSbj8yc0LE",
+    "slug": "vecinos-invasores-la-persecucion-del-perro",
+    "movieTitle": "Vecinos invasores",
+    "title": "La persecución del perro",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "u-i_EYrzDWY",
+    "slug": "happy-feet-2-ramon-y-carmen",
+    "movieTitle": "Happy Feet 2",
+    "title": "Ramón y Carmen",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "zSusSR4qqYk",
+    "slug": "zootopia-las-mejores-escenas",
+    "movieTitle": "Zootopia",
+    "title": "Las mejores escenas",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "TwtIMx4I0_o",
+    "slug": "buscando-a-dory-con-becky",
+    "movieTitle": "Buscando a Dory",
+    "title": "Con Becky a la cuarentena",
+    "genre": "animation"
   }
 ]
