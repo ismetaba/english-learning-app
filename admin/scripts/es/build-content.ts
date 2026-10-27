@@ -2,7 +2,8 @@
 //
 //   1. scenes    WhisperX transcript → lines → scenes; one video row per
 //                scene (the app plays one short scene per video), with its
-//                approved clip, subtitle lines and word timings
+//                approved clip, subtitle lines and word timings (from
+//                YouTube's auto captions where the video has them)
 //   2. translate every line into Turkish (Gemma via LM Studio, with the
 //                lines around it as context)
 //   3. tag       sentence structure, verb-group convention (main verb in
@@ -15,8 +16,8 @@
 //   npx tsx scripts/es/build-content.ts scripts/es/selection.json <work-dir> <out.db>
 //
 // <work-dir> is check-candidates.ts's: audio and transcripts are reused
-// from it, and the model answers are cached there (cache-*.json), so a
-// rebuild only asks the model about lines it hasn't seen.
+// from it, captions and the model answers are cached there (cache-*.json),
+// so a rebuild only asks the model about lines it hasn't seen.
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -24,7 +25,7 @@ import { esGlossKey } from '../../lib/word-gloss';
 import { JsonCache } from './lib/cache';
 import { toLines, toScenes, type Line } from './lib/lines';
 import { chat, chatJson } from './lib/lmstudio';
-import { audioWav, transcribe } from './lib/media';
+import { audioWav, autoCaptions, transcribe } from './lib/media';
 
 interface Selected {
   youtubeId: string;
@@ -80,13 +81,12 @@ const videoOrder: { id: string; youtubeId: string }[] = [];
 db.transaction(() => {
   for (const sel of selection) {
     const offset = sel.startSec ?? 0;
-    const segments = transcribe(audioWav(sel.youtubeId, path.join(workDir, sel.youtubeId), offset, sel.maxSec));
-    const lines = toLines(segments).map(l => ({
-      ...l,
-      start: l.start + offset,
-      end: l.end + offset,
-      words: l.words.map(w => ({ ...w, start: w.start + offset, end: w.end + offset })),
-    }));
+    const dir = path.join(workDir, sel.youtubeId);
+    const segments = transcribe(audioWav(sel.youtubeId, dir, offset, sel.maxSec));
+    const captions = autoCaptions(sel.youtubeId, dir);
+    // WhisperX times start at the audio window, the captions' at the
+    // video's 0 s: toLines takes the window's start and returns video time.
+    const lines = toLines(segments, { captions, offset });
     const scenes = toScenes(lines);
     sourceWpm.set(sel.youtubeId, speechWpm(lines));
     scenes.forEach((scene, n) => {
@@ -104,7 +104,8 @@ db.transaction(() => {
       });
       videoOrder.push({ id, youtubeId: sel.youtubeId });
     });
-    console.log(`scenes  ${sel.slug}: ${lines.length} lines → ${scenes.length} scenes, ${sourceWpm.get(sel.youtubeId)} wpm`);
+    console.log(`scenes  ${sel.slug}: ${lines.length} lines → ${scenes.length} scenes, ${sourceWpm.get(sel.youtubeId)} wpm, ` +
+      `${captions ? 'with' : 'no'} captions`);
   }
 })();
 

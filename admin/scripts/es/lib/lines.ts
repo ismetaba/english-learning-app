@@ -6,7 +6,14 @@
 // index words by position. A scene is what one video row in the app
 // plays: the set player shows one short scene per video (≤150 s, see
 // PrimaryClip in the iOS app), so long sources are cut into several.
-import type { WhisperSegment, WhisperWord } from './media';
+//
+// Timing (tests/es-timing.test.ts): WhisperX decides the text and where
+// lines break, but its word times drift: a line's edge word swallows the
+// pause next to it, and around music whole lines land seconds away from
+// their audio. YouTube's own auto captions are timed against the very
+// video the app embeds, so when there are any their word onsets time the
+// words.
+import type { Json3, WhisperSegment, WhisperWord } from './media';
 
 export interface Word {
   word: string;
@@ -28,6 +35,38 @@ const PAUSE_SEC = 1.5;
 const SENTENCE_END = /[.?!…]["'»)\]]*$/;
 /** Whisper's training-data residue: credits and outros it "hears" in silence. */
 const HALLUCINATIONS = /amara\.org|subt[ií]tulos (realizados|por)|suscr[ií]bete/i;
+
+/** How far from its audio WhisperX may put a line (around music in the
+ *  Frozen clip it was 19 s off). Captions farther away are not paired. */
+const MAX_DRIFT_SEC = 30;
+/** A word paired on its own this much farther off than the pairs next to
+ *  it is a coincidence, a common word said elsewhere ("¡Oh!" at the end of
+ *  a 300 s window paired with an "oh" at 310 s), not drift. */
+const MAX_JUMP_SEC = 5;
+/** Below this share of words paired, the captions are of something else
+ *  and WhisperX's times stay. */
+const MIN_PAIRED = 0.3;
+/** A word runs on to the next one across a gap this short. */
+const JOIN_GAP_SEC = 0.3;
+/** Shortest a word lasts when a pause follows it. */
+const MIN_WORD_SEC = 0.1;
+
+/** Lowercase, without the punctuation around it (¿¡ included). */
+const normWord = (w: string) => w.toLocaleLowerCase('es').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+/** Longest a word plausibly lasts, generous for slow or drawn-out speech:
+ *  a longer WhisperX word has swallowed a pause. */
+const maxWordSec = (w: string) => Math.max(0.8, 0.12 * normWord(w).length);
+/** The length such a word is cut back to. */
+const typicalWordSec = (w: string) => Math.max(0.3, 0.1 * normWord(w).length);
+
+export interface LineOptions {
+  /** YouTube's auto captions for the video (media.ts autoCaptions). */
+  captions?: Json3 | null;
+  /** Where the transcribed audio starts in the video (the WAV window's
+   *  startSec). WhisperX times are relative to the WAV, caption times are
+   *  video time; lines come back in video time. */
+  offset?: number;
+}
 
 /** Gives untimed words (digits, symbols the aligner skips) an even share
  *  of the gap between the timed words around them. */
@@ -79,7 +118,125 @@ function splitLong(words: Word[]): Word[][] {
   return out;
 }
 
-export function toLines(segments: WhisperSegment[]): Line[] {
+/** WhisperX stretches a line's edge word over the silence beside it: the
+ *  first word back over the pause before it ("Ahora" 6.4-8.0 s, heard at
+ *  7.8 s), the last on into the pause after it ("servirá." 63.1-65.5 s,
+ *  heard at 63.0 s). Such a word is cut back to a typical length on that
+ *  side. It keeps its start instead when the stretch carries on into the
+ *  next word: then WhisperX lost the words after it, not the pause before
+ *  ("La" 131.2-134.3 s, "escondí" 134.5-136.6 s; heard at 131.1, 131.2).
+ *  A one-word line keeps its start too: of the eight stretched ones in the
+ *  test fixtures, six were heard where they start ("¿Olaf?" 14.7-20.2 s,
+ *  heard at 14.8 s) and two where they end ("¡Ay!" 3.0-5.0 s, at 4.8). */
+function trimEdges(words: Word[]): Word[] {
+  const out = words.map(w => ({ ...w }));
+  const stretched = (w: Word) => w.end - w.start > maxWordSec(w.word);
+  const first = out[0];
+  const last = out[out.length - 1];
+  if (out.length > 1 && stretched(first)) {
+    if (stretched(out[1])) first.end = +(first.start + typicalWordSec(first.word)).toFixed(3);
+    else first.start = +(first.end - typicalWordSec(first.word)).toFixed(3);
+  }
+  if (stretched(last)) last.end = +(last.start + typicalWordSec(last.word)).toFixed(3);
+  return out;
+}
+
+interface CaptionWord {
+  w: string;
+  t: number;
+}
+
+/** The captions' words (normalized) with their onsets in WAV time. Sound
+ *  tags ("[música]") and words before the window are left out. */
+function captionWords(json3: Json3, offset: number): CaptionWord[] {
+  const out: CaptionWord[] = [];
+  for (const e of json3.events ?? []) {
+    for (const s of e.segs ?? []) {
+      const t = ((e.tStartMs ?? 0) + (s.tOffsetMs ?? 0)) / 1000 - offset;
+      for (const tok of (s.utf8 ?? '').split(/\s+/)) {
+        const w = normWord(tok);
+        if (w && t >= 0 && !/^\[.*\]$/.test(tok)) out.push({ w, t });
+      }
+    }
+  }
+  return out;
+}
+
+/** Each word's caption word (index into caps), or -1: the longest common
+ *  subsequence of the two normalized word streams, pairing only words
+ *  within MAX_DRIFT_SEC of each other. A word paired on its own (neither
+ *  neighbour paired with the caption word next to its own) that is more
+ *  than MAX_JUMP_SEC farther off than the pairs around it is unpaired. */
+function align(words: Word[], caps: CaptionWord[]): number[] {
+  const ws = words.map(w => normWord(w.word));
+  const n = ws.length;
+  const m = caps.length;
+  const same = (i: number, j: number) =>
+    ws[i] !== '' && ws[i] === caps[j].w && Math.abs(caps[j].t - words[i].start) <= MAX_DRIFT_SEC;
+  const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = same(i, j) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const pair = new Array<number>(n).fill(-1);
+  for (let i = 0, j = 0; i < n && j < m; ) {
+    if (same(i, j)) pair[i++] = j++;
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+
+  const paired = pair.flatMap((j, i) => (j >= 0 ? [i] : []));
+  const off = (i: number) => caps[pair[i]].t - words[i].start;
+  const lone = paired.filter((i, k) => {
+    const prev = paired[k - 1];
+    const next = paired[k + 1];
+    if ((prev === i - 1 && pair[prev] === pair[i] - 1) || (next === i + 1 && pair[next] === pair[i] + 1)) return false;
+    const jumps = [prev, next].filter(x => x !== undefined).map(x => Math.abs(off(x) - off(i)));
+    return jumps.length > 0 && Math.min(...jumps) > MAX_JUMP_SEC;
+  });
+  for (const i of lone) pair[i] = -1;
+  return pair;
+}
+
+/** Words timed by the captions: a paired word starts at its caption
+ *  word's onset; the words between two paired ones keep their place
+ *  between them (WhisperX's times mapped onto that stretch), and words
+ *  before the first or after the last pair move with it. A word then lasts
+ *  until the next one starts, or as long as WhisperX made it (at most
+ *  maxWordSec) when a pause follows. */
+function retime(words: Word[], caps: CaptionWord[]): Word[] {
+  const pair = align(words, caps);
+  const paired = pair.flatMap((j, i) => (j >= 0 ? [i] : []));
+  if (paired.length < words.length * MIN_PAIRED) return words;
+
+  const start = words.map((w, i) => (pair[i] >= 0 ? caps[pair[i]].t : NaN));
+  for (let k = 0; k <= paired.length; k++) {
+    const a = paired[k - 1];
+    const b = paired[k];
+    for (let i = a === undefined ? 0 : a + 1; i < (b === undefined ? words.length : b); i++) {
+      if (a === undefined) start[i] = Math.max(0, words[i].start + start[b] - words[b].start);
+      else if (b === undefined) start[i] = words[i].start + start[a] - words[a].start;
+      else {
+        const span = words[b].start - words[a].start;
+        let f = span > 0 ? (words[i].start - words[a].start) / span : NaN;
+        if (!(f > 0 && f < 1)) f = (i - a) / (b - a);
+        start[i] = start[a] + f * (start[b] - start[a]);
+      }
+    }
+  }
+
+  return words.map((w, i) => {
+    const next = i + 1 < words.length ? start[i + 1] : Infinity;
+    const own = Math.min(maxWordSec(w.word), Math.max(MIN_WORD_SEC, w.end - w.start));
+    const runsOn = next - (start[i] + own) <= JOIN_GAP_SEC;
+    const end = Math.min(start[i] + maxWordSec(w.word), runsOn ? next : start[i] + own);
+    return { ...w, start: +start[i].toFixed(3), end: +end.toFixed(3) };
+  });
+}
+
+export function toLines(segments: WhisperSegment[], opts: LineOptions = {}): Line[] {
+  const offset = opts.offset ?? 0;
   const flat = segments.flatMap((seg, si) =>
     seg.words.filter(w => w.word.trim()).map(w => ({ ...w, segStart: seg.start, segEnd: seg.end, si })),
   );
@@ -101,10 +258,22 @@ export function toLines(segments: WhisperSegment[]): Line[] {
     }
   });
 
-  return runs
+  let groups = runs
     .flatMap(splitLong)
-    .map(makeLine)
-    .filter(l => /\p{L}/u.test(l.text) && !HALLUCINATIONS.test(l.text));
+    .filter(ws => {
+      const text = ws.map(w => w.word).join(' ');
+      return /\p{L}/u.test(text) && !HALLUCINATIONS.test(text);
+    })
+    .map(trimEdges);
+  if (opts.captions) {
+    // Kept words only, so a hallucinated line cannot pair with real speech.
+    const words = retime(groups.flat(), captionWords(opts.captions, offset));
+    let k = 0;
+    groups = groups.map(ws => words.slice(k, (k += ws.length)));
+  }
+  const toVideo = (w: Word): Word =>
+    offset ? { ...w, start: +(w.start + offset).toFixed(3), end: +(w.end + offset).toFixed(3) } : w;
+  return groups.map(ws => makeLine(ws.map(toVideo)));
 }
 
 const SCENE_MIN = 60;

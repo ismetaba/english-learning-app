@@ -1,0 +1,898 @@
+{
+  "segments": [
+    {
+      "text": "Lista.",
+      "start": 10.418,
+      "end": 10.781,
+      "words": [
+        {
+          "word": "Lista.",
+          "start": 10.418,
+          "end": 10.781,
+          "score": 0.726
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9?",
+      "start": 50.084,
+      "end": 56.568,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9?",
+          "start": 50.084,
+          "end": 56.568,
+          "score": 0.712
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9?",
+      "start": 56.588,
+      "end": 56.948,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9?",
+          "start": 56.588,
+          "end": 56.948,
+          "score": 0.422
+        }
+      ]
+    },
+    {
+      "text": "\u00bfEso es... cabello?",
+      "start": 56.968,
+      "end": 60.671,
+      "words": [
+        {
+          "word": "\u00bfEso",
+          "start": 56.968,
+          "end": 57.369,
+          "score": 0.825
+        },
+        {
+          "word": "es...",
+          "start": 57.649,
+          "end": 58.629,
+          "score": 0.647
+        },
+        {
+          "word": "cabello?",
+          "start": 58.649,
+          "end": 60.671,
+          "score": 0.791
+        }
+      ]
+    },
+    {
+      "text": "Luchar... luchar no te servir\u00e1.",
+      "start": 60.711,
+      "end": 65.514,
+      "words": [
+        {
+          "word": "Luchar...",
+          "start": 60.711,
+          "end": 62.131,
+          "score": 0.873
+        },
+        {
+          "word": "luchar",
+          "start": 62.232,
+          "end": 62.592,
+          "score": 0.962
+        },
+        {
+          "word": "no",
+          "start": 62.712,
+          "end": 62.852,
+          "score": 0.803
+        },
+        {
+          "word": "te",
+          "start": 62.932,
+          "end": 63.032,
+          "score": 0.712
+        },
+        {
+          "word": "servir\u00e1.",
+          "start": 63.092,
+          "end": 65.514,
+          "score": 0.969
+        }
+      ]
+    },
+    {
+      "text": "Ya s\u00e9 qu\u00e9 quieres.",
+      "start": 67.255,
+      "end": 68.495,
+      "words": [
+        {
+          "word": "Ya",
+          "start": 67.255,
+          "end": 67.455,
+          "score": 0.738
+        },
+        {
+          "word": "s\u00e9",
+          "start": 67.495,
+          "end": 67.675,
+          "score": 0.763
+        },
+        {
+          "word": "qu\u00e9",
+          "start": 67.735,
+          "end": 67.835,
+          "score": 0.719
+        },
+        {
+          "word": "quieres.",
+          "start": 67.975,
+          "end": 68.495,
+          "score": 0.843
+        }
+      ]
+    },
+    {
+      "text": "Y no me das miedo, \u00bfo\u00edste?",
+      "start": 69.056,
+      "end": 71.317,
+      "words": [
+        {
+          "word": "Y",
+          "start": 69.056,
+          "end": 69.176,
+          "score": 0.952
+        },
+        {
+          "word": "no",
+          "start": 69.716,
+          "end": 69.816,
+          "score": 0.961
+        },
+        {
+          "word": "me",
+          "start": 69.856,
+          "end": 69.976,
+          "score": 0.981
+        },
+        {
+          "word": "das",
+          "start": 70.437,
+          "end": 70.597,
+          "score": 0.857
+        },
+        {
+          "word": "miedo,",
+          "start": 70.657,
+          "end": 70.917,
+          "score": 0.768
+        },
+        {
+          "word": "\u00bfo\u00edste?",
+          "start": 70.957,
+          "end": 71.317,
+          "score": 0.661
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9?",
+      "start": 72.218,
+      "end": 72.378,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9?",
+          "start": 72.218,
+          "end": 72.378,
+          "score": 0.525
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQui\u00e9n eres?",
+      "start": 82.465,
+      "end": 83.065,
+      "words": [
+        {
+          "word": "\u00bfQui\u00e9n",
+          "start": 82.465,
+          "end": 82.765,
+          "score": 0.344
+        },
+        {
+          "word": "eres?",
+          "start": 82.865,
+          "end": 83.065,
+          "score": 0.276
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQui\u00e9n te ayud\u00f3 a encontrarme?",
+      "start": 83.085,
+      "end": 87.089,
+      "words": [
+        {
+          "word": "\u00bfQui\u00e9n",
+          "start": 83.085,
+          "end": 83.226,
+          "score": 0.102
+        },
+        {
+          "word": "te",
+          "start": 83.286,
+          "end": 84.026,
+          "score": 0.815
+        },
+        {
+          "word": "ayud\u00f3",
+          "start": 84.106,
+          "end": 84.326,
+          "score": 0.291
+        },
+        {
+          "word": "a",
+          "start": 84.647,
+          "end": 84.687,
+          "score": 0.499
+        },
+        {
+          "word": "encontrarme?",
+          "start": 84.727,
+          "end": 87.089,
+          "score": 0.484
+        }
+      ]
+    },
+    {
+      "text": "Aj\u00e1.",
+      "start": 87.169,
+      "end": 89.37,
+      "words": [
+        {
+          "word": "Aj\u00e1.",
+          "start": 87.169,
+          "end": 89.37,
+          "score": 0.85
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQui\u00e9n eres y qui\u00e9n te ayud\u00f3 a encontrarme?",
+      "start": 89.471,
+      "end": 92.733,
+      "words": [
+        {
+          "word": "\u00bfQui\u00e9n",
+          "start": 89.471,
+          "end": 89.851,
+          "score": 0.847
+        },
+        {
+          "word": "eres",
+          "start": 90.271,
+          "end": 90.651,
+          "score": 0.867
+        },
+        {
+          "word": "y",
+          "start": 90.912,
+          "end": 90.972,
+          "score": 0.628
+        },
+        {
+          "word": "qui\u00e9n",
+          "start": 91.152,
+          "end": 91.412,
+          "score": 0.857
+        },
+        {
+          "word": "te",
+          "start": 91.432,
+          "end": 91.552,
+          "score": 0.608
+        },
+        {
+          "word": "ayud\u00f3",
+          "start": 91.612,
+          "end": 91.872,
+          "score": 0.851
+        },
+        {
+          "word": "a",
+          "start": 91.892,
+          "end": 91.912,
+          "score": 0.15
+        },
+        {
+          "word": "encontrarme?",
+          "start": 91.952,
+          "end": 92.733,
+          "score": 0.907
+        }
+      ]
+    },
+    {
+      "text": "Yo no s\u00e9 qui\u00e9n se\u00e1is ni qu\u00e9 treta es la que me trajo aqu\u00ed.",
+      "start": 96.396,
+      "end": 99.919,
+      "words": [
+        {
+          "word": "Yo",
+          "start": 96.396,
+          "end": 96.476,
+          "score": 0.977
+        },
+        {
+          "word": "no",
+          "start": 96.536,
+          "end": 96.596,
+          "score": 0.835
+        },
+        {
+          "word": "s\u00e9",
+          "start": 96.676,
+          "end": 96.776,
+          "score": 0.784
+        },
+        {
+          "word": "qui\u00e9n",
+          "start": 96.836,
+          "end": 97.036,
+          "score": 0.854
+        },
+        {
+          "word": "se\u00e1is",
+          "start": 97.137,
+          "end": 97.697,
+          "score": 0.791
+        },
+        {
+          "word": "ni",
+          "start": 97.997,
+          "end": 98.077,
+          "score": 0.975
+        },
+        {
+          "word": "qu\u00e9",
+          "start": 98.137,
+          "end": 98.257,
+          "score": 0.794
+        },
+        {
+          "word": "treta",
+          "start": 98.358,
+          "end": 98.718,
+          "score": 0.894
+        },
+        {
+          "word": "es",
+          "start": 98.758,
+          "end": 98.838,
+          "score": 0.751
+        },
+        {
+          "word": "la",
+          "start": 98.898,
+          "end": 98.938,
+          "score": 0.998
+        },
+        {
+          "word": "que",
+          "start": 98.998,
+          "end": 99.098,
+          "score": 0.719
+        },
+        {
+          "word": "me",
+          "start": 99.158,
+          "end": 99.218,
+          "score": 0.79
+        },
+        {
+          "word": "trajo",
+          "start": 99.298,
+          "end": 99.578,
+          "score": 0.894
+        },
+        {
+          "word": "aqu\u00ed.",
+          "start": 99.639,
+          "end": 99.919,
+          "score": 0.841
+        }
+      ]
+    },
+    {
+      "text": "Pero me gustar\u00eda decir... Hola.",
+      "start": 100.539,
+      "end": 104.102,
+      "words": [
+        {
+          "word": "Pero",
+          "start": 100.539,
+          "end": 100.699,
+          "score": 0.932
+        },
+        {
+          "word": "me",
+          "start": 100.759,
+          "end": 100.839,
+          "score": 0.985
+        },
+        {
+          "word": "gustar\u00eda",
+          "start": 100.9,
+          "end": 101.44,
+          "score": 0.81
+        },
+        {
+          "word": "decir...",
+          "start": 101.54,
+          "end": 103.722,
+          "score": 0.99
+        },
+        {
+          "word": "Hola.",
+          "start": 103.762,
+          "end": 104.102,
+          "score": 0.808
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9 tal?",
+      "start": 107.825,
+      "end": 108.305,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9",
+          "start": 107.825,
+          "end": 108.005,
+          "score": 0.761
+        },
+        {
+          "word": "tal?",
+          "start": 108.065,
+          "end": 108.305,
+          "score": 0.859
+        }
+      ]
+    },
+    {
+      "text": "Me llamo Flint Ryder.",
+      "start": 109.126,
+      "end": 110.167,
+      "words": [
+        {
+          "word": "Me",
+          "start": 109.126,
+          "end": 109.186,
+          "score": 0.526
+        },
+        {
+          "word": "llamo",
+          "start": 109.206,
+          "end": 109.506,
+          "score": 0.761
+        },
+        {
+          "word": "Flint",
+          "start": 109.546,
+          "end": 109.786,
+          "score": 0.674
+        },
+        {
+          "word": "Ryder.",
+          "start": 109.867,
+          "end": 110.167,
+          "score": 0.778
+        }
+      ]
+    },
+    {
+      "text": "\u00bfC\u00f3mo va todo?",
+      "start": 112.067,
+      "end": 112.507,
+      "words": [
+        {
+          "word": "\u00bfC\u00f3mo",
+          "start": 112.067,
+          "end": 112.287,
+          "score": 0.163
+        },
+        {
+          "word": "va",
+          "start": 112.307,
+          "end": 112.367,
+          "score": 0.082
+        },
+        {
+          "word": "todo?",
+          "start": 112.387,
+          "end": 112.507,
+          "score": 0.349
+        }
+      ]
+    },
+    {
+      "text": "\u00bfEh?",
+      "start": 112.527,
+      "end": 112.767,
+      "words": [
+        {
+          "word": "\u00bfEh?",
+          "start": 112.527,
+          "end": 112.767,
+          "score": 0.615
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9 otro conoce mi ubicaci\u00f3n?",
+      "start": 112.847,
+      "end": 118.349,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9",
+          "start": 112.847,
+          "end": 115.808,
+          "score": 0.483
+        },
+        {
+          "word": "otro",
+          "start": 116.209,
+          "end": 116.449,
+          "score": 0.462
+        },
+        {
+          "word": "conoce",
+          "start": 116.589,
+          "end": 116.809,
+          "score": 0.228
+        },
+        {
+          "word": "mi",
+          "start": 116.829,
+          "end": 116.909,
+          "score": 0.324
+        },
+        {
+          "word": "ubicaci\u00f3n?",
+          "start": 116.929,
+          "end": 118.349,
+          "score": 0.556
+        }
+      ]
+    },
+    {
+      "text": "Flynn Rider.",
+      "start": 118.369,
+      "end": 118.93,
+      "words": [
+        {
+          "word": "Flynn",
+          "start": 118.369,
+          "end": 118.489,
+          "score": 0.106
+        },
+        {
+          "word": "Rider.",
+          "start": 118.529,
+          "end": 118.93,
+          "score": 0.288
+        }
+      ]
+    },
+    {
+      "text": "Quieta, preciosa.",
+      "start": 118.95,
+      "end": 119.67,
+      "words": [
+        {
+          "word": "Quieta,",
+          "start": 118.95,
+          "end": 119.19,
+          "score": 0.763
+        },
+        {
+          "word": "preciosa.",
+          "start": 119.25,
+          "end": 119.67,
+          "score": 0.894
+        }
+      ]
+    },
+    {
+      "text": "Rapunzel.",
+      "start": 119.79,
+      "end": 120.53,
+      "words": [
+        {
+          "word": "Rapunzel.",
+          "start": 119.79,
+          "end": 120.53,
+          "score": 0.761
+        }
+      ]
+    },
+    {
+      "text": "Salud, linda.",
+      "start": 121.23,
+      "end": 121.771,
+      "words": [
+        {
+          "word": "Salud,",
+          "start": 121.23,
+          "end": 121.471,
+          "score": 0.8
+        },
+        {
+          "word": "linda.",
+          "start": 121.531,
+          "end": 121.771,
+          "score": 0.937
+        }
+      ]
+    },
+    {
+      "text": "Te contar\u00e9.",
+      "start": 121.991,
+      "end": 122.531,
+      "words": [
+        {
+          "word": "Te",
+          "start": 121.991,
+          "end": 122.091,
+          "score": 0.582
+        },
+        {
+          "word": "contar\u00e9.",
+          "start": 122.131,
+          "end": 122.531,
+          "score": 0.859
+        }
+      ]
+    },
+    {
+      "text": "Tuve un incidente caminando por el bosque.",
+      "start": 123.111,
+      "end": 125.312,
+      "words": [
+        {
+          "word": "Tuve",
+          "start": 123.111,
+          "end": 123.331,
+          "score": 0.837
+        },
+        {
+          "word": "un",
+          "start": 123.391,
+          "end": 123.471,
+          "score": 0.827
+        },
+        {
+          "word": "incidente",
+          "start": 123.511,
+          "end": 123.972,
+          "score": 0.904
+        },
+        {
+          "word": "caminando",
+          "start": 124.252,
+          "end": 124.692,
+          "score": 0.845
+        },
+        {
+          "word": "por",
+          "start": 124.732,
+          "end": 124.832,
+          "score": 0.995
+        },
+        {
+          "word": "el",
+          "start": 124.892,
+          "end": 124.972,
+          "score": 0.868
+        },
+        {
+          "word": "bosque.",
+          "start": 125.012,
+          "end": 125.312,
+          "score": 0.863
+        }
+      ]
+    },
+    {
+      "text": "Luego vi tu torre y vi... \u00a1Oh!",
+      "start": 125.892,
+      "end": 127.553,
+      "words": [
+        {
+          "word": "Luego",
+          "start": 125.892,
+          "end": 126.092,
+          "score": 0.79
+        },
+        {
+          "word": "vi",
+          "start": 126.172,
+          "end": 126.212,
+          "score": 0.637
+        },
+        {
+          "word": "tu",
+          "start": 126.312,
+          "end": 126.352,
+          "score": 0.776
+        },
+        {
+          "word": "torre",
+          "start": 126.452,
+          "end": 126.733,
+          "score": 0.865
+        },
+        {
+          "word": "y",
+          "start": 126.753,
+          "end": 126.773,
+          "score": 0.008
+        },
+        {
+          "word": "vi...",
+          "start": 126.793,
+          "end": 127.313,
+          "score": 0.727
+        },
+        {
+          "word": "\u00a1Oh!",
+          "start": 127.333,
+          "end": 127.553,
+          "score": 0.488
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Oh, no!",
+      "start": 128.393,
+      "end": 129.794,
+      "words": [
+        {
+          "word": "\u00a1Oh,",
+          "start": 128.393,
+          "end": 129.073,
+          "score": 0.613
+        },
+        {
+          "word": "no!",
+          "start": 129.153,
+          "end": 129.794,
+          "score": 0.844
+        }
+      ]
+    },
+    {
+      "text": "\u00bfD\u00f3nde est\u00e1 mi bolsa?",
+      "start": 129.814,
+      "end": 130.574,
+      "words": [
+        {
+          "word": "\u00bfD\u00f3nde",
+          "start": 129.814,
+          "end": 130.014,
+          "score": 0.716
+        },
+        {
+          "word": "est\u00e1",
+          "start": 130.034,
+          "end": 130.174,
+          "score": 0.818
+        },
+        {
+          "word": "mi",
+          "start": 130.194,
+          "end": 130.274,
+          "score": 0.848
+        },
+        {
+          "word": "bolsa?",
+          "start": 130.314,
+          "end": 130.574,
+          "score": 0.62
+        }
+      ]
+    },
+    {
+      "text": "La escond\u00ed y jam\u00e1s la vas a encontrar.",
+      "start": 131.234,
+      "end": 137.477,
+      "words": [
+        {
+          "word": "La",
+          "start": 131.234,
+          "end": 134.295,
+          "score": 0.928
+        },
+        {
+          "word": "escond\u00ed",
+          "start": 134.516,
+          "end": 136.616,
+          "score": 0.484
+        },
+        {
+          "word": "y",
+          "start": 136.636,
+          "end": 136.656,
+          "score": 0.001
+        },
+        {
+          "word": "jam\u00e1s",
+          "start": 136.676,
+          "end": 136.776,
+          "score": 0.013
+        },
+        {
+          "word": "la",
+          "start": 136.796,
+          "end": 136.876,
+          "score": 0.408
+        },
+        {
+          "word": "vas",
+          "start": 136.896,
+          "end": 136.996,
+          "score": 0.282
+        },
+        {
+          "word": "a",
+          "start": 137.016,
+          "end": 137.036,
+          "score": 0.019
+        },
+        {
+          "word": "encontrar.",
+          "start": 137.076,
+          "end": 137.477,
+          "score": 0.297
+        }
+      ]
+    },
+    {
+      "text": "Est\u00e1 en la vasija, \u00bfno?",
+      "start": 137.517,
+      "end": 138.417,
+      "words": [
+        {
+          "word": "Est\u00e1",
+          "start": 137.517,
+          "end": 137.637,
+          "score": 0.576
+        },
+        {
+          "word": "en",
+          "start": 137.657,
+          "end": 137.697,
+          "score": 0.073
+        },
+        {
+          "word": "la",
+          "start": 137.717,
+          "end": 137.777,
+          "score": 0.859
+        },
+        {
+          "word": "vasija,",
+          "start": 137.817,
+          "end": 138.237,
+          "score": 0.815
+        },
+        {
+          "word": "\u00bfno?",
+          "start": 138.257,
+          "end": 138.417,
+          "score": 0.496
+        }
+      ]
+    }
+  ]
+}

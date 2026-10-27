@@ -1,0 +1,3460 @@
+{
+  "segments": [
+    {
+      "text": "Igual que un lindo beb\u00e9 unicornio, pero... \u00a1Ay!",
+      "start": 0.386,
+      "end": 5.048,
+      "words": [
+        {
+          "word": "Igual",
+          "start": 0.386,
+          "end": 0.706,
+          "score": 0.304
+        },
+        {
+          "word": "que",
+          "start": 0.746,
+          "end": 0.826,
+          "score": 0.65
+        },
+        {
+          "word": "un",
+          "start": 0.846,
+          "end": 0.886,
+          "score": 0.512
+        },
+        {
+          "word": "lindo",
+          "start": 1.026,
+          "end": 1.286,
+          "score": 0.717
+        },
+        {
+          "word": "beb\u00e9",
+          "start": 1.347,
+          "end": 1.627,
+          "score": 0.7
+        },
+        {
+          "word": "unicornio,",
+          "start": 1.687,
+          "end": 2.467,
+          "score": 0.719
+        },
+        {
+          "word": "pero...",
+          "start": 2.607,
+          "end": 2.887,
+          "score": 0.782
+        },
+        {
+          "word": "\u00a1Ay!",
+          "start": 2.967,
+          "end": 5.048,
+          "score": 0.772
+        }
+      ]
+    },
+    {
+      "text": "As\u00ed me gusta mucho m\u00e1s.",
+      "start": 5.148,
+      "end": 6.409,
+      "words": [
+        {
+          "word": "As\u00ed",
+          "start": 5.148,
+          "end": 5.348,
+          "score": 0.938
+        },
+        {
+          "word": "me",
+          "start": 5.408,
+          "end": 5.508,
+          "score": 0.73
+        },
+        {
+          "word": "gusta",
+          "start": 5.568,
+          "end": 5.808,
+          "score": 0.866
+        },
+        {
+          "word": "mucho",
+          "start": 5.868,
+          "end": 6.069,
+          "score": 0.929
+        },
+        {
+          "word": "m\u00e1s.",
+          "start": 6.189,
+          "end": 6.409,
+          "score": 0.825
+        }
+      ]
+    },
+    {
+      "text": "Ahora hay que iniciar otra vez.",
+      "start": 6.429,
+      "end": 9.35,
+      "words": [
+        {
+          "word": "Ahora",
+          "start": 6.429,
+          "end": 7.969,
+          "score": 0.952
+        },
+        {
+          "word": "hay",
+          "start": 8.029,
+          "end": 8.149,
+          "score": 0.759
+        },
+        {
+          "word": "que",
+          "start": 8.189,
+          "end": 8.309,
+          "score": 0.863
+        },
+        {
+          "word": "iniciar",
+          "start": 8.41,
+          "end": 8.81,
+          "score": 0.912
+        },
+        {
+          "word": "otra",
+          "start": 8.87,
+          "end": 9.07,
+          "score": 0.842
+        },
+        {
+          "word": "vez.",
+          "start": 9.13,
+          "end": 9.35,
+          "score": 0.913
+        }
+      ]
+    },
+    {
+      "text": "Hola, \u00bfc\u00f3mo est\u00e1n?",
+      "start": 9.91,
+      "end": 10.771,
+      "words": [
+        {
+          "word": "Hola,",
+          "start": 9.91,
+          "end": 10.17,
+          "score": 0.829
+        },
+        {
+          "word": "\u00bfc\u00f3mo",
+          "start": 10.21,
+          "end": 10.37,
+          "score": 0.642
+        },
+        {
+          "word": "est\u00e1n?",
+          "start": 10.43,
+          "end": 10.771,
+          "score": 0.904
+        }
+      ]
+    },
+    {
+      "text": "Soy Olaf y adoro los abrazos.",
+      "start": 11.131,
+      "end": 13.232,
+      "words": [
+        {
+          "word": "Soy",
+          "start": 11.131,
+          "end": 11.331,
+          "score": 0.87
+        },
+        {
+          "word": "Olaf",
+          "start": 11.371,
+          "end": 11.551,
+          "score": 0.569
+        },
+        {
+          "word": "y",
+          "start": 11.971,
+          "end": 12.031,
+          "score": 0.667
+        },
+        {
+          "word": "adoro",
+          "start": 12.091,
+          "end": 12.431,
+          "score": 0.929
+        },
+        {
+          "word": "los",
+          "start": 12.491,
+          "end": 12.631,
+          "score": 0.794
+        },
+        {
+          "word": "abrazos.",
+          "start": 12.711,
+          "end": 13.232,
+          "score": 0.732
+        }
+      ]
+    },
+    {
+      "text": "\u00bfOlaf?",
+      "start": 14.712,
+      "end": 20.215,
+      "words": [
+        {
+          "word": "\u00bfOlaf?",
+          "start": 14.712,
+          "end": 20.215,
+          "score": 0.695
+        }
+      ]
+    },
+    {
+      "text": "Es cierto, Olaf.",
+      "start": 20.275,
+      "end": 20.855,
+      "words": [
+        {
+          "word": "Es",
+          "start": 20.275,
+          "end": 20.315,
+          "score": 0.027
+        },
+        {
+          "word": "cierto,",
+          "start": 20.355,
+          "end": 20.575,
+          "score": 0.244
+        },
+        {
+          "word": "Olaf.",
+          "start": 20.635,
+          "end": 20.855,
+          "score": 0.169
+        }
+      ]
+    },
+    {
+      "text": "Y t\u00fa eres... Oh, ah, soy Ana.",
+      "start": 22.044,
+      "end": 26.531,
+      "words": [
+        {
+          "word": "Y",
+          "start": 22.044,
+          "end": 22.124,
+          "score": 0.733
+        },
+        {
+          "word": "t\u00fa",
+          "start": 22.405,
+          "end": 22.866,
+          "score": 0.817
+        },
+        {
+          "word": "eres...",
+          "start": 22.986,
+          "end": 23.947,
+          "score": 0.566
+        },
+        {
+          "word": "Oh,",
+          "start": 24.248,
+          "end": 25.75,
+          "score": 0.748
+        },
+        {
+          "word": "ah,",
+          "start": 25.83,
+          "end": 26.071,
+          "score": 0.644
+        },
+        {
+          "word": "soy",
+          "start": 26.111,
+          "end": 26.271,
+          "score": 0.649
+        },
+        {
+          "word": "Ana.",
+          "start": 26.311,
+          "end": 26.531,
+          "score": 0.902
+        }
+      ]
+    },
+    {
+      "text": "Esa criatura de cara larga, dime qui\u00e9n es.",
+      "start": 26.952,
+      "end": 29.015,
+      "words": [
+        {
+          "word": "Esa",
+          "start": 26.952,
+          "end": 27.092,
+          "score": 0.807
+        },
+        {
+          "word": "criatura",
+          "start": 27.172,
+          "end": 27.553,
+          "score": 0.872
+        },
+        {
+          "word": "de",
+          "start": 27.593,
+          "end": 27.673,
+          "score": 0.875
+        },
+        {
+          "word": "cara",
+          "start": 27.753,
+          "end": 27.934,
+          "score": 0.585
+        },
+        {
+          "word": "larga,",
+          "start": 28.014,
+          "end": 28.274,
+          "score": 0.941
+        },
+        {
+          "word": "dime",
+          "start": 28.394,
+          "end": 28.595,
+          "score": 0.578
+        },
+        {
+          "word": "qui\u00e9n",
+          "start": 28.655,
+          "end": 28.815,
+          "score": 0.646
+        },
+        {
+          "word": "es.",
+          "start": 28.855,
+          "end": 29.015,
+          "score": 0.925
+        }
+      ]
+    },
+    {
+      "text": "Es Sven.",
+      "start": 29.336,
+      "end": 29.997,
+      "words": [
+        {
+          "word": "Es",
+          "start": 29.336,
+          "end": 29.456,
+          "score": 0.958
+        },
+        {
+          "word": "Sven.",
+          "start": 29.656,
+          "end": 29.997,
+          "score": 0.686
+        }
+      ]
+    },
+    {
+      "text": "Aj\u00e1.",
+      "start": 30.257,
+      "end": 30.738,
+      "words": [
+        {
+          "word": "Aj\u00e1.",
+          "start": 30.257,
+          "end": 30.738,
+          "score": 0.655
+        }
+      ]
+    },
+    {
+      "text": "\u00bfY qui\u00e9n es el reno?",
+      "start": 30.878,
+      "end": 31.84,
+      "words": [
+        {
+          "word": "\u00bfY",
+          "start": 30.878,
+          "end": 30.978,
+          "score": 0.735
+        },
+        {
+          "word": "qui\u00e9n",
+          "start": 31.058,
+          "end": 31.259,
+          "score": 0.753
+        },
+        {
+          "word": "es",
+          "start": 31.279,
+          "end": 31.379,
+          "score": 0.908
+        },
+        {
+          "word": "el",
+          "start": 31.439,
+          "end": 31.499,
+          "score": 0.972
+        },
+        {
+          "word": "reno?",
+          "start": 31.599,
+          "end": 31.84,
+          "score": 0.81
+        }
+      ]
+    },
+    {
+      "text": "\u00bfBen?",
+      "start": 33.217,
+      "end": 33.797,
+      "words": [
+        {
+          "word": "\u00bfBen?",
+          "start": 33.217,
+          "end": 33.797,
+          "score": 0.713
+        }
+      ]
+    },
+    {
+      "text": "Ah, s\u00ed.",
+      "start": 33.857,
+      "end": 34.358,
+      "words": [
+        {
+          "word": "Ah,",
+          "start": 33.857,
+          "end": 34.058,
+          "score": 0.639
+        },
+        {
+          "word": "s\u00ed.",
+          "start": 34.118,
+          "end": 34.358,
+          "score": 0.65
+        }
+      ]
+    },
+    {
+      "text": "Oh, ok.",
+      "start": 34.418,
+      "end": 35.578,
+      "words": [
+        {
+          "word": "Oh,",
+          "start": 34.418,
+          "end": 34.978,
+          "score": 0.673
+        },
+        {
+          "word": "ok.",
+          "start": 35.058,
+          "end": 35.578,
+          "score": 0.593
+        }
+      ]
+    },
+    {
+      "text": "M\u00e1s sencillo para m\u00ed.",
+      "start": 35.598,
+      "end": 37.559,
+      "words": [
+        {
+          "word": "M\u00e1s",
+          "start": 35.598,
+          "end": 35.738,
+          "score": 0.553
+        },
+        {
+          "word": "sencillo",
+          "start": 35.778,
+          "end": 36.179,
+          "score": 0.618
+        },
+        {
+          "word": "para",
+          "start": 36.259,
+          "end": 36.399,
+          "score": 0.578
+        },
+        {
+          "word": "m\u00ed.",
+          "start": 36.539,
+          "end": 37.559,
+          "score": 0.627
+        }
+      ]
+    },
+    {
+      "text": "Oh, trato de besar mi nariz.",
+      "start": 37.94,
+      "end": 39.38,
+      "words": [
+        {
+          "word": "Oh,",
+          "start": 37.94,
+          "end": 38.24,
+          "score": 0.608
+        },
+        {
+          "word": "trato",
+          "start": 38.28,
+          "end": 38.52,
+          "score": 0.895
+        },
+        {
+          "word": "de",
+          "start": 38.58,
+          "end": 38.64,
+          "score": 0.886
+        },
+        {
+          "word": "besar",
+          "start": 38.68,
+          "end": 38.9,
+          "score": 0.551
+        },
+        {
+          "word": "mi",
+          "start": 38.94,
+          "end": 39.0,
+          "score": 0.467
+        },
+        {
+          "word": "nariz.",
+          "start": 39.04,
+          "end": 39.38,
+          "score": 0.391
+        }
+      ]
+    },
+    {
+      "text": "Eres tan tierno.",
+      "start": 39.52,
+      "end": 40.881,
+      "words": [
+        {
+          "word": "Eres",
+          "start": 39.52,
+          "end": 39.781,
+          "score": 0.65
+        },
+        {
+          "word": "tan",
+          "start": 39.821,
+          "end": 40.021,
+          "score": 0.665
+        },
+        {
+          "word": "tierno.",
+          "start": 40.101,
+          "end": 40.881,
+          "score": 0.665
+        }
+      ]
+    },
+    {
+      "text": "Olaf, dime, \u00bfElsa te cre\u00f3?",
+      "start": 40.941,
+      "end": 43.162,
+      "words": [
+        {
+          "word": "Olaf,",
+          "start": 40.941,
+          "end": 41.882,
+          "score": 0.627
+        },
+        {
+          "word": "dime,",
+          "start": 41.902,
+          "end": 42.142,
+          "score": 0.389
+        },
+        {
+          "word": "\u00bfElsa",
+          "start": 42.162,
+          "end": 42.502,
+          "score": 0.728
+        },
+        {
+          "word": "te",
+          "start": 42.542,
+          "end": 42.622,
+          "score": 0.748
+        },
+        {
+          "word": "cre\u00f3?",
+          "start": 42.662,
+          "end": 43.162,
+          "score": 0.626
+        }
+      ]
+    },
+    {
+      "text": "S\u00ed, \u00bfpor qu\u00e9?",
+      "start": 43.182,
+      "end": 43.823,
+      "words": [
+        {
+          "word": "S\u00ed,",
+          "start": 43.182,
+          "end": 43.502,
+          "score": 0.693
+        },
+        {
+          "word": "\u00bfpor",
+          "start": 43.522,
+          "end": 43.683,
+          "score": 0.842
+        },
+        {
+          "word": "qu\u00e9?",
+          "start": 43.703,
+          "end": 43.823,
+          "score": 0.608
+        }
+      ]
+    },
+    {
+      "text": "\u00bfSabes d\u00f3nde est\u00e1?",
+      "start": 44.323,
+      "end": 44.983,
+      "words": [
+        {
+          "word": "\u00bfSabes",
+          "start": 44.323,
+          "end": 44.583,
+          "score": 0.645
+        },
+        {
+          "word": "d\u00f3nde",
+          "start": 44.623,
+          "end": 44.803,
+          "score": 0.596
+        },
+        {
+          "word": "est\u00e1?",
+          "start": 44.843,
+          "end": 44.983,
+          "score": 0.608
+        }
+      ]
+    },
+    {
+      "text": "Fascinante.",
+      "start": 45.043,
+      "end": 45.544,
+      "words": [
+        {
+          "word": "Fascinante.",
+          "start": 45.043,
+          "end": 45.544,
+          "score": 0.478
+        }
+      ]
+    },
+    {
+      "text": "S\u00ed, \u00bfpor qu\u00e9?",
+      "start": 45.564,
+      "end": 46.184,
+      "words": [
+        {
+          "word": "S\u00ed,",
+          "start": 45.564,
+          "end": 45.864,
+          "score": 0.667
+        },
+        {
+          "word": "\u00bfpor",
+          "start": 45.884,
+          "end": 46.044,
+          "score": 0.774
+        },
+        {
+          "word": "qu\u00e9?",
+          "start": 46.064,
+          "end": 46.184,
+          "score": 0.493
+        }
+      ]
+    },
+    {
+      "text": "\u00bfPuedes llevarnos con ella, Olaf?",
+      "start": 46.204,
+      "end": 48.105,
+      "words": [
+        {
+          "word": "\u00bfPuedes",
+          "start": 46.204,
+          "end": 46.724,
+          "score": 0.824
+        },
+        {
+          "word": "llevarnos",
+          "start": 46.784,
+          "end": 47.164,
+          "score": 0.934
+        },
+        {
+          "word": "con",
+          "start": 47.224,
+          "end": 47.324,
+          "score": 0.963
+        },
+        {
+          "word": "ella,",
+          "start": 47.384,
+          "end": 47.585,
+          "score": 0.642
+        },
+        {
+          "word": "Olaf?",
+          "start": 47.605,
+          "end": 48.105,
+          "score": 0.574
+        }
+      ]
+    },
+    {
+      "text": "S\u00ed, \u00bfpor qu\u00e9?",
+      "start": 48.125,
+      "end": 48.785,
+      "words": [
+        {
+          "word": "S\u00ed,",
+          "start": 48.125,
+          "end": 48.365,
+          "score": 0.665
+        },
+        {
+          "word": "\u00bfpor",
+          "start": 48.385,
+          "end": 48.525,
+          "score": 0.774
+        },
+        {
+          "word": "qu\u00e9?",
+          "start": 48.545,
+          "end": 48.785,
+          "score": 0.692
+        }
+      ]
+    },
+    {
+      "text": "\u00bfC\u00f3mo funciona?",
+      "start": 48.805,
+      "end": 49.666,
+      "words": [
+        {
+          "word": "\u00bfC\u00f3mo",
+          "start": 48.805,
+          "end": 49.105,
+          "score": 0.753
+        },
+        {
+          "word": "funciona?",
+          "start": 49.185,
+          "end": 49.666,
+          "score": 0.902
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Au!",
+      "start": 49.686,
+      "end": 50.446,
+      "words": [
+        {
+          "word": "\u00a1Au!",
+          "start": 49.686,
+          "end": 50.446,
+          "score": 0.83
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Ya basta, Sven!",
+      "start": 50.466,
+      "end": 51.487,
+      "words": [
+        {
+          "word": "\u00a1Ya",
+          "start": 50.466,
+          "end": 50.666,
+          "score": 0.895
+        },
+        {
+          "word": "basta,",
+          "start": 50.786,
+          "end": 51.186,
+          "score": 0.883
+        },
+        {
+          "word": "Sven!",
+          "start": 51.206,
+          "end": 51.487,
+          "score": 0.78
+        }
+      ]
+    },
+    {
+      "text": "\u00a1No me distraigas!",
+      "start": 51.507,
+      "end": 52.487,
+      "words": [
+        {
+          "word": "\u00a1No",
+          "start": 51.507,
+          "end": 51.747,
+          "score": 0.957
+        },
+        {
+          "word": "me",
+          "start": 51.807,
+          "end": 51.887,
+          "score": 0.735
+        },
+        {
+          "word": "distraigas!",
+          "start": 51.907,
+          "end": 52.487,
+          "score": 0.882
+        }
+      ]
+    },
+    {
+      "text": "Yo solo hablar\u00e9 con mi hermana Elsa.",
+      "start": 53.047,
+      "end": 54.868,
+      "words": [
+        {
+          "word": "Yo",
+          "start": 53.047,
+          "end": 53.228,
+          "score": 0.772
+        },
+        {
+          "word": "solo",
+          "start": 53.248,
+          "end": 53.488,
+          "score": 0.585
+        },
+        {
+          "word": "hablar\u00e9",
+          "start": 53.508,
+          "end": 53.888,
+          "score": 0.538
+        },
+        {
+          "word": "con",
+          "start": 53.908,
+          "end": 54.028,
+          "score": 0.795
+        },
+        {
+          "word": "mi",
+          "start": 54.068,
+          "end": 54.108,
+          "score": 0.742
+        },
+        {
+          "word": "hermana",
+          "start": 54.148,
+          "end": 54.488,
+          "score": 0.77
+        },
+        {
+          "word": "Elsa.",
+          "start": 54.608,
+          "end": 54.868,
+          "score": 0.86
+        }
+      ]
+    },
+    {
+      "text": "\u00bfEse es tu plan?",
+      "start": 54.888,
+      "end": 56.029,
+      "words": [
+        {
+          "word": "\u00bfEse",
+          "start": 54.888,
+          "end": 55.489,
+          "score": 0.838
+        },
+        {
+          "word": "es",
+          "start": 55.569,
+          "end": 55.629,
+          "score": 0.89
+        },
+        {
+          "word": "tu",
+          "start": 55.649,
+          "end": 55.749,
+          "score": 0.833
+        },
+        {
+          "word": "plan?",
+          "start": 55.809,
+          "end": 56.029,
+          "score": 0.925
+        }
+      ]
+    },
+    {
+      "text": "\u00bfMi empleo depende de que Charles con tu hermana?",
+      "start": 56.429,
+      "end": 58.39,
+      "words": [
+        {
+          "word": "\u00bfMi",
+          "start": 56.429,
+          "end": 56.549,
+          "score": 0.82
+        },
+        {
+          "word": "empleo",
+          "start": 56.609,
+          "end": 56.889,
+          "score": 0.92
+        },
+        {
+          "word": "depende",
+          "start": 56.969,
+          "end": 57.29,
+          "score": 0.751
+        },
+        {
+          "word": "de",
+          "start": 57.31,
+          "end": 57.39,
+          "score": 0.597
+        },
+        {
+          "word": "que",
+          "start": 57.43,
+          "end": 57.51,
+          "score": 0.857
+        },
+        {
+          "word": "Charles",
+          "start": 57.55,
+          "end": 57.83,
+          "score": 0.874
+        },
+        {
+          "word": "con",
+          "start": 57.89,
+          "end": 57.97,
+          "score": 0.936
+        },
+        {
+          "word": "tu",
+          "start": 57.99,
+          "end": 58.05,
+          "score": 0.257
+        },
+        {
+          "word": "hermana?",
+          "start": 58.07,
+          "end": 58.39,
+          "score": 0.558
+        }
+      ]
+    },
+    {
+      "text": "\u00bfEso es en serio?",
+      "start": 58.41,
+      "end": 59.071,
+      "words": [
+        {
+          "word": "\u00bfEso",
+          "start": 58.41,
+          "end": 58.53,
+          "score": 0.526
+        },
+        {
+          "word": "es",
+          "start": 58.57,
+          "end": 58.65,
+          "score": 0.875
+        },
+        {
+          "word": "en",
+          "start": 58.71,
+          "end": 58.75,
+          "score": 0.915
+        },
+        {
+          "word": "serio?",
+          "start": 58.81,
+          "end": 59.071,
+          "score": 0.857
+        }
+      ]
+    },
+    {
+      "text": "As\u00ed es.",
+      "start": 59.331,
+      "end": 59.831,
+      "words": [
+        {
+          "word": "As\u00ed",
+          "start": 59.331,
+          "end": 59.591,
+          "score": 0.704
+        },
+        {
+          "word": "es.",
+          "start": 59.671,
+          "end": 59.831,
+          "score": 0.572
+        }
+      ]
+    },
+    {
+      "text": "\u00bfEst\u00e1s segura que no le tienes miedo?",
+      "start": 61.456,
+      "end": 62.837,
+      "words": [
+        {
+          "word": "\u00bfEst\u00e1s",
+          "start": 61.456,
+          "end": 61.576,
+          "score": 0.128
+        },
+        {
+          "word": "segura",
+          "start": 61.596,
+          "end": 61.796,
+          "score": 0.601
+        },
+        {
+          "word": "que",
+          "start": 61.836,
+          "end": 61.896,
+          "score": 0.978
+        },
+        {
+          "word": "no",
+          "start": 61.936,
+          "end": 62.016,
+          "score": 0.812
+        },
+        {
+          "word": "le",
+          "start": 62.056,
+          "end": 62.136,
+          "score": 0.885
+        },
+        {
+          "word": "tienes",
+          "start": 62.196,
+          "end": 62.476,
+          "score": 0.721
+        },
+        {
+          "word": "miedo?",
+          "start": 62.516,
+          "end": 62.837,
+          "score": 0.669
+        }
+      ]
+    },
+    {
+      "text": "\u00bfPor qu\u00e9 tendr\u00eda miedo?",
+      "start": 62.857,
+      "end": 63.977,
+      "words": [
+        {
+          "word": "\u00bfPor",
+          "start": 62.857,
+          "end": 63.257,
+          "score": 0.987
+        },
+        {
+          "word": "qu\u00e9",
+          "start": 63.297,
+          "end": 63.377,
+          "score": 0.568
+        },
+        {
+          "word": "tendr\u00eda",
+          "start": 63.457,
+          "end": 63.677,
+          "score": 0.692
+        },
+        {
+          "word": "miedo?",
+          "start": 63.717,
+          "end": 63.977,
+          "score": 0.781
+        }
+      ]
+    },
+    {
+      "text": "S\u00ed, apuesto a que es muy gentil, tierna, amable y ben\u00e9vola.",
+      "start": 64.217,
+      "end": 69.599,
+      "words": [
+        {
+          "word": "S\u00ed,",
+          "start": 64.217,
+          "end": 64.657,
+          "score": 0.672
+        },
+        {
+          "word": "apuesto",
+          "start": 65.057,
+          "end": 65.518,
+          "score": 0.863
+        },
+        {
+          "word": "a",
+          "start": 65.558,
+          "end": 65.598,
+          "score": 0.486
+        },
+        {
+          "word": "que",
+          "start": 65.658,
+          "end": 65.778,
+          "score": 0.625
+        },
+        {
+          "word": "es",
+          "start": 65.818,
+          "end": 65.918,
+          "score": 0.813
+        },
+        {
+          "word": "muy",
+          "start": 65.958,
+          "end": 66.078,
+          "score": 0.822
+        },
+        {
+          "word": "gentil,",
+          "start": 66.138,
+          "end": 66.738,
+          "score": 0.861
+        },
+        {
+          "word": "tierna,",
+          "start": 66.918,
+          "end": 67.738,
+          "score": 0.657
+        },
+        {
+          "word": "amable",
+          "start": 67.919,
+          "end": 68.619,
+          "score": 0.792
+        },
+        {
+          "word": "y",
+          "start": 68.699,
+          "end": 68.779,
+          "score": 0.814
+        },
+        {
+          "word": "ben\u00e9vola.",
+          "start": 68.839,
+          "end": 69.599,
+          "score": 0.905
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9 creen?",
+      "start": 70.319,
+      "end": 71.12,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9",
+          "start": 70.319,
+          "end": 70.62,
+          "score": 0.706
+        },
+        {
+          "word": "creen?",
+          "start": 70.74,
+          "end": 71.12,
+          "score": 0.608
+        }
+      ]
+    },
+    {
+      "text": "Ya me flecharon.",
+      "start": 71.8,
+      "end": 73.281,
+      "words": [
+        {
+          "word": "Ya",
+          "start": 71.8,
+          "end": 72.02,
+          "score": 0.658
+        },
+        {
+          "word": "me",
+          "start": 72.04,
+          "end": 72.12,
+          "score": 0.708
+        },
+        {
+          "word": "flecharon.",
+          "start": 72.2,
+          "end": 73.281,
+          "score": 0.793
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Me hace falta ejercicio!",
+      "start": 73.621,
+      "end": 75.602,
+      "words": [
+        {
+          "word": "\u00a1Me",
+          "start": 73.621,
+          "end": 74.561,
+          "score": 0.65
+        },
+        {
+          "word": "hace",
+          "start": 74.581,
+          "end": 74.761,
+          "score": 0.435
+        },
+        {
+          "word": "falta",
+          "start": 74.781,
+          "end": 74.981,
+          "score": 0.453
+        },
+        {
+          "word": "ejercicio!",
+          "start": 75.021,
+          "end": 75.602,
+          "score": 0.797
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Hey, Ana!",
+      "start": 81.638,
+      "end": 82.558,
+      "words": [
+        {
+          "word": "\u00a1Hey,",
+          "start": 81.638,
+          "end": 82.178,
+          "score": 0.471
+        },
+        {
+          "word": "Ana!",
+          "start": 82.258,
+          "end": 82.558,
+          "score": 0.599
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Spen!",
+      "start": 82.578,
+      "end": 83.718,
+      "words": [
+        {
+          "word": "\u00a1Spen!",
+          "start": 82.578,
+          "end": 83.718,
+          "score": 0.632
+        }
+      ]
+    },
+    {
+      "text": "Oigan, \u00bfd\u00f3nde est\u00e1n?",
+      "start": 83.898,
+      "end": 84.919,
+      "words": [
+        {
+          "word": "Oigan,",
+          "start": 83.898,
+          "end": 84.138,
+          "score": 0.587
+        },
+        {
+          "word": "\u00bfd\u00f3nde",
+          "start": 84.158,
+          "end": 84.398,
+          "score": 0.533
+        },
+        {
+          "word": "est\u00e1n?",
+          "start": 84.418,
+          "end": 84.919,
+          "score": 0.748
+        }
+      ]
+    },
+    {
+      "text": "Ya dejamos a Malvavisco muy atr\u00e1s.",
+      "start": 84.939,
+      "end": 87.039,
+      "words": [
+        {
+          "word": "Ya",
+          "start": 84.939,
+          "end": 84.999,
+          "score": 0.372
+        },
+        {
+          "word": "dejamos",
+          "start": 85.039,
+          "end": 85.359,
+          "score": 0.683
+        },
+        {
+          "word": "a",
+          "start": 85.399,
+          "end": 85.439,
+          "score": 0.623
+        },
+        {
+          "word": "Malvavisco",
+          "start": 85.459,
+          "end": 86.019,
+          "score": 0.735
+        },
+        {
+          "word": "muy",
+          "start": 86.119,
+          "end": 86.259,
+          "score": 0.824
+        },
+        {
+          "word": "atr\u00e1s.",
+          "start": 86.319,
+          "end": 87.039,
+          "score": 0.634
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Hola!",
+      "start": 87.099,
+      "end": 87.519,
+      "words": [
+        {
+          "word": "\u00a1Hola!",
+          "start": 87.099,
+          "end": 87.519,
+          "score": 0.509
+        }
+      ]
+    },
+    {
+      "text": "Justo est\u00e1bamos hablando de ti.",
+      "start": 88.739,
+      "end": 90.399,
+      "words": [
+        {
+          "word": "Justo",
+          "start": 88.739,
+          "end": 88.959,
+          "score": 0.654
+        },
+        {
+          "word": "est\u00e1bamos",
+          "start": 89.019,
+          "end": 89.359,
+          "score": 0.78
+        },
+        {
+          "word": "hablando",
+          "start": 89.399,
+          "end": 89.659,
+          "score": 0.766
+        },
+        {
+          "word": "de",
+          "start": 89.699,
+          "end": 89.779,
+          "score": 0.943
+        },
+        {
+          "word": "ti.",
+          "start": 89.879,
+          "end": 90.399,
+          "score": 0.682
+        }
+      ]
+    },
+    {
+      "text": "Cosas buenas, cosas buenas.",
+      "start": 90.439,
+      "end": 92.18,
+      "words": [
+        {
+          "word": "Cosas",
+          "start": 90.439,
+          "end": 90.76,
+          "score": 0.846
+        },
+        {
+          "word": "buenas,",
+          "start": 90.82,
+          "end": 91.42,
+          "score": 0.756
+        },
+        {
+          "word": "cosas",
+          "start": 91.5,
+          "end": 91.84,
+          "score": 0.809
+        },
+        {
+          "word": "buenas.",
+          "start": 91.9,
+          "end": 92.18,
+          "score": 0.68
+        }
+      ]
+    },
+    {
+      "text": "\u00a1No!",
+      "start": 96.12,
+      "end": 97.341,
+      "words": [
+        {
+          "word": "\u00a1No!",
+          "start": 96.12,
+          "end": 97.341,
+          "score": 0.709
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Esto no va a servir de mucho, \u00bfcierto?",
+      "start": 97.361,
+      "end": 100.081,
+      "words": [
+        {
+          "word": "\u00a1Esto",
+          "start": 97.361,
+          "end": 97.621,
+          "score": 0.762
+        },
+        {
+          "word": "no",
+          "start": 97.681,
+          "end": 97.781,
+          "score": 0.77
+        },
+        {
+          "word": "va",
+          "start": 97.861,
+          "end": 98.021,
+          "score": 0.26
+        },
+        {
+          "word": "a",
+          "start": 98.081,
+          "end": 98.121,
+          "score": 0.585
+        },
+        {
+          "word": "servir",
+          "start": 98.181,
+          "end": 98.681,
+          "score": 0.868
+        },
+        {
+          "word": "de",
+          "start": 98.721,
+          "end": 98.881,
+          "score": 0.656
+        },
+        {
+          "word": "mucho,",
+          "start": 99.041,
+          "end": 99.501,
+          "score": 0.506
+        },
+        {
+          "word": "\u00bfcierto?",
+          "start": 99.521,
+          "end": 100.081,
+          "score": 0.86
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Presistan, amigos!",
+      "start": 103.282,
+      "end": 104.722,
+      "words": [
+        {
+          "word": "\u00a1Presistan,",
+          "start": 103.282,
+          "end": 104.182,
+          "score": 0.582
+        },
+        {
+          "word": "amigos!",
+          "start": 104.262,
+          "end": 104.722,
+          "score": 0.754
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Deprote!",
+      "start": 104.742,
+      "end": 105.662,
+      "words": [
+        {
+          "word": "\u00a1Deprote!",
+          "start": 104.742,
+          "end": 105.662,
+          "score": 0.624
+        }
+      ]
+    },
+    {
+      "text": "No lo haremos.",
+      "start": 105.962,
+      "end": 108.963,
+      "words": [
+        {
+          "word": "No",
+          "start": 105.962,
+          "end": 108.443,
+          "score": 0.904
+        },
+        {
+          "word": "lo",
+          "start": 108.463,
+          "end": 108.603,
+          "score": 0.606
+        },
+        {
+          "word": "haremos.",
+          "start": 108.623,
+          "end": 108.963,
+          "score": 0.482
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Ah!",
+      "start": 109.043,
+      "end": 109.283,
+      "words": [
+        {
+          "word": "\u00a1Ah!",
+          "start": 109.043,
+          "end": 109.283,
+          "score": 0.228
+        }
+      ]
+    },
+    {
+      "text": "Oye, ten\u00edas raz\u00f3n.",
+      "start": 116.67,
+      "end": 118.411,
+      "words": [
+        {
+          "word": "Oye,",
+          "start": 116.67,
+          "end": 117.771,
+          "score": 0.53
+        },
+        {
+          "word": "ten\u00edas",
+          "start": 117.811,
+          "end": 118.051,
+          "score": 0.644
+        },
+        {
+          "word": "raz\u00f3n.",
+          "start": 118.091,
+          "end": 118.411,
+          "score": 0.677
+        }
+      ]
+    },
+    {
+      "text": "Igual que una almohada.",
+      "start": 118.771,
+      "end": 119.712,
+      "words": [
+        {
+          "word": "Igual",
+          "start": 118.771,
+          "end": 119.051,
+          "score": 0.757
+        },
+        {
+          "word": "que",
+          "start": 119.071,
+          "end": 119.151,
+          "score": 0.856
+        },
+        {
+          "word": "una",
+          "start": 119.292,
+          "end": 119.392,
+          "score": 0.923
+        },
+        {
+          "word": "almohada.",
+          "start": 119.432,
+          "end": 119.712,
+          "score": 0.503
+        }
+      ]
+    },
+    {
+      "text": "\u00bfOlaf?",
+      "start": 119.732,
+      "end": 122.493,
+      "words": [
+        {
+          "word": "\u00bfOlaf?",
+          "start": 119.732,
+          "end": 122.493,
+          "score": 0.729
+        }
+      ]
+    },
+    {
+      "text": "No siento mis piernas.",
+      "start": 122.553,
+      "end": 123.794,
+      "words": [
+        {
+          "word": "No",
+          "start": 122.553,
+          "end": 122.654,
+          "score": 0.648
+        },
+        {
+          "word": "siento",
+          "start": 122.714,
+          "end": 123.014,
+          "score": 0.666
+        },
+        {
+          "word": "mis",
+          "start": 123.034,
+          "end": 123.194,
+          "score": 0.509
+        },
+        {
+          "word": "piernas.",
+          "start": 123.234,
+          "end": 123.794,
+          "score": 0.592
+        }
+      ]
+    },
+    {
+      "text": "\u00a1No siento mis piernas!",
+      "start": 123.814,
+      "end": 126.996,
+      "words": [
+        {
+          "word": "\u00a1No",
+          "start": 123.814,
+          "end": 123.954,
+          "score": 0.411
+        },
+        {
+          "word": "siento",
+          "start": 123.994,
+          "end": 124.254,
+          "score": 0.595
+        },
+        {
+          "word": "mis",
+          "start": 124.294,
+          "end": 124.435,
+          "score": 0.592
+        },
+        {
+          "word": "piernas!",
+          "start": 124.475,
+          "end": 126.996,
+          "score": 0.641
+        }
+      ]
+    },
+    {
+      "text": "Estas son m\u00edas.",
+      "start": 127.016,
+      "end": 127.736,
+      "words": [
+        {
+          "word": "Estas",
+          "start": 127.016,
+          "end": 127.196,
+          "score": 0.777
+        },
+        {
+          "word": "son",
+          "start": 127.256,
+          "end": 127.396,
+          "score": 0.896
+        },
+        {
+          "word": "m\u00edas.",
+          "start": 127.456,
+          "end": 127.736,
+          "score": 0.912
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Ey, por favor, dame mi trasero!",
+      "start": 127.756,
+      "end": 129.818,
+      "words": [
+        {
+          "word": "\u00a1Ey,",
+          "start": 127.756,
+          "end": 128.517,
+          "score": 0.642
+        },
+        {
+          "word": "por",
+          "start": 128.537,
+          "end": 128.617,
+          "score": 0.088
+        },
+        {
+          "word": "favor,",
+          "start": 128.637,
+          "end": 128.937,
+          "score": 0.562
+        },
+        {
+          "word": "dame",
+          "start": 128.957,
+          "end": 129.097,
+          "score": 0.52
+        },
+        {
+          "word": "mi",
+          "start": 129.137,
+          "end": 129.217,
+          "score": 0.688
+        },
+        {
+          "word": "trasero!",
+          "start": 129.237,
+          "end": 129.818,
+          "score": 0.78
+        }
+      ]
+    },
+    {
+      "text": "Ya me siento mejor.",
+      "start": 130.198,
+      "end": 131.939,
+      "words": [
+        {
+          "word": "Ya",
+          "start": 130.198,
+          "end": 131.239,
+          "score": 0.582
+        },
+        {
+          "word": "me",
+          "start": 131.259,
+          "end": 131.339,
+          "score": 0.767
+        },
+        {
+          "word": "siento",
+          "start": 131.379,
+          "end": 131.559,
+          "score": 0.658
+        },
+        {
+          "word": "mejor.",
+          "start": 131.659,
+          "end": 131.939,
+          "score": 0.502
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Hola, Sven!",
+      "start": 132.019,
+      "end": 133.72,
+      "words": [
+        {
+          "word": "\u00a1Hola,",
+          "start": 132.019,
+          "end": 132.719,
+          "score": 0.532
+        },
+        {
+          "word": "Sven!",
+          "start": 133.28,
+          "end": 133.72,
+          "score": 0.698
+        }
+      ]
+    },
+    {
+      "text": "\u00a1\u00c9l nos encontr\u00f3!",
+      "start": 133.9,
+      "end": 134.841,
+      "words": [
+        {
+          "word": "\u00a1\u00c9l",
+          "start": 133.9,
+          "end": 134.24,
+          "score": 0.732
+        },
+        {
+          "word": "nos",
+          "start": 134.32,
+          "end": 134.38,
+          "score": 0.008
+        },
+        {
+          "word": "encontr\u00f3!",
+          "start": 134.4,
+          "end": 134.841,
+          "score": 0.827
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQui\u00e9n es mi renault lindo y tierno?",
+      "start": 134.861,
+      "end": 136.882,
+      "words": [
+        {
+          "word": "\u00bfQui\u00e9n",
+          "start": 134.861,
+          "end": 135.521,
+          "score": 0.663
+        },
+        {
+          "word": "es",
+          "start": 135.561,
+          "end": 135.641,
+          "score": 0.548
+        },
+        {
+          "word": "mi",
+          "start": 135.681,
+          "end": 135.781,
+          "score": 0.634
+        },
+        {
+          "word": "renault",
+          "start": 135.821,
+          "end": 136.121,
+          "score": 0.336
+        },
+        {
+          "word": "lindo",
+          "start": 136.141,
+          "end": 136.361,
+          "score": 0.364
+        },
+        {
+          "word": "y",
+          "start": 136.402,
+          "end": 136.442,
+          "score": 0.435
+        },
+        {
+          "word": "tierno?",
+          "start": 136.502,
+          "end": 136.882,
+          "score": 0.64
+        }
+      ]
+    },
+    {
+      "text": "Ey, no le hables as\u00ed.",
+      "start": 137.042,
+      "end": 138.583,
+      "words": [
+        {
+          "word": "Ey,",
+          "start": 137.042,
+          "end": 137.442,
+          "score": 0.694
+        },
+        {
+          "word": "no",
+          "start": 137.462,
+          "end": 137.522,
+          "score": 0.377
+        },
+        {
+          "word": "le",
+          "start": 137.582,
+          "end": 137.662,
+          "score": 0.928
+        },
+        {
+          "word": "hables",
+          "start": 137.682,
+          "end": 137.902,
+          "score": 0.533
+        },
+        {
+          "word": "as\u00ed.",
+          "start": 137.982,
+          "end": 138.583,
+          "score": 0.643
+        }
+      ]
+    },
+    {
+      "text": "Me hace cosquilla.",
+      "start": 138.623,
+      "end": 140.844,
+      "words": [
+        {
+          "word": "Me",
+          "start": 138.623,
+          "end": 138.703,
+          "score": 0.554
+        },
+        {
+          "word": "hace",
+          "start": 138.743,
+          "end": 139.103,
+          "score": 0.653
+        },
+        {
+          "word": "cosquilla.",
+          "start": 139.143,
+          "end": 140.844,
+          "score": 0.626
+        }
+      ]
+    },
+    {
+      "text": "Te presento a mi familia.",
+      "start": 140.884,
+      "end": 141.985,
+      "words": [
+        {
+          "word": "Te",
+          "start": 140.884,
+          "end": 140.964,
+          "score": 0.813
+        },
+        {
+          "word": "presento",
+          "start": 141.044,
+          "end": 141.424,
+          "score": 0.913
+        },
+        {
+          "word": "a",
+          "start": 141.444,
+          "end": 141.464,
+          "score": 0.249
+        },
+        {
+          "word": "mi",
+          "start": 141.524,
+          "end": 141.605,
+          "score": 0.824
+        },
+        {
+          "word": "familia.",
+          "start": 141.645,
+          "end": 141.985,
+          "score": 0.911
+        }
+      ]
+    },
+    {
+      "text": "Hola, chicos.",
+      "start": 143.455,
+      "end": 145.637,
+      "words": [
+        {
+          "word": "Hola,",
+          "start": 143.455,
+          "end": 143.615,
+          "score": 0.236
+        },
+        {
+          "word": "chicos.",
+          "start": 143.755,
+          "end": 145.637,
+          "score": 0.417
+        }
+      ]
+    },
+    {
+      "text": "Son rocas.",
+      "start": 145.858,
+      "end": 146.458,
+      "words": [
+        {
+          "word": "Son",
+          "start": 145.858,
+          "end": 145.958,
+          "score": 0.222
+        },
+        {
+          "word": "rocas.",
+          "start": 146.118,
+          "end": 146.458,
+          "score": 0.407
+        }
+      ]
+    },
+    {
+      "text": "No saben cu\u00e1nto los extra\u00f1\u00e9.",
+      "start": 146.478,
+      "end": 148.48,
+      "words": [
+        {
+          "word": "No",
+          "start": 146.478,
+          "end": 146.558,
+          "score": 0.744
+        },
+        {
+          "word": "saben",
+          "start": 146.638,
+          "end": 146.919,
+          "score": 0.789
+        },
+        {
+          "word": "cu\u00e1nto",
+          "start": 147.019,
+          "end": 147.359,
+          "score": 0.858
+        },
+        {
+          "word": "los",
+          "start": 147.439,
+          "end": 147.539,
+          "score": 0.814
+        },
+        {
+          "word": "extra\u00f1\u00e9.",
+          "start": 147.619,
+          "end": 148.48,
+          "score": 0.761
+        }
+      ]
+    },
+    {
+      "text": "Est\u00e1 loco.",
+      "start": 149.021,
+      "end": 149.782,
+      "words": [
+        {
+          "word": "Est\u00e1",
+          "start": 149.021,
+          "end": 149.461,
+          "score": 0.794
+        },
+        {
+          "word": "loco.",
+          "start": 149.481,
+          "end": 149.782,
+          "score": 0.536
+        }
+      ]
+    },
+    {
+      "text": "Yo lo distraigo mientras corres.",
+      "start": 149.842,
+      "end": 151.263,
+      "words": [
+        {
+          "word": "Yo",
+          "start": 149.842,
+          "end": 149.942,
+          "score": 0.845
+        },
+        {
+          "word": "lo",
+          "start": 150.082,
+          "end": 150.142,
+          "score": 0.5
+        },
+        {
+          "word": "distraigo",
+          "start": 150.162,
+          "end": 150.622,
+          "score": 0.421
+        },
+        {
+          "word": "mientras",
+          "start": 150.703,
+          "end": 150.883,
+          "score": 0.178
+        },
+        {
+          "word": "corres.",
+          "start": 150.963,
+          "end": 151.263,
+          "score": 0.531
+        }
+      ]
+    },
+    {
+      "text": "Hola, familia de Sven.",
+      "start": 161.168,
+      "end": 162.89,
+      "words": [
+        {
+          "word": "Hola,",
+          "start": 161.168,
+          "end": 161.508,
+          "score": 0.72
+        },
+        {
+          "word": "familia",
+          "start": 161.609,
+          "end": 162.089,
+          "score": 0.902
+        },
+        {
+          "word": "de",
+          "start": 162.149,
+          "end": 162.209,
+          "score": 0.892
+        },
+        {
+          "word": "Sven.",
+          "start": 162.289,
+          "end": 162.89,
+          "score": 0.772
+        }
+      ]
+    },
+    {
+      "text": "Qu\u00e9 lindo conocerlos.",
+      "start": 163.27,
+      "end": 165.592,
+      "words": [
+        {
+          "word": "Qu\u00e9",
+          "start": 163.27,
+          "end": 163.41,
+          "score": 0.713
+        },
+        {
+          "word": "lindo",
+          "start": 163.59,
+          "end": 163.99,
+          "score": 0.881
+        },
+        {
+          "word": "conocerlos.",
+          "start": 164.13,
+          "end": 165.592,
+          "score": 0.865
+        }
+      ]
+    },
+    {
+      "text": "\u00bfPor qu\u00e9 te quiero, Ana?",
+      "start": 165.612,
+      "end": 166.853,
+      "words": [
+        {
+          "word": "\u00bfPor",
+          "start": 165.612,
+          "end": 165.972,
+          "score": 0.983
+        },
+        {
+          "word": "qu\u00e9",
+          "start": 166.012,
+          "end": 166.112,
+          "score": 0.579
+        },
+        {
+          "word": "te",
+          "start": 166.172,
+          "end": 166.252,
+          "score": 0.674
+        },
+        {
+          "word": "quiero,",
+          "start": 166.312,
+          "end": 166.592,
+          "score": 0.62
+        },
+        {
+          "word": "Ana?",
+          "start": 166.652,
+          "end": 166.853,
+          "score": 0.832
+        }
+      ]
+    },
+    {
+      "text": "Insisto en que corras.",
+      "start": 166.953,
+      "end": 168.294,
+      "words": [
+        {
+          "word": "Insisto",
+          "start": 166.953,
+          "end": 167.213,
+          "score": 0.775
+        },
+        {
+          "word": "en",
+          "start": 167.233,
+          "end": 167.313,
+          "score": 0.112
+        },
+        {
+          "word": "que",
+          "start": 167.333,
+          "end": 167.393,
+          "score": 0.776
+        },
+        {
+          "word": "corras.",
+          "start": 167.553,
+          "end": 168.294,
+          "score": 0.822
+        }
+      ]
+    },
+    {
+      "text": "Escuch\u00e9 que en el amor son expertos.",
+      "start": 168.574,
+      "end": 171.536,
+      "words": [
+        {
+          "word": "Escuch\u00e9",
+          "start": 168.574,
+          "end": 169.094,
+          "score": 0.861
+        },
+        {
+          "word": "que",
+          "start": 169.174,
+          "end": 169.295,
+          "score": 0.759
+        },
+        {
+          "word": "en",
+          "start": 169.435,
+          "end": 169.495,
+          "score": 0.394
+        },
+        {
+          "word": "el",
+          "start": 169.515,
+          "end": 169.595,
+          "score": 0.61
+        },
+        {
+          "word": "amor",
+          "start": 169.635,
+          "end": 170.095,
+          "score": 0.94
+        },
+        {
+          "word": "son",
+          "start": 170.195,
+          "end": 170.455,
+          "score": 0.878
+        },
+        {
+          "word": "expertos.",
+          "start": 170.556,
+          "end": 171.536,
+          "score": 0.892
+        }
+      ]
+    },
+    {
+      "text": "No est\u00e1s corriendo.",
+      "start": 172.337,
+      "end": 173.838,
+      "words": [
+        {
+          "word": "No",
+          "start": 172.337,
+          "end": 172.837,
+          "score": 0.681
+        },
+        {
+          "word": "est\u00e1s",
+          "start": 172.977,
+          "end": 173.238,
+          "score": 0.76
+        },
+        {
+          "word": "corriendo.",
+          "start": 173.278,
+          "end": 173.838,
+          "score": 0.838
+        }
+      ]
+    },
+    {
+      "text": "Ah, OK.",
+      "start": 174.118,
+      "end": 174.399,
+      "words": [
+        {
+          "word": "Ah,",
+          "start": 174.118,
+          "end": 174.279,
+          "score": 0.513
+        },
+        {
+          "word": "OK.",
+          "start": 174.299,
+          "end": 174.399,
+          "score": 0.375
+        }
+      ]
+    },
+    {
+      "text": "Bueno, ya me tengo que ir.",
+      "start": 174.439,
+      "end": 178.742,
+      "words": [
+        {
+          "word": "Bueno,",
+          "start": 174.439,
+          "end": 174.619,
+          "score": 0.336
+        },
+        {
+          "word": "ya",
+          "start": 174.639,
+          "end": 175.199,
+          "score": 0.706
+        },
+        {
+          "word": "me",
+          "start": 177.121,
+          "end": 177.321,
+          "score": 0.726
+        },
+        {
+          "word": "tengo",
+          "start": 177.341,
+          "end": 177.681,
+          "score": 0.626
+        },
+        {
+          "word": "que",
+          "start": 177.721,
+          "end": 178.462,
+          "score": 0.318
+        },
+        {
+          "word": "ir.",
+          "start": 178.682,
+          "end": 178.742,
+          "score": 0.058
+        }
+      ]
+    },
+    {
+      "text": "No, no, no, Ana, espera.",
+      "start": 178.762,
+      "end": 179.823,
+      "words": [
+        {
+          "word": "No,",
+          "start": 178.762,
+          "end": 178.862,
+          "score": 0.468
+        },
+        {
+          "word": "no,",
+          "start": 178.902,
+          "end": 178.982,
+          "score": 0.692
+        },
+        {
+          "word": "no,",
+          "start": 179.022,
+          "end": 179.142,
+          "score": 0.536
+        },
+        {
+          "word": "Ana,",
+          "start": 179.242,
+          "end": 179.423,
+          "score": 0.789
+        },
+        {
+          "word": "espera.",
+          "start": 179.483,
+          "end": 179.823,
+          "score": 0.92
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Aqu\u00ed voy!",
+      "start": 179.863,
+      "end": 181.104,
+      "words": [
+        {
+          "word": "\u00a1Aqu\u00ed",
+          "start": 179.863,
+          "end": 180.844,
+          "score": 0.674
+        },
+        {
+          "word": "voy!",
+          "start": 180.884,
+          "end": 181.104,
+          "score": 0.485
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Nos vemos en el castillo!",
+      "start": 181.164,
+      "end": 182.065,
+      "words": [
+        {
+          "word": "\u00a1Nos",
+          "start": 181.164,
+          "end": 181.344,
+          "score": 0.411
+        },
+        {
+          "word": "vemos",
+          "start": 181.364,
+          "end": 181.504,
+          "score": 0.312
+        },
+        {
+          "word": "en",
+          "start": 181.564,
+          "end": 181.644,
+          "score": 0.257
+        },
+        {
+          "word": "el",
+          "start": 181.664,
+          "end": 181.704,
+          "score": 0.118
+        },
+        {
+          "word": "castillo!",
+          "start": 181.724,
+          "end": 182.065,
+          "score": 0.446
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Que no te vean, Olaf!",
+      "start": 182.085,
+      "end": 183.526,
+      "words": [
+        {
+          "word": "\u00a1Que",
+          "start": 182.085,
+          "end": 182.425,
+          "score": 0.488
+        },
+        {
+          "word": "no",
+          "start": 182.465,
+          "end": 182.585,
+          "score": 0.544
+        },
+        {
+          "word": "te",
+          "start": 182.605,
+          "end": 182.705,
+          "score": 0.494
+        },
+        {
+          "word": "vean,",
+          "start": 182.765,
+          "end": 183.125,
+          "score": 0.492
+        },
+        {
+          "word": "Olaf!",
+          "start": 183.166,
+          "end": 183.526,
+          "score": 0.538
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Eso har\u00e9!",
+      "start": 183.666,
+      "end": 184.487,
+      "words": [
+        {
+          "word": "\u00a1Eso",
+          "start": 183.666,
+          "end": 184.026,
+          "score": 0.61
+        },
+        {
+          "word": "har\u00e9!",
+          "start": 184.166,
+          "end": 184.487,
+          "score": 0.354
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Es verano!",
+      "start": 195.558,
+      "end": 196.338,
+      "words": [
+        {
+          "word": "\u00a1Es",
+          "start": 195.558,
+          "end": 195.638,
+          "score": 0.321
+        },
+        {
+          "word": "verano!",
+          "start": 195.698,
+          "end": 196.338,
+          "score": 0.568
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Hola!",
+      "start": 196.378,
+      "end": 196.838,
+      "words": [
+        {
+          "word": "\u00a1Hola!",
+          "start": 196.378,
+          "end": 196.838,
+          "score": 0.468
+        }
+      ]
+    },
+    {
+      "text": "No podr\u00eda ser m\u00e1s incre\u00edble, Ana.",
+      "start": 196.858,
+      "end": 203.519,
+      "words": [
+        {
+          "word": "No",
+          "start": 196.858,
+          "end": 197.338,
+          "score": 0.853
+        },
+        {
+          "word": "podr\u00eda",
+          "start": 197.418,
+          "end": 198.698,
+          "score": 0.522
+        },
+        {
+          "word": "ser",
+          "start": 199.818,
+          "end": 199.938,
+          "score": 0.384
+        },
+        {
+          "word": "m\u00e1s",
+          "start": 199.958,
+          "end": 200.058,
+          "score": 0.325
+        },
+        {
+          "word": "incre\u00edble,",
+          "start": 200.138,
+          "end": 200.579,
+          "score": 0.45
+        },
+        {
+          "word": "Ana.",
+          "start": 202.319,
+          "end": 203.519,
+          "score": 0.602
+        }
+      ]
+    },
+    {
+      "text": "Desear\u00eda que durara para siempre.",
+      "start": 203.539,
+      "end": 206.34,
+      "words": [
+        {
+          "word": "Desear\u00eda",
+          "start": 203.539,
+          "end": 204.059,
+          "score": 0.531
+        },
+        {
+          "word": "que",
+          "start": 204.299,
+          "end": 204.379,
+          "score": 0.144
+        },
+        {
+          "word": "durara",
+          "start": 204.399,
+          "end": 204.92,
+          "score": 0.578
+        },
+        {
+          "word": "para",
+          "start": 204.94,
+          "end": 205.44,
+          "score": 0.682
+        },
+        {
+          "word": "siempre.",
+          "start": 205.46,
+          "end": 206.34,
+          "score": 0.376
+        }
+      ]
+    },
+    {
+      "text": "m\u00e1s nos tienta el cambio con su belleza.",
+      "start": 222.886,
+      "end": 224.967,
+      "words": [
+        {
+          "word": "m\u00e1s",
+          "start": 222.886,
+          "end": 223.006,
+          "score": 0.684
+        },
+        {
+          "word": "nos",
+          "start": 223.066,
+          "end": 223.186,
+          "score": 0.478
+        },
+        {
+          "word": "tienta",
+          "start": 223.286,
+          "end": 223.626,
+          "score": 0.788
+        },
+        {
+          "word": "el",
+          "start": 223.686,
+          "end": 223.766,
+          "score": 0.798
+        },
+        {
+          "word": "cambio",
+          "start": 223.847,
+          "end": 224.127,
+          "score": 0.858
+        },
+        {
+          "word": "con",
+          "start": 224.207,
+          "end": 224.327,
+          "score": 0.844
+        },
+        {
+          "word": "su",
+          "start": 224.387,
+          "end": 224.467,
+          "score": 0.812
+        },
+        {
+          "word": "belleza.",
+          "start": 224.487,
+          "end": 224.967,
+          "score": 0.792
+        }
+      ]
+    },
+    {
+      "text": "\u00bfQu\u00e9 dices?",
+      "start": 224.987,
+      "end": 225.827,
+      "words": [
+        {
+          "word": "\u00bfQu\u00e9",
+          "start": 224.987,
+          "end": 225.567,
+          "score": 0.706
+        },
+        {
+          "word": "dices?",
+          "start": 225.607,
+          "end": 225.827,
+          "score": 0.481
+        }
+      ]
+    },
+    {
+      "text": "Perd\u00f3name, la madurez me vuelve po\u00e9tico.",
+      "start": 226.127,
+      "end": 228.248,
+      "words": [
+        {
+          "word": "Perd\u00f3name,",
+          "start": 226.127,
+          "end": 226.728,
+          "score": 0.785
+        },
+        {
+          "word": "la",
+          "start": 226.768,
+          "end": 226.848,
+          "score": 0.918
+        },
+        {
+          "word": "madurez",
+          "start": 226.868,
+          "end": 227.248,
+          "score": 0.698
+        },
+        {
+          "word": "me",
+          "start": 227.308,
+          "end": 227.388,
+          "score": 0.827
+        },
+        {
+          "word": "vuelve",
+          "start": 227.448,
+          "end": 227.688,
+          "score": 0.914
+        },
+        {
+          "word": "po\u00e9tico.",
+          "start": 227.768,
+          "end": 228.248,
+          "score": 0.894
+        }
+      ]
+    },
+    {
+      "text": "Dime, t\u00fa eres adulta y lo sabes todo.",
+      "start": 229.369,
+      "end": 231.37,
+      "words": [
+        {
+          "word": "Dime,",
+          "start": 229.369,
+          "end": 229.729,
+          "score": 0.635
+        },
+        {
+          "word": "t\u00fa",
+          "start": 229.809,
+          "end": 229.889,
+          "score": 0.728
+        },
+        {
+          "word": "eres",
+          "start": 229.929,
+          "end": 230.169,
+          "score": 0.853
+        },
+        {
+          "word": "adulta",
+          "start": 230.189,
+          "end": 230.489,
+          "score": 0.849
+        },
+        {
+          "word": "y",
+          "start": 230.529,
+          "end": 230.569,
+          "score": 0.683
+        },
+        {
+          "word": "lo",
+          "start": 230.609,
+          "end": 230.669,
+          "score": 0.94
+        },
+        {
+          "word": "sabes",
+          "start": 230.729,
+          "end": 230.95,
+          "score": 0.87
+        },
+        {
+          "word": "todo.",
+          "start": 231.03,
+          "end": 231.37,
+          "score": 0.725
+        }
+      ]
+    },
+    {
+      "text": "\u00bfNunca te preocupa la noci\u00f3n de que nada es permanente?",
+      "start": 231.39,
+      "end": 234.811,
+      "words": [
+        {
+          "word": "\u00bfNunca",
+          "start": 231.39,
+          "end": 231.69,
+          "score": 0.582
+        },
+        {
+          "word": "te",
+          "start": 231.73,
+          "end": 231.81,
+          "score": 0.544
+        },
+        {
+          "word": "preocupa",
+          "start": 231.85,
+          "end": 232.19,
+          "score": 0.715
+        },
+        {
+          "word": "la",
+          "start": 232.21,
+          "end": 232.27,
+          "score": 0.692
+        },
+        {
+          "word": "noci\u00f3n",
+          "start": 232.31,
+          "end": 232.53,
+          "score": 0.865
+        },
+        {
+          "word": "de",
+          "start": 232.57,
+          "end": 232.63,
+          "score": 0.773
+        },
+        {
+          "word": "que",
+          "start": 232.69,
+          "end": 232.79,
+          "score": 0.919
+        },
+        {
+          "word": "nada",
+          "start": 233.611,
+          "end": 233.951,
+          "score": 0.57
+        },
+        {
+          "word": "es",
+          "start": 233.991,
+          "end": 234.051,
+          "score": 0.934
+        },
+        {
+          "word": "permanente?",
+          "start": 234.131,
+          "end": 234.811,
+          "score": 0.954
+        }
+      ]
+    },
+    {
+      "text": "No.",
+      "start": 236.532,
+      "end": 236.752,
+      "words": [
+        {
+          "word": "No.",
+          "start": 236.532,
+          "end": 236.752,
+          "score": 0.59
+        }
+      ]
+    },
+    {
+      "text": "\u00bfEn serio?",
+      "start": 237.072,
+      "end": 237.672,
+      "words": [
+        {
+          "word": "\u00bfEn",
+          "start": 237.072,
+          "end": 237.192,
+          "score": 0.78
+        },
+        {
+          "word": "serio?",
+          "start": 237.272,
+          "end": 237.672,
+          "score": 0.891
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Guau!",
+      "start": 238.313,
+      "end": 238.733,
+      "words": [
+        {
+          "word": "\u00a1Guau!",
+          "start": 238.313,
+          "end": 238.733,
+          "score": 0.461
+        }
+      ]
+    },
+    {
+      "text": "Ojal\u00e1 pronto sea tan viejo como t\u00fa para no preocuparme por cosas tan importantes.",
+      "start": 238.933,
+      "end": 243.435,
+      "words": [
+        {
+          "word": "Ojal\u00e1",
+          "start": 238.933,
+          "end": 239.273,
+          "score": 0.933
+        },
+        {
+          "word": "pronto",
+          "start": 239.333,
+          "end": 239.613,
+          "score": 0.961
+        },
+        {
+          "word": "sea",
+          "start": 239.653,
+          "end": 239.853,
+          "score": 0.776
+        },
+        {
+          "word": "tan",
+          "start": 239.913,
+          "end": 240.073,
+          "score": 0.907
+        },
+        {
+          "word": "viejo",
+          "start": 240.133,
+          "end": 240.394,
+          "score": 0.732
+        },
+        {
+          "word": "como",
+          "start": 240.454,
+          "end": 240.614,
+          "score": 0.903
+        },
+        {
+          "word": "t\u00fa",
+          "start": 240.714,
+          "end": 240.814,
+          "score": 0.776
+        },
+        {
+          "word": "para",
+          "start": 240.874,
+          "end": 241.034,
+          "score": 0.906
+        },
+        {
+          "word": "no",
+          "start": 241.114,
+          "end": 241.194,
+          "score": 0.81
+        },
+        {
+          "word": "preocuparme",
+          "start": 241.254,
+          "end": 241.854,
+          "score": 0.79
+        },
+        {
+          "word": "por",
+          "start": 241.914,
+          "end": 242.014,
+          "score": 0.994
+        },
+        {
+          "word": "cosas",
+          "start": 242.134,
+          "end": 242.434,
+          "score": 0.694
+        },
+        {
+          "word": "tan",
+          "start": 242.514,
+          "end": 242.635,
+          "score": 0.997
+        },
+        {
+          "word": "importantes.",
+          "start": 242.715,
+          "end": 243.435,
+          "score": 0.907
+        }
+      ]
+    },
+    {
+      "text": "Ok, Yolav, es tu turno.",
+      "start": 243.615,
+      "end": 244.956,
+      "words": [
+        {
+          "word": "Ok,",
+          "start": 243.615,
+          "end": 243.855,
+          "score": 0.461
+        },
+        {
+          "word": "Yolav,",
+          "start": 243.975,
+          "end": 244.195,
+          "score": 0.414
+        },
+        {
+          "word": "es",
+          "start": 244.395,
+          "end": 244.515,
+          "score": 0.435
+        },
+        {
+          "word": "tu",
+          "start": 244.555,
+          "end": 244.655,
+          "score": 0.557
+        },
+        {
+          "word": "turno.",
+          "start": 244.695,
+          "end": 244.956,
+          "score": 0.51
+        }
+      ]
+    },
+    {
+      "text": "Ok.",
+      "start": 245.016,
+      "end": 245.416,
+      "words": [
+        {
+          "word": "Ok.",
+          "start": 245.016,
+          "end": 245.416,
+          "score": 0.745
+        }
+      ]
+    },
+    {
+      "text": "Es m\u00e1s sencillo ahora que s\u00e9 leer.",
+      "start": 246.416,
+      "end": 248.057,
+      "words": [
+        {
+          "word": "Es",
+          "start": 246.416,
+          "end": 246.516,
+          "score": 0.812
+        },
+        {
+          "word": "m\u00e1s",
+          "start": 246.556,
+          "end": 246.676,
+          "score": 0.856
+        },
+        {
+          "word": "sencillo",
+          "start": 246.696,
+          "end": 247.116,
+          "score": 0.817
+        },
+        {
+          "word": "ahora",
+          "start": 247.176,
+          "end": 247.377,
+          "score": 0.84
+        },
+        {
+          "word": "que",
+          "start": 247.437,
+          "end": 247.537,
+          "score": 0.844
+        },
+        {
+          "word": "s\u00e9",
+          "start": 247.597,
+          "end": 247.677,
+          "score": 0.715
+        },
+        {
+          "word": "leer.",
+          "start": 247.737,
+          "end": 248.057,
+          "score": 0.763
+        }
+      ]
+    },
+    {
+      "text": "Ronda especial, ni\u00f1os contra ni\u00f1as.",
+      "start": 249.033,
+      "end": 251.134,
+      "words": [
+        {
+          "word": "Ronda",
+          "start": 249.033,
+          "end": 249.233,
+          "score": 0.673
+        },
+        {
+          "word": "especial,",
+          "start": 249.253,
+          "end": 249.814,
+          "score": 0.892
+        },
+        {
+          "word": "ni\u00f1os",
+          "start": 250.114,
+          "end": 250.414,
+          "score": 0.904
+        },
+        {
+          "word": "contra",
+          "start": 250.494,
+          "end": 250.674,
+          "score": 0.949
+        },
+        {
+          "word": "ni\u00f1as.",
+          "start": 250.874,
+          "end": 251.134,
+          "score": 0.886
+        }
+      ]
+    },
+    {
+      "text": "Ok, estoy listo.",
+      "start": 251.154,
+      "end": 252.435,
+      "words": [
+        {
+          "word": "Ok,",
+          "start": 251.154,
+          "end": 251.755,
+          "score": 0.542
+        },
+        {
+          "word": "estoy",
+          "start": 251.955,
+          "end": 252.135,
+          "score": 0.81
+        },
+        {
+          "word": "listo.",
+          "start": 252.235,
+          "end": 252.435,
+          "score": 0.666
+        }
+      ]
+    },
+    {
+      "text": "Muy listo.",
+      "start": 252.495,
+      "end": 252.875,
+      "words": [
+        {
+          "word": "Muy",
+          "start": 252.495,
+          "end": 252.635,
+          "score": 0.74
+        },
+        {
+          "word": "listo.",
+          "start": 252.675,
+          "end": 252.875,
+          "score": 0.768
+        }
+      ]
+    },
+    {
+      "text": "Vas.",
+      "start": 253.095,
+      "end": 255.417,
+      "words": [
+        {
+          "word": "Vas.",
+          "start": 253.095,
+          "end": 255.417,
+          "score": 0.607
+        }
+      ]
+    },
+    {
+      "text": "Unicornio.",
+      "start": 255.457,
+      "end": 256.437,
+      "words": [
+        {
+          "word": "Unicornio.",
+          "start": 255.457,
+          "end": 256.437,
+          "score": 0.748
+        }
+      ]
+    },
+    {
+      "text": "Helado.",
+      "start": 256.457,
+      "end": 256.818,
+      "words": [
+        {
+          "word": "Helado.",
+          "start": 256.457,
+          "end": 256.818,
+          "score": 0.749
+        }
+      ]
+    },
+    {
+      "text": "Castillo.",
+      "start": 257.478,
+      "end": 257.898,
+      "words": [
+        {
+          "word": "Castillo.",
+          "start": 257.478,
+          "end": 257.898,
+          "score": 0.877
+        }
+      ]
+    },
+    {
+      "text": "Hawken.",
+      "start": 258.238,
+      "end": 258.559,
+      "words": [
+        {
+          "word": "Hawken.",
+          "start": 258.238,
+          "end": 258.559,
+          "score": 0.591
+        }
+      ]
+    },
+    {
+      "text": "Tetera.",
+      "start": 259.219,
+      "end": 259.659,
+      "words": [
+        {
+          "word": "Tetera.",
+          "start": 259.219,
+          "end": 259.659,
+          "score": 0.805
+        }
+      ]
+    },
+    {
+      "text": "Rat\u00f3n.",
+      "start": 260.06,
+      "end": 260.48,
+      "words": [
+        {
+          "word": "Rat\u00f3n.",
+          "start": 260.06,
+          "end": 260.48,
+          "score": 0.779
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Uy, Elsa!",
+      "start": 260.5,
+      "end": 261.76,
+      "words": [
+        {
+          "word": "\u00a1Uy,",
+          "start": 260.5,
+          "end": 261.48,
+          "score": 0.75
+        },
+        {
+          "word": "Elsa!",
+          "start": 261.56,
+          "end": 261.76,
+          "score": 0.306
+        }
+      ]
+    },
+    {
+      "text": "\u00bfAna?",
+      "start": 261.821,
+      "end": 262.281,
+      "words": [
+        {
+          "word": "\u00bfAna?",
+          "start": 261.821,
+          "end": 262.281,
+          "score": 0.715
+        }
+      ]
+    },
+    {
+      "text": "\u00bfElsa?",
+      "start": 262.921,
+      "end": 263.582,
+      "words": [
+        {
+          "word": "\u00bfElsa?",
+          "start": 262.921,
+          "end": 263.582,
+          "score": 0.694
+        }
+      ]
+    },
+    {
+      "text": "\u00bfSven?",
+      "start": 263.662,
+      "end": 264.182,
+      "words": [
+        {
+          "word": "\u00bfSven?",
+          "start": 263.662,
+          "end": 264.182,
+          "score": 0.44
+        }
+      ]
+    },
+    {
+      "text": "\u00bfSamantha?",
+      "start": 264.202,
+      "end": 265.563,
+      "words": [
+        {
+          "word": "\u00bfSamantha?",
+          "start": 264.202,
+          "end": 265.563,
+          "score": 0.51
+        }
+      ]
+    },
+    {
+      "text": "No conozco a ninguna Samantha.",
+      "start": 274.424,
+      "end": 276.846,
+      "words": [
+        {
+          "word": "No",
+          "start": 274.424,
+          "end": 274.984,
+          "score": 0.661
+        },
+        {
+          "word": "conozco",
+          "start": 275.064,
+          "end": 275.545,
+          "score": 0.634
+        },
+        {
+          "word": "a",
+          "start": 275.565,
+          "end": 275.645,
+          "score": 0.617
+        },
+        {
+          "word": "ninguna",
+          "start": 275.705,
+          "end": 276.085,
+          "score": 0.841
+        },
+        {
+          "word": "Samantha.",
+          "start": 276.145,
+          "end": 276.846,
+          "score": 0.742
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Oh, wow!",
+      "start": 279.068,
+      "end": 287.796,
+      "words": [
+        {
+          "word": "\u00a1Oh,",
+          "start": 279.068,
+          "end": 286.094,
+          "score": 0.798
+        },
+        {
+          "word": "wow!",
+          "start": 286.194,
+          "end": 287.796,
+          "score": 0.577
+        }
+      ]
+    },
+    {
+      "text": "Eso es normal.",
+      "start": 287.876,
+      "end": 290.238,
+      "words": [
+        {
+          "word": "Eso",
+          "start": 287.876,
+          "end": 288.036,
+          "score": 0.795
+        },
+        {
+          "word": "es",
+          "start": 288.096,
+          "end": 288.156,
+          "score": 0.792
+        },
+        {
+          "word": "normal.",
+          "start": 288.256,
+          "end": 290.238,
+          "score": 0.856
+        }
+      ]
+    },
+    {
+      "text": "\u00a1Oh!",
+      "start": 290.278,
+      "end": 290.358,
+      "words": [
+        {
+          "word": "\u00a1Oh!",
+          "start": 290.278,
+          "end": 290.358,
+          "score": 0.619
+        }
+      ]
+    }
+  ]
+}

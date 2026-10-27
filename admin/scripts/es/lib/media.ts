@@ -89,6 +89,50 @@ export interface WhisperSegment {
   words: WhisperWord[];
 }
 
+/** YouTube's timed text as yt-dlp writes it for --sub-format json3. In the
+ *  auto captions each seg is one word, heard at tStartMs + tOffsetMs. */
+export interface Json3 {
+  events?: { tStartMs?: number; dDurationMs?: number; segs?: { utf8?: string; tOffsetMs?: number }[] }[];
+}
+
+/** Seconds to wait before each retry when YouTube answers a caption
+ *  request with HTTP 429 (it does after a burst of them). */
+const CAPTION_RETRY_SEC = [20, 60];
+
+/** YouTube's own Spanish auto captions (es-orig, the speech recognizer's
+ *  track, with word onsets), or null when the video has none or YouTube
+ *  keeps refusing. Times are video time. Cached next to the audio; a
+ *  video without them is remembered too, a refusal is not. */
+export function autoCaptions(youtubeId: string, dir: string): Json3 | null {
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, 'captions.es-orig.json3');
+  const none = path.join(dir, 'captions.none');
+  if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (fs.existsSync(none)) return null;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      execFileSync(
+        'yt-dlp',
+        ['-q', '--no-warnings', '--skip-download', '--write-auto-subs', '--sub-langs', 'es-orig',
+          '--sub-format', 'json3', '-o', path.join(dir, 'captions.%(ext)s'),
+          `https://www.youtube.com/watch?v=${youtubeId}`],
+        { stdio: ['ignore', 'ignore', 'pipe'] },
+      );
+    } catch (e) {
+      const stderr = String((e as { stderr?: Buffer }).stderr ?? e);
+      if (!/429/.test(stderr) || attempt >= CAPTION_RETRY_SEC.length) {
+        console.warn(`${youtubeId}: no captions (${stderr.trim().split('\n').pop()})`);
+        return null;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, CAPTION_RETRY_SEC[attempt] * 1000);
+      continue;
+    }
+    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+    fs.writeFileSync(none, '');
+    return null;
+  }
+}
+
 /** WhisperX segments with aligned words. Times are relative to the WAV,
  *  so callers add the window's startSec to get video time. */
 export function transcribe(wav: string, threads = 8): WhisperSegment[] {

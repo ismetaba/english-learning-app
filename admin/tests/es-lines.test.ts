@@ -50,6 +50,18 @@ test('known Whisper hallucinations are dropped', () => {
   assert.deepEqual(lines.map(l => l.text), ['Adiós.']);
 });
 
+test('with captions, words start where YouTube hears them, on the video clock, in WhisperX words', () => {
+  // The audio window starts 100 s into the video: WhisperX's times are the
+  // window's, the captions' the video's. YouTube heard "están", not "estás".
+  const lines = toLines(
+    [{ text: 'Hola, ¿cómo estás?', start: 0, end: 3, words: [w('Hola,', 1, 1.3), w('¿cómo', 1.4, 1.6), w('estás?', 1.7, 2.1)] }],
+    { offset: 100, captions: { events: [{ tStartMs: 101300, segs: [{ utf8: 'hola,' }, { utf8: ' cómo', tOffsetMs: 400 }, { utf8: ' están', tOffsetMs: 700 }] }] } },
+  );
+  assert.deepEqual(lines.map(l => l.text), ['Hola, ¿cómo estás?']);
+  // "estás?" moves with the pair before it; each word runs on to the next.
+  assert.deepEqual(lines[0].words.map(x => [x.start, x.end]), [[101.3, 101.7], [101.7, 102], [102, 102.4]]);
+});
+
 function line(start: number, end: number): Line {
   return { text: 'x', start, end, words: [{ word: 'x', start, end, score: 1 }] };
 }
