@@ -41,8 +41,13 @@ function captionOnsets(json3: Json3): { w: string; t: number }[] {
   return out;
 }
 
+/** Farther apart than this, a lone pair is a common word ("que", "los")
+ *  matched to another of its occurrences; a line that really jumped moves
+ *  its words together. */
+const LONE_PAIR_SEC = 5;
+
 /** Share of matched words (longest common subsequence) more than 0.5 s off. */
-function offShare(words: { w: string; t: number }[], ref: { w: string; t: number }[]) {
+function offShare(words: { w: string; t: number; line: number }[], ref: { w: string; t: number }[]) {
   const n = words.length, m = ref.length;
   const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
   for (let i = n - 1; i >= 0; i--) {
@@ -51,16 +56,17 @@ function offShare(words: { w: string; t: number }[], ref: { w: string; t: number
         ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
   }
-  let matched = 0, off = 0;
+  const pairs: { line: number; d: number }[] = [];
   for (let i = 0, j = 0; i < n && j < m; ) {
     if (words[i].w === ref[j].w && Math.abs(words[i].t - ref[j].t) < 30) {
-      matched++;
-      if (Math.abs(words[i].t - ref[j].t) > 0.5) off++;
+      pairs.push({ line: words[i].line, d: words[i].t - ref[j].t });
       i++; j++;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
     else j++;
   }
-  return { matched, off, total: n };
+  const kept = pairs.filter(p => Math.abs(p.d) <= LONE_PAIR_SEC ||
+    pairs.some(q => q !== p && q.line === p.line && Math.abs(q.d - p.d) < 2));
+  return { matched: kept.length, off: kept.filter(p => Math.abs(p.d) > 0.5).length, total: n };
 }
 
 const problems: string[] = [];
@@ -75,7 +81,7 @@ const videos = db.prepare(
    FROM videos v JOIN clips c ON c.video_id = v.id ORDER BY v.id`,
 ).all() as { id: string; yt: string; clip: number; start: number; end: number; lines: number; untranslated: number; untagged: number }[];
 const wordsOf = db.prepare(
-  `SELECT wt.word, wt.start_time AS t FROM word_timestamps wt JOIN subtitle_lines sl ON sl.id = wt.line_id
+  `SELECT wt.word, wt.start_time AS t, wt.line_id AS line FROM word_timestamps wt JOIN subtitle_lines sl ON sl.id = wt.line_id
    WHERE sl.clip_id = ? ORDER BY sl.start_time, wt.word_index`,
 );
 
@@ -86,7 +92,8 @@ for (const v of videos) {
   let sync = 'no captions';
   if (fs.existsSync(capFile)) {
     const ref = captionOnsets(JSON.parse(fs.readFileSync(capFile, 'utf8')));
-    const words = (wordsOf.all(v.clip) as { word: string; t: number }[]).map(r => ({ w: norm(r.word), t: r.t })).filter(r => r.w);
+    const words = (wordsOf.all(v.clip) as { word: string; t: number; line: number }[])
+      .map(r => ({ w: norm(r.word), t: r.t, line: r.line })).filter(r => r.w);
     const s = offShare(words, ref.filter(r => r.t >= v.start - 5 && r.t <= v.end + 5));
     sync = `${s.off}/${s.matched} off (${s.matched}/${s.total} matched)`;
     if (s.matched < s.total * 0.5) warnings.push(`${v.id}: captions match only ${s.matched}/${s.total} words`);
@@ -105,6 +112,30 @@ const unusedStarters = db.prepare(
   `SELECT vw.id FROM vocab_words vw WHERE NOT EXISTS (SELECT 1 FROM word_timestamps wt WHERE wt.starter_word_id = vw.id)`,
 ).all() as { id: string }[];
 for (const s of unusedStarters) problems.push(`starter ${s.id} occurs nowhere`);
+// Two uploads of the same moment (a clip and a compilation that holds it)
+// make a learner watch it twice: lines of 4+ words that two different
+// YouTube videos share. A few can be chance ("¿Qué estás haciendo aquí?").
+const sharedBy = new Map<string, Set<string>>();
+for (const r of db.prepare(
+  `SELECT v.youtube_video_id AS yt, sl.text FROM subtitle_lines sl
+   JOIN clips c ON c.id = sl.clip_id JOIN videos v ON v.id = c.video_id`,
+).all() as { yt: string; text: string }[]) {
+  const key = r.text.toLocaleLowerCase('es').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  if (key.split(' ').length < 4) continue;
+  sharedBy.set(key, (sharedBy.get(key) ?? new Set()).add(r.yt));
+}
+const pairs = new Map<string, number>();
+for (const yts of sharedBy.values()) {
+  const list = [...yts].sort();
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const k = `${list[i]} ${list[j]}`;
+      pairs.set(k, (pairs.get(k) ?? 0) + 1);
+    }
+  }
+}
+for (const [k, n] of pairs) if (n >= 3) warnings.push(`YouTube videos ${k.replace(' ', ' and ')} share ${n} lines`);
+
 const orphanItems = db.prepare(
   `SELECT set_id, video_id FROM video_set_items WHERE video_id NOT IN (SELECT id FROM videos)`,
 ).all() as { set_id: string; video_id: string }[];

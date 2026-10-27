@@ -117,7 +117,8 @@
     "slug": "shrek-2-llegando-a-muy-muy-lejano",
     "movieTitle": "Shrek 2",
     "title": "Llegando a Muy Muy Lejano",
-    "genre": "animation"
+    "genre": "animation",
+    "startSec": 48
   },
   {
     "youtubeId": "jlAMngC0i6M",
@@ -595,6 +596,83 @@
     "slug": "el-planeta-del-tesoro-billy-bones",
     "movieTitle": "El planeta del tesoro",
     "title": "Billy Bones",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "griE_1fxcr0",
+    "slug": "buscando-a-nemo-los-peces-son-amigos",
+    "movieTitle": "Buscando a Nemo",
+    "title": "Los peces son amigos, no comida",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "zQ5PhLScAb8",
+    "slug": "up-la-zona-de-construccion",
+    "movieTitle": "Up",
+    "title": "La zona de construcción",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "05-dSfskWxs",
+    "slug": "moana-momentos-divertidos",
+    "movieTitle": "Moana",
+    "title": "Los momentos más divertidos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "9SH3WI96G-s",
+    "slug": "zootopia-el-departamento-de-vehiculos",
+    "movieTitle": "Zootopia",
+    "title": "El departamento de vehículos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "5r62SBlwZFs",
+    "slug": "ratatouille-el-final",
+    "movieTitle": "Ratatouille",
+    "title": "El final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "NO-flWPtAcg",
+    "slug": "madagascar-en-la-playa",
+    "movieTitle": "Madagascar",
+    "title": "En la playa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "tic9ThIJCZk",
+    "slug": "lilo-y-stitch-stitch-se-despide",
+    "movieTitle": "Lilo y Stitch",
+    "title": "Stitch puede despedirse",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "jrAD_sLloa8",
+    "slug": "rango-una-leyenda-frente-a-otra",
+    "movieTitle": "Rango",
+    "title": "Una leyenda frente a otra",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "0pgQDLdq2XM",
+    "slug": "bob-esponja-la-pelicula-el-final",
+    "movieTitle": "Bob Esponja: la película",
+    "title": "Plankton hizo trampa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "8m4JXwoT3i8",
+    "slug": "los-simpson-la-pelicula-el-final-de-mel-gibson",
+    "movieTitle": "Los Simpson: la película",
+    "title": "El final de Mel Gibson",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "dz0RJrl3AwU",
+    "slug": "turbo-el-final",
+    "movieTitle": "Turbo",
+    "title": "El final",
     "genre": "animation"
   }
 ]
