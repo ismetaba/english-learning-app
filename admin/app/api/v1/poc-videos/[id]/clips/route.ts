@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type Database from 'better-sqlite3';
 import { getDb } from '@/lib/db';
 
 const CORS_HEADERS = {
@@ -50,7 +51,10 @@ export async function GET(
       )
       .all(id) as { id: number; start_time: number; end_time: number }[];
 
-    const formatted = clips.map(clip => formatClip(clip, video));
+    // Prepared once per request and reused for every clip / line (a
+    // video has ~15 clips × ~25 lines).
+    const stmts = prepareClipStatements(db);
+    const formatted = clips.map(clip => formatClip(clip, video, stmts));
 
     return NextResponse.json(formatted, { headers: CORS_HEADERS });
   } catch (error) {
@@ -85,34 +89,62 @@ function parseStructure(raw: string | null): Structure | null {
   }
 }
 
+function prepareClipStatements(db: Database.Database) {
+  return {
+    // Skip lines without word_timestamps — they can't carry structure
+    // tags or per-word karaoke / TR gloss, so they'd render as plain
+    // off-white text inside an otherwise fully colored line list. That
+    // looks like "missing tags" to the learner. Hiding them keeps the
+    // visible subtitle stream consistent; the audio still plays.
+    //
+    // Must stay a correlated EXISTS (one index probe per candidate
+    // line). The previous `id IN (SELECT line_id FROM word_timestamps)`
+    // made SQLite materialize all ~2.2M line ids from the index on
+    // every execution — ~230ms per clip, 4-60s per request in prod.
+    lines: db.prepare(
+      `SELECT sl.id, sl.speaker, sl.text, sl.translation_tr,
+              sl.start_time, sl.end_time, sl.structure
+       FROM subtitle_lines sl
+       WHERE sl.clip_id = ?
+         AND sl.start_time >= ?
+         AND sl.end_time   <= ?
+         AND sl.text IS NOT NULL
+         AND length(trim(sl.text)) > 0
+         AND EXISTS (SELECT 1 FROM word_timestamps wt WHERE wt.line_id = sl.id)
+       ORDER BY sl.start_time`,
+    ),
+
+    // Per-word Turkish gloss is sourced from `word_translations`, keyed
+    // by a lowercase + sentence-punctuation-trimmed surface form (so
+    // "I'm" / "I'm." / "i'm" all collapse to the same row). Independent
+    // from the starter set's curated TR (vw.translation_tr) so the
+    // client can show both — the starter banner uses the curated one,
+    // the inline gloss uses this wider but shallower table.
+    words: db.prepare(
+      `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
+              wt.starter_word_id,
+              vw.translation_tr AS starter_tr,
+              wtr.translation_tr AS word_tr
+       FROM word_timestamps wt
+       LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
+       LEFT JOIN word_translations wtr
+         ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
+       WHERE wt.line_id = ?
+       ORDER BY wt.word_index`,
+    ),
+  };
+}
+
 function formatClip(
   clip: { id: number; start_time: number; end_time: number },
   video: { youtube_video_id: string; movie_title: string },
+  stmts: ReturnType<typeof prepareClipStatements>,
 ) {
-  const db = getDb();
-
-  // Skip lines without word_timestamps — they can't carry structure
-  // tags or per-word karaoke / TR gloss, so they'd render as plain
-  // off-white text inside an otherwise fully colored line list. That
-  // looks like "missing tags" to the learner. Hiding them keeps the
-  // visible subtitle stream consistent; the audio still plays.
-  const lines = db
-    .prepare(
-      `SELECT id, speaker, text, translation_tr, start_time, end_time, structure
-       FROM subtitle_lines
-       WHERE clip_id = ?
-         AND start_time >= ?
-         AND end_time   <= ?
-         AND text IS NOT NULL
-         AND length(trim(text)) > 0
-         AND id IN (SELECT line_id FROM word_timestamps)
-       ORDER BY start_time`,
-    )
-    .all(
-      clip.id,
-      Math.max(0, clip.start_time - 5),
-      clip.end_time + 5,
-    ) as {
+  const lines = stmts.lines.all(
+    clip.id,
+    Math.max(0, clip.start_time - 5),
+    clip.end_time + 5,
+  ) as {
     id: number;
     speaker: string;
     text: string;
@@ -121,25 +153,7 @@ function formatClip(
     end_time: number;
     structure: string | null;
   }[];
-
-  // Per-word Turkish gloss is sourced from `word_translations`, keyed
-  // by a lowercase + sentence-punctuation-trimmed surface form (so
-  // "I'm" / "I'm." / "i'm" all collapse to the same row). Independent
-  // from the starter set's curated TR (vw.translation_tr) so the
-  // client can show both — the starter banner uses the curated one,
-  // the inline gloss uses this wider but shallower table.
-  const wordsStmt = db.prepare(
-    `SELECT wt.word, wt.start_time, wt.end_time, wt.word_index,
-            wt.starter_word_id,
-            vw.translation_tr AS starter_tr,
-            wtr.translation_tr AS word_tr
-     FROM word_timestamps wt
-     LEFT JOIN vocab_words vw ON vw.id = wt.starter_word_id
-     LEFT JOIN word_translations wtr
-       ON wtr.word_lower = LOWER(TRIM(wt.word, '.,?!;:"'))
-     WHERE wt.line_id = ?
-     ORDER BY wt.word_index`,
-  );
+  const wordsStmt = stmts.words;
 
   return {
     id: clip.id,

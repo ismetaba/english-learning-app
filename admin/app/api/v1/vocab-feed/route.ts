@@ -30,19 +30,27 @@ function parseStructure(raw: string | null): Structure | null {
   }
 }
 
-interface RawRow {
+/** One (starter word, sentence) pair — just enough to dedupe, count
+ *  and sample. Display columns are fetched later via `LineRow`. */
+interface ContextRow {
   word_id: string;
+  line_id: number;
+  text: string;
+}
+
+interface WordMetaRow {
+  id: string;
   word: string;
   translation_tr: string | null;
   ipa: string | null;
   part_of_speech: string | null;
   cefr_level: string | null;
-  line_id: number;
-  text: string;
+}
+
+interface LineRow {
   line_start: number;
   line_end: number;
   structure_raw: string | null;
-  clip_id: number;
   clip_start: number;
   clip_end: number;
   video_id: string;
@@ -138,31 +146,25 @@ export function GET(req: NextRequest) {
 
     const db = getDb();
 
-    // Pull every distinct sentence-context for every A2 starter from
-    // the POC corpus in one query. Heavier than per-word fetches but
-    // returns ~8k rows total (95 words × ~25 contexts ÷ 3 dedupe);
-    // dedup + sample happens in JS where it's expressive.
+    // Pull every sentence-context for every A2 starter from the POC
+    // corpus in one query; dedup + sample happens in JS where it's
+    // expressive. Returns ~33k rows and has to visit every word of
+    // every POC line (~390k word_timestamps rows), so it is kept
+    // narrow on purpose: just the ids + text needed to dedupe, count
+    // and sample. Carrying the display columns (titles, structure
+    // JSON, timings) through the 33k-row sort doubled its cost; they
+    // are fetched below only for the few hundred contexts sampled.
+    //
+    // Within one line (several starters in the same sentence) rows are
+    // ordered by wt.id. That decides which word is seen first and so
+    // the feed's word order — pinned explicitly instead of being left
+    // to the sorter.
     const rows = db
       .prepare(
         `SELECT
            vw.id              AS word_id,
-           vw.word,
-           vw.translation_tr,
-           vw.ipa,
-           vw.part_of_speech,
-           vw.cefr_level,
            sl.id              AS line_id,
-           sl.text,
-           sl.start_time      AS line_start,
-           sl.end_time        AS line_end,
-           sl.structure       AS structure_raw,
-           c.id               AS clip_id,
-           c.start_time       AS clip_start,
-           c.end_time         AS clip_end,
-           v.id               AS video_id,
-           v.youtube_video_id,
-           v.title            AS video_title,
-           v.movie_title
+           sl.text
          FROM vocab_words vw
          JOIN word_timestamps wt ON wt.starter_word_id = vw.id
          JOIN subtitle_lines sl  ON sl.id = wt.line_id
@@ -179,14 +181,14 @@ export function GET(req: NextRequest) {
            -- proper sentence-splitting + word_timestamps reassignment
            -- needs a separate data migration pass.
            AND length(sl.text) <= 120
-         ORDER BY (sl.structure IS NULL), sl.id`,
+         ORDER BY (sl.structure IS NULL), sl.id, wt.id`,
       )
-      .all() as RawRow[];
+      .all() as ContextRow[];
 
     // Dedupe by (word, sentence text) so the same line shared across
     // multiple curated clip variants only contributes once.
     const seen = new Set<string>();
-    const byWord = new Map<string, RawRow[]>();
+    const byWord = new Map<string, ContextRow[]>();
     for (const r of rows) {
       const key = `${r.word_id}|${r.text}`;
       if (seen.has(key)) continue;
@@ -199,10 +201,37 @@ export function GET(req: NextRequest) {
     const wordContextCount = new Map<string, number>();
     for (const [id, ctxs] of byWord.entries()) wordContextCount.set(id, ctxs.length);
 
-    // Per-word fetch shape: word's lightweight metadata cached so we
-    // don't re-stringify it for every item.
-    const wordMeta = new Map<string, RawRow>();
-    for (const [id, ctxs] of byWord.entries()) wordMeta.set(id, ctxs[0]);
+    // Starter metadata (word, TR, IPA, …) for every A2 word, one query.
+    const wordMeta = new Map<string, WordMetaRow>(
+      (
+        db
+          .prepare(
+            `SELECT id, word, translation_tr, ipa, part_of_speech, cefr_level
+             FROM vocab_words
+             WHERE id LIKE 'a2-%'`,
+          )
+          .all() as WordMetaRow[]
+      ).map(w => [w.id, w]),
+    );
+
+    // Display columns for one sampled line: three rowid / primary-key
+    // lookups, run only for the contexts that make it into the feed.
+    const lineStmt = db.prepare(
+      `SELECT
+         sl.start_time      AS line_start,
+         sl.end_time        AS line_end,
+         sl.structure       AS structure_raw,
+         c.start_time       AS clip_start,
+         c.end_time         AS clip_end,
+         v.id               AS video_id,
+         v.youtube_video_id,
+         v.title            AS video_title,
+         v.movie_title
+       FROM subtitle_lines sl
+       JOIN clips c  ON c.id = sl.clip_id
+       JOIN videos v ON v.id = c.video_id
+       WHERE sl.id = ?`,
+    );
 
     // Pull per-word words (the per-word starter / TR mapping is needed
     // for every chosen line, so we batch it up here).
@@ -283,8 +312,14 @@ export function GET(req: NextRequest) {
       if (!inPool && !discovery) continue;
       const cap = inPool ? POOL_PER_WORD : DISCOVERY_PER_WORD;
       const chosen = shuffle(ctxs).slice(0, cap);
+      const meta = wordMeta.get(wordId);
 
       for (const r of chosen) {
+        const line = lineStmt.get(r.line_id) as LineRow | undefined;
+        // Only possible if the line / word was deleted between the two
+        // reads (an admin edit mid-request); skip it rather than 500.
+        if (!meta || !line) continue;
+
         const wordRows = wordsStmt.all(r.line_id) as {
           word: string;
           start_time: number;
@@ -297,25 +332,25 @@ export function GET(req: NextRequest) {
 
         items.push({
           wordId: r.word_id,
-          word: r.word,
-          translationTr: r.translation_tr,
-          ipa: r.ipa,
-          partOfSpeech: r.part_of_speech,
-          cefrLevel: r.cefr_level,
+          word: meta.word,
+          translationTr: meta.translation_tr,
+          ipa: meta.ipa,
+          partOfSpeech: meta.part_of_speech,
+          cefrLevel: meta.cefr_level,
           wordContextCount: wordContextCount.get(r.word_id) ?? 0,
           isInPool: inPool,
           context: {
             lineId: r.line_id,
             text: r.text,
-            startTime: r.line_start,
-            endTime: r.line_end,
-            clipStartTime: r.clip_start,
-            clipEndTime: r.clip_end,
-            structure: parseStructure(r.structure_raw),
-            videoId: r.video_id,
-            youtubeVideoId: r.youtube_video_id,
-            videoTitle: r.video_title,
-            movieTitle: r.movie_title,
+            startTime: line.line_start,
+            endTime: line.line_end,
+            clipStartTime: line.clip_start,
+            clipEndTime: line.clip_end,
+            structure: parseStructure(line.structure_raw),
+            videoId: line.video_id,
+            youtubeVideoId: line.youtube_video_id,
+            videoTitle: line.video_title,
+            movieTitle: line.movie_title,
             isPoc: true,
             words: wordRows.map(w => ({
               word: w.word,

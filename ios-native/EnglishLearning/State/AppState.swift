@@ -25,21 +25,51 @@ final class AppState: ObservableObject {
     }
     @Published private(set) var t: Translations = Localization.bundle(for: .tr)
 
-    /// True while an immersive ClipPlayerView is on screen — MainTabView
+    /// Full-screen video surfaces currently on screen (see
+    /// `hidesTabBarWhileVisible()`).
+    @Published private var presence = ImmersivePresence()
+
+    /// True while any immersive video screen is on screen — MainTabView
     /// reads this to hide the floating tab bar so the video can fill the
-    /// chrome-free space. Set by VideoWatchView's onAppear / onDisappear.
-    @Published var isVideoPlayerActive: Bool = false
+    /// chrome-free space.
+    var isVideoPlayerActive: Bool { presence.isActive }
+
+    /// The tab on screen. Screens switch tabs through this (an empty word
+    /// list sends the learner to the sets, a finished set to their words).
+    @Published var selectedTab: MainTab = .home
+
+    /// Bumped by `showMyWords()`. The Kelimeler tab stays alive behind the
+    /// others, so a jump to it from another tab must also bring it back to
+    /// its root (an old word card may still be pushed) and onto the newest
+    /// word; it watches this to know the jump was asked for.
+    @Published private(set) var wordsRoute = 0
+
+    /// Opens the Kelimeler tab at its root, on the word caught last.
+    func showMyWords() {
+        wordsRoute &+= 1
+        selectedTab = .vocab
+    }
+
+    /// One playback speed for every player (portrait, cinema, reels), so a
+    /// learner who slowed down doesn't snap back to native speed on the
+    /// next video or in cinema mode. 0.75× by default: comprehension over
+    /// speed for A2 learners.
+    @Published var playbackRate: Double = 0.75 {
+        didSet { defaults.set(playbackRate, forKey: Keys.playbackRate) }
+    }
+
+    /// The learner has added a word from a video at least once. Until then
+    /// the player shows a one-time hint teaching the tap-to-add move.
+    @Published private(set) var hasCaughtFirstWord = false
 
     // MARK: - UserDefaults keys
     private enum Keys {
         static let nativeLanguage = "native_language"
-        static let progress = "user_progress_v2"
-        static let vocabPool = "vocab_pool_v2"
         static let completedPatterns = "completed_patterns_v1"
+        static let playbackRate = "playback_rate_v1"
+        static let hasCaughtFirstWord = "has_caught_first_word_v1"
     }
     private let defaults = UserDefaults.standard
-    private let encoder = JSONEncoder()
-    private let decoder = JSONDecoder()
 
     init() {
         loadInitial()
@@ -52,17 +82,22 @@ final class AppState: ObservableObject {
            let lang = NativeLanguage(rawValue: raw) {
             nativeLanguage = lang
         }
-        if let data = defaults.data(forKey: Keys.progress),
-           let parsed = try? decoder.decode(UserProgress.self, from: data) {
-            progress = parsed
+        // A blob that can't be decoded has already been backed up by
+        // `ProgressPersistence`, so starting fresh can't destroy it.
+        if let stored = ProgressPersistence.load(from: defaults) {
+            progress = stored
         }
-        if let data = defaults.data(forKey: Keys.vocabPool),
-           let parsed = try? decoder.decode([String: VocabPoolEntry].self, from: data) {
-            vocabPool = parsed
+        if let stored = ProgressPersistence.loadVocabPool(from: defaults) {
+            vocabPool = stored
         }
         if let raw = defaults.array(forKey: Keys.completedPatterns) as? [String] {
             completedPatterns = Set(raw)
         }
+        let storedRate = defaults.double(forKey: Keys.playbackRate)
+        if [0.5, 0.75, 1.0].contains(storedRate) {
+            playbackRate = storedRate
+        }
+        hasCaughtFirstWord = defaults.bool(forKey: Keys.hasCaughtFirstWord) || !progress.learnedWords.isEmpty
         rebuildTranslations()
         isLoaded = true
     }
@@ -78,17 +113,28 @@ final class AppState: ObservableObject {
     }
 
     private func persistProgress() {
-        guard let data = try? encoder.encode(progress) else { return }
-        defaults.set(data, forKey: Keys.progress)
+        ProgressPersistence.save(progress, to: defaults)
     }
 
     private func persistPool() {
-        guard let data = try? encoder.encode(vocabPool) else { return }
-        defaults.set(data, forKey: Keys.vocabPool)
+        ProgressPersistence.saveVocabPool(vocabPool, to: defaults)
     }
 
     private func persistCompletedPatterns() {
         defaults.set(Array(completedPatterns), forKey: Keys.completedPatterns)
+    }
+
+    // MARK: - Immersive presence
+
+    /// Registers a full-screen video surface; the tab bar stays hidden until
+    /// every registered token has exited, whatever order SwiftUI delivers
+    /// the appear/disappear callbacks in.
+    func enterImmersive(_ token: UUID) {
+        presence.enter(token)
+    }
+
+    func exitImmersive(_ token: UUID) {
+        presence.exit(token)
     }
 
     // MARK: - Pattern progress
@@ -120,8 +166,16 @@ final class AppState: ObservableObject {
     }
 
     func markVocabLearned(_ wordId: String) {
+        markFirstWordCaught()
         guard !progress.learnedWords.contains(wordId) else { return }
         progress.learnedWords.append(wordId)
+    }
+
+    /// Ends the one-time tap-to-add hint (also when the learner dismisses it).
+    func markFirstWordCaught() {
+        guard !hasCaughtFirstWord else { return }
+        hasCaughtFirstWord = true
+        defaults.set(true, forKey: Keys.hasCaughtFirstWord)
     }
 
     func markClipWatched(_ clipId: String) {
@@ -134,24 +188,29 @@ final class AppState: ObservableObject {
         progress.watchedScenes.append(id)
     }
 
+    /// Records that the learner watched a `PocVideo` to the end.
+    func markVideoWatched(_ videoId: String) {
+        guard !progress.watchedVideos.contains(videoId) else { return }
+        progress.watchedVideos.append(videoId)
+    }
+
+    func isVideoWatched(_ id: String) -> Bool {
+        progress.watchedVideos.contains(id)
+    }
+
     func updateStreak() {
-        let today = SpacedRepetition.isoDay(Date())
-        guard progress.lastActiveDate != today else { return }
-        let yesterday: String = {
-            let cal = Calendar(identifier: .iso8601)
-            if let d = cal.date(byAdding: .day, value: -1, to: Date()) {
-                return SpacedRepetition.isoDay(d)
-            }
-            return ""
-        }()
-        if progress.lastActiveDate == yesterday {
-            progress.streak += 1
-        } else {
-            progress.streak = max(progress.streak, 1)
-            if progress.lastActiveDate.isEmpty == false { progress.streak = 1 }
-            else { progress.streak = 1 }
-        }
-        progress.lastActiveDate = today
+        let next = Streak.next(
+            streak: progress.streak,
+            lastActiveDay: progress.lastActiveDate,
+            now: Date(),
+            calendar: .current
+        )
+        guard next.streak != progress.streak || next.lastActiveDay != progress.lastActiveDate else { return }
+        // One assignment → one publish and one write.
+        var updated = progress
+        updated.streak = next.streak
+        updated.lastActiveDate = next.lastActiveDay
+        progress = updated
     }
 
     // MARK: - Onboarding
@@ -161,6 +220,8 @@ final class AppState: ObservableObject {
         progress.onboardingLevel = level
         progress.learningGoal = goal
         progress.dailyGoalMinutes = minutes
+        // The level answer picks the starting speed; "Hız" changes it later.
+        playbackRate = level.suggestedPlaybackRate
         updateStreak()
     }
 
@@ -208,7 +269,7 @@ final class AppState: ObservableObject {
 
     func recordLessonError(lessonId: String) {
         updateMastery(lessonId: lessonId) { m in
-            let today = SpacedRepetition.isoDay(Date())
+            let today = SpacedRepetition.isoDay(Date(), calendar: .current)
             let isNewSession = m.lastPracticeDate != today
             m.errorCount += 1
             if isNewSession { m.errorSessionCount += 1 }
@@ -219,12 +280,12 @@ final class AppState: ObservableObject {
     // MARK: - Vocab pool / spaced repetition
 
     func poolEntry(for wordId: String) -> VocabPoolEntry {
-        vocabPool[wordId] ?? SpacedRepetition.newEntry(wordId: wordId)
+        vocabPool[wordId] ?? SpacedRepetition.newEntry(wordId: wordId, now: Date(), calendar: .current)
     }
 
     func processReview(wordId: String, correct: Bool) {
         let current = poolEntry(for: wordId)
-        let next = SpacedRepetition.computeNextReview(current, correct: correct)
+        let next = SpacedRepetition.computeNextReview(current, correct: correct, now: Date(), calendar: .current)
         vocabPool[wordId] = next
         if correct {
             addXP(XPReward.perQuizCorrect)
@@ -232,7 +293,7 @@ final class AppState: ObservableObject {
     }
 
     var dueForReview: [VocabPoolEntry] {
-        SpacedRepetition.dueEntries(Array(vocabPool.values))
+        SpacedRepetition.dueEntries(Array(vocabPool.values), now: Date(), calendar: .current)
     }
 
     // MARK: - Daily tasks

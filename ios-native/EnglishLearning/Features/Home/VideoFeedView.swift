@@ -9,7 +9,9 @@ final class VideoFeedViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
 
     func load(forceRefresh: Bool = false) async {
-        if !forceRefresh { isLoading = true }
+        // A refresh over cards on screen stays quiet; with nothing on screen
+        // (a retry from the error state) the spinner shows.
+        if !forceRefresh || sets.isEmpty { isLoading = true }
         errorMessage = nil
         do {
             self.sets = try await CurriculumRepository.shared.videoSets(forceRefresh: forceRefresh)
@@ -46,8 +48,26 @@ struct VideoFeedView: View {
                 SetDetailView(set: set)
                     .environmentObject(appState)
             }
+            // Warm the video each set would open on, so the first tap
+            // starts fast — on load, and again when coming back from a
+            // set (the next unwatched video may have moved on).
+            .onAppear { prefetchNextVideos() }
+            .onChange(of: vm.sets) { _, _ in prefetchNextVideos() }
         }
         .task { await vm.load() }
+    }
+
+    /// The first unwatched video of each set (where its CTA starts).
+    private func prefetchNextVideos() {
+        let videoIds = vm.sets.compactMap { set in
+            set.videos.first(where: { !appState.isVideoWatched($0.id) })?.id
+        }
+        guard !videoIds.isEmpty else { return }
+        Task {
+            for id in videoIds {
+                await CurriculumRepository.shared.prefetchPocVideoClips(videoId: id)
+            }
+        }
     }
 
     private var content: some View {
@@ -59,7 +79,11 @@ struct VideoFeedView: View {
                     .padding(.bottom, 4)
 
                 ForEach(Array(vm.sets.enumerated()), id: \.element.id) { idx, set in
-                    SetHeroCard(set: set, index: idx + 1) {
+                    SetHeroCard(
+                        set: set,
+                        index: idx + 1,
+                        watchedCount: set.videos.filter { appState.isVideoWatched($0.id) }.count
+                    ) {
                         selectedSet = set
                     }
                     .padding(.horizontal, 20)
@@ -92,6 +116,8 @@ struct VideoFeedView: View {
 private struct SetHeroCard: View {
     let set: VideoSet
     let index: Int
+    /// Videos of this set the learner has watched to the end.
+    let watchedCount: Int
     let onTap: () -> Void
 
     var body: some View {
@@ -116,7 +142,7 @@ private struct SetHeroCard: View {
             // Mosaic of the first 4 video thumbnails — gives the set
             // a face that's clearly multi-video, instead of leaning on
             // any single video to represent the whole journey.
-            thumbnailMosaic
+            ThumbnailMosaic(videos: Array(set.videos.prefix(4)))
 
             // Bottom gradient so the position label stays legible
             // regardless of the underlying thumbnail brightness.
@@ -137,34 +163,14 @@ private struct SetHeroCard: View {
                     .font(.system(size: 11, weight: .heavy))
                     .tracking(1.4)
                     .foregroundStyle(difficultyTint)
+                Spacer(minLength: 8)
+                WatchProgressPill(watched: watchedCount, total: set.videos.count)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 14)
         }
         .aspectRatio(16.0 / 7.0, contentMode: .fit)
         .clipped()
-    }
-
-    private var thumbnailMosaic: some View {
-        let firstFour = Array(set.videos.prefix(4))
-        return GeometryReader { geo in
-            HStack(spacing: 0) {
-                ForEach(firstFour) { v in
-                    AsyncImage(url: v.thumbnailURL) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        case .empty, .failure:
-                            Color.black
-                        @unknown default:
-                            Color.black
-                        }
-                    }
-                    .frame(width: geo.size.width / CGFloat(max(firstFour.count, 1)), height: geo.size.height)
-                    .clipped()
-                }
-            }
-        }
     }
 
     private var infoBlock: some View {
@@ -241,6 +247,38 @@ struct MetaPill: View {
         .overlay(
             Capsule().strokeBorder(Theme.Color.border, lineWidth: 0.5),
         )
+    }
+}
+
+// MARK: - Watch progress pill (shared with detail view)
+
+/// "n/N izlendi" — how many of a set's videos the learner has watched.
+/// Lights up in the accent colour once started, with a check when done.
+struct WatchProgressPill: View {
+    let watched: Int
+    let total: Int
+
+    private var isComplete: Bool { total > 0 && watched >= total }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: isComplete ? "checkmark.circle.fill" : "checkmark.circle")
+                .font(.system(size: 10, weight: .bold))
+            Text("\(min(watched, total))/\(total) izlendi")
+                .font(.system(size: 11, weight: .heavy))
+                .monospacedDigit()
+        }
+        .foregroundStyle(watched > 0 ? Theme.Color.accent : Theme.Color.textSecondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule().fill(watched > 0 ? Theme.Color.accentSoft : Theme.Color.backgroundSurface.opacity(0.7)),
+        )
+        .overlay(
+            Capsule().strokeBorder(watched > 0 ? Theme.Color.accent.opacity(0.4) : Theme.Color.border, lineWidth: 0.5),
+        )
+        .lineLimit(1)
+        .fixedSize()
     }
 }
 

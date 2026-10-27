@@ -1,0 +1,118 @@
+import Foundation
+
+/// Last good copy of a video's clips: served at once while the network
+/// refreshes it, and as the fallback when the network fails.
+protocol ClipCache: Sendable {
+    func load(_ videoId: String) async -> [LessonClip]?
+    func save(_ clips: [LessonClip], for videoId: String) async
+}
+
+/// Clips per POC video: one network request per video per session,
+/// shared by concurrent callers, prefetches and background refreshes.
+///
+/// The clips endpoint takes 4–60s in production, so a video with a saved
+/// copy opens from it at once while the network copy loads in the
+/// background and replaces it (stale-while-revalidate). The network stays
+/// the source of truth each session (tagging still changes server-side);
+/// the saved copy only spares the learner the wait. The set flow also
+/// prefetches the next video while the current one plays, and every path
+/// joins the same in-flight request.
+actor ClipStore {
+    typealias Fetch = @Sendable (String) async throws -> [LessonClip]
+
+    static let shared = ClipStore(
+        fetch: { try await APIClient.shared.fetchPocVideoClips(videoId: $0) },
+        cache: DiskClipCache()
+    )
+
+    private let fetch: Fetch
+    private let cache: ClipCache?
+    /// Successful fetches this session. Failures and saved copies are
+    /// never stored here, so the next call goes back to the network.
+    private var memo: [String: [LessonClip]] = [:]
+    private var inFlight: [String: Task<[LessonClip], Error>] = [:]
+
+    init(fetch: @escaping Fetch, cache: ClipCache? = nil) {
+        self.fetch = fetch
+        self.cache = cache
+    }
+
+    /// This session's copy if there is one. Otherwise, with `preferSaved`,
+    /// the saved copy at once while the shared fetch refreshes it in the
+    /// background; a failed refresh stays silent and leaves memo and disk
+    /// as they were, so the next call simply tries again. Without a saved
+    /// copy (or with `preferSaved: false`, i.e. pull-to-refresh, where the
+    /// learner asked for the network copy) waits for the network, falling
+    /// back to the saved copy only if it fails.
+    func clips(for videoId: String, preferSaved: Bool = true) async throws -> [LessonClip] {
+        if let memoized = memo[videoId] { return memoized }
+        if preferSaved, let saved = await cache?.load(videoId) {
+            // Re-checked after the disk read: a fetch may have landed meanwhile.
+            if let memoized = memo[videoId] { return memoized }
+            if inFlight[videoId] == nil { _ = start(videoId) }
+            return saved
+        }
+        let task = inFlight[videoId] ?? start(videoId)
+        do {
+            return try await task.value
+        } catch {
+            if let lastGood = await cache?.load(videoId) { return lastGood }
+            throw error
+        }
+    }
+
+    /// Warms `videoId` in the background. Fire-and-forget: a failure here
+    /// is retried by the next `clips(for:)` call.
+    func prefetch(_ videoId: String) {
+        guard memo[videoId] == nil, inFlight[videoId] == nil else { return }
+        _ = start(videoId)
+    }
+
+    /// Drops the session copy so the next `clips(for:)` refetches (serving
+    /// the saved copy meanwhile unless `preferSaved` is false). An
+    /// in-flight request is kept and joined — it is already fresh.
+    func invalidate(_ videoId: String) {
+        memo[videoId] = nil
+    }
+
+    /// Unstructured on purpose: a caller that goes away (or a prefetch or
+    /// background refresh, with no caller at all) must not cancel a fetch
+    /// others are waiting on.
+    /// The task does its own bookkeeping before it resolves, so by the time
+    /// any awaiter resumes the in-flight slot is already clear.
+    private func start(_ videoId: String) -> Task<[LessonClip], Error> {
+        let task = Task { try await self.load(videoId) }
+        inFlight[videoId] = task
+        return task
+    }
+
+    private func load(_ videoId: String) async throws -> [LessonClip] {
+        defer { inFlight[videoId] = nil }
+        let clips = try await fetch(videoId)
+        // Memoized before the disk write so callers arriving meanwhile
+        // are served from memory.
+        memo[videoId] = clips
+        await cache?.save(clips, for: videoId)
+        return clips
+    }
+}
+
+/// `ClipCache` on `CacheService` (Caches directory, so iOS may purge it).
+/// A week covers a learner who goes offline for a few days.
+struct DiskClipCache: ClipCache {
+    private let store: CacheService
+
+    init(store: CacheService = .shared) {
+        self.store = store
+    }
+
+    private static func key(_ videoId: String) -> String { "poc-clips:\(videoId)" }
+
+    func load(_ videoId: String) async -> [LessonClip]? {
+        await store.get([LessonClip].self, for: Self.key(videoId))
+    }
+
+    func save(_ clips: [LessonClip], for videoId: String) async {
+        await store.set(clips, for: Self.key(videoId), ttl: CacheService.TTL.clipsOffline)
+    }
+}

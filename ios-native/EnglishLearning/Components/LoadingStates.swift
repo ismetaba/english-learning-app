@@ -10,7 +10,7 @@ struct LoadingState: View {
             if let label = label {
                 Text(label)
                     .font(Theme.Font.body(14))
-                    .foregroundStyle(Theme.Color.textMuted)
+                    .foregroundStyle(Theme.Color.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,7 +69,7 @@ struct EmptyState: View {
             if let subtitle = subtitle {
                 Text(subtitle)
                     .font(Theme.Font.body(14))
-                    .foregroundStyle(Theme.Color.textMuted)
+                    .foregroundStyle(Theme.Color.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
@@ -86,6 +86,9 @@ struct EmptyState: View {
 struct ErrorState: View {
     let message: String
     var onRetry: (() -> Void)? = nil
+    /// Optional second way forward, shown as a plain text button under the
+    /// retry (e.g. "Sonraki videoya geç").
+    var secondary: (label: String, run: () -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 16) {
@@ -97,20 +100,42 @@ struct ErrorState: View {
                     .font(.system(size: 36, weight: .medium))
                     .foregroundStyle(Theme.Color.error)
             }
-            Text("Something went wrong")
+            Text("Bir sorun oluştu")
                 .font(Theme.Font.headline(17, weight: .bold))
                 .foregroundStyle(Theme.Color.textPrimary)
-            Text(message)
-                .font(Theme.Font.body(13))
-                .foregroundStyle(Theme.Color.textMuted)
+            Text(shownMessage)
+                .font(Theme.Font.body(14))
+                .foregroundStyle(Theme.Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
             if let onRetry = onRetry {
-                PrimaryButton(title: "Try again", icon: "arrow.clockwise",
+                PrimaryButton(title: "Tekrar dene", icon: "arrow.clockwise",
                               style: .secondary, fullWidth: false, action: onRetry)
+            }
+            if let secondary = secondary {
+                Button {
+                    Haptics.light()
+                    secondary.run()
+                } label: {
+                    Text(secondary.label)
+                        .font(Theme.Font.body(14, weight: .semibold))
+                        .foregroundStyle(Theme.Color.textSecondary)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+
+    /// Error texts end in "Tekrar dene." for screens without a button;
+    /// right above the "Tekrar dene" button that would say it twice.
+    private var shownMessage: String {
+        let suffix = " Tekrar dene."
+        guard onRetry != nil, message.hasSuffix(suffix) else { return message }
+        return String(message.dropLast(suffix.count))
     }
 }

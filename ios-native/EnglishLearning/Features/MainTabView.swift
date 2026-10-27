@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum MainTab: Hashable, CaseIterable {
     // The Feynman pivot collapsed the tab set to three: a video feed
@@ -48,42 +49,75 @@ enum MainTab: Hashable, CaseIterable {
 
 struct MainTabView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selected: MainTab = .home
+    @Environment(\.scenePhase) private var scenePhase
+    /// VocabView's Akış/Liste choice, stored under this key by raw value.
+    /// The Word Reels feed plays with the tab bar showing, so it isn't an
+    /// immersive surface; the screen still has to stay on while it plays.
+    @AppStorage("vocab.mode") private var vocabMode: String = "feed"
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Theme.Color.background.ignoresSafeArea()
 
-            Group {
-                switch selected {
-                case .home:     VideoFeedView()
-                case .vocab:    VocabView()
-                case .patterns: PatternsView()
-                case .profile:  ProfileView()
-                // Legacy fall-through — never reached because these aren't
-                // in `MainTab.displayed`, but a switch must be exhaustive.
-                case .courses:  VideoFeedView()
-                case .play:     VideoFeedView()
-                }
+            // A TabView rather than a switch: each tab's root (and the set
+            // or word pushed on it) stays alive across tab switches, while a
+            // tab that goes out of view still gets onDisappear, so its reels
+            // and players pause just as when a screen is pushed over them.
+            TabView(selection: $appState.selectedTab) {
+                PatternsView().tabRoot(.patterns)
+                VideoFeedView().tabRoot(.home)
+                VocabView().tabRoot(.vocab)
+                ProfileView().tabRoot(.profile)
             }
-            .transition(.opacity)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Hidden while an immersive ClipPlayer is showing — the video
             // chrome owns the bottom band in that mode (gradient fade,
             // transport row, scrubber). Animated so the bar slides out
             // rather than disappearing instantly.
             if !appState.isVideoPlayerActive {
-                FloatingTabBar(selected: $selected)
+                FloatingTabBar(selected: $appState.selectedTab)
                     .environmentObject(appState)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.24), value: selected)
         .animation(.easeInOut(duration: 0.22), value: appState.isVideoPlayerActive)
         .onAppear { appState.updateStreak() }
+        // No dimming or auto-lock mid-scene, or while the word card holds
+        // a paused video; the system idle timer is back everywhere else.
+        .onChange(of: keepsScreenAwake, initial: true) { _, awake in
+            UIApplication.shared.isIdleTimerDisabled = awake
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                // The app can sit in the background across midnight; count
+                // the day when the learner comes back, not only on launch.
+                appState.updateStreak()
+                UIApplication.shared.isIdleTimerDisabled = keepsScreenAwake
+            case .background:
+                UIApplication.shared.isIdleTimerDisabled = false
+            default:
+                break
+            }
+        }
+    }
+
+    /// A video screen is up, or the Word Reels feed is (it only has reels
+    /// once a word has been added).
+    private var keepsScreenAwake: Bool {
+        appState.isVideoPlayerActive
+            || (appState.selectedTab == .vocab && vocabMode == "feed"
+                && !appState.progress.learnedWords.isEmpty)
+    }
+}
+
+private extension View {
+    /// One TabView page; the floating bar is the only tab bar on screen.
+    func tabRoot(_ tab: MainTab) -> some View {
+        tag(tab)
+            .toolbar(.hidden, for: .tabBar)
     }
 }
 

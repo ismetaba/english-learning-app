@@ -33,8 +33,7 @@ struct VideoWatchView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .task { await vm.load(videoId: video.id) }
-        .onAppear { appState.isVideoPlayerActive = true }
-        .onDisappear { appState.isVideoPlayerActive = false }
+        .hidesTabBarWhileVisible()
     }
 }
 

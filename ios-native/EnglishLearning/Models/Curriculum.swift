@@ -246,6 +246,24 @@ struct ClipWord: Codable, Equatable, Hashable, Identifiable {
         case word, startTime, endTime, wordIndex, starterId, starterTr, translationTr
     }
 
+    init(
+        word: String,
+        startTime: Double,
+        endTime: Double,
+        wordIndex: Int? = nil,
+        starterId: String? = nil,
+        starterTr: String? = nil,
+        translationTr: String? = nil
+    ) {
+        self.word = word
+        self.startTime = startTime
+        self.endTime = endTime
+        self.wordIndex = wordIndex
+        self.starterId = starterId
+        self.starterTr = starterTr
+        self.translationTr = translationTr
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.word          = try c.decode(String.self, forKey: .word)
@@ -288,10 +306,32 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
         case id, speaker, text, translationTr, startTime, endTime, isTarget, structure, words
     }
 
+    init(
+        id: Int,
+        speaker: String,
+        text: String,
+        translationTr: String?,
+        startTime: Double,
+        endTime: Double,
+        isTarget: Bool?,
+        structure: ClipLineStructure?,
+        words: [ClipWord]
+    ) {
+        self.id = id
+        self.speaker = speaker
+        self.text = text
+        self.translationTr = translationTr
+        self.startTime = startTime
+        self.endTime = endTime
+        self.isTarget = isTarget
+        self.structure = structure
+        self.words = words
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.id            = try c.decode(Int.self, forKey: .id)
-        self.speaker       = try c.decode(String.self, forKey: .speaker)
+        self.speaker       = Self.displayedSpeaker(try c.decode(String.self, forKey: .speaker))
         self.text          = try c.decode(String.self, forKey: .text)
         self.translationTr = try c.decodeIfPresent(String.self, forKey: .translationTr)
         self.startTime     = try c.decode(Double.self, forKey: .startTime)
@@ -299,6 +339,16 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
         self.isTarget      = try c.decodeIfPresent(Bool.self, forKey: .isTarget)
         self.structure     = try c.decodeIfPresent(ClipLineStructure.self, forKey: .structure)
         self.words         = try c.decode([ClipWord].self, forKey: .words)
+    }
+
+    /// Every line in the database defaults to the speaker "Speaker", which
+    /// the player printed as "SPEAKER" above each line like debug output.
+    /// That placeholder (and a blank name) decodes as "" (no label); real
+    /// names are only trimmed. Done at decode time so clips saved to disk
+    /// by older builds are cleaned up too.
+    static func displayedSpeaker(_ raw: String) -> String {
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.caseInsensitiveCompare("speaker") == .orderedSame ? "" : name
     }
 }
 

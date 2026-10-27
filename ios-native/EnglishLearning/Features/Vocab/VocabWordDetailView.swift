@@ -9,7 +9,9 @@ final class VocabWordDetailViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
 
     func load(id: String, forceRefresh: Bool = false) async {
-        if !forceRefresh { isLoading = true }
+        // A retry from the error state has nothing on screen: show the
+        // spinner, not a blank list.
+        if !forceRefresh || detail == nil { isLoading = true }
         errorMessage = nil
         do {
             self.detail = try await CurriculumRepository.shared.starterWordContexts(
@@ -25,11 +27,12 @@ final class VocabWordDetailViewModel: ObservableObject {
 
 // MARK: - Word detail
 
-/// One starter word with every distinct POC sentence it appears in.
-/// The Feynman bet is that the more contexts you see a word in, the
-/// less you're "memorizing" it — you're actually meeting it. So this
-/// screen leans into the contexts: each one is a re-watchable card
-/// that drops you back into the scene where the word lived.
+/// One starter word with every distinct sentence it appears in across the
+/// film library. The Feynman bet is that the more contexts you see a word
+/// in, the less you're "memorizing" it — you're actually meeting it. So
+/// this screen leans into the contexts: each one is a card that plays the
+/// scene where the word lives. (These are the library's scenes, not the
+/// ones the learner watched: nothing here claims progress.)
 struct VocabWordDetailView: View {
     let summary: StarterWordSummary
 
@@ -44,7 +47,7 @@ struct VocabWordDetailView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 28) {
                     hero
-                    masteryBlock
+                    scenesBlock
                     contextsSection
                     Spacer().frame(height: 60)
                 }
@@ -54,6 +57,8 @@ struct VocabWordDetailView: View {
             }
         }
         .navigationBarBackButtonHidden(false)
+        // Back is just the chevron, not the system's English "Back".
+        .toolbarRole(.editor)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(summary.word)
@@ -78,8 +83,8 @@ struct VocabWordDetailView: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                if let pos = partOfSpeechTr(summary.partOfSpeech) {
-                    metaBadge(text: pos.uppercased())
+                if let pos = partOfSpeechBadge(summary.partOfSpeech) {
+                    metaBadge(text: pos)
                 }
                 if let cefr = summary.cefrLevel, !cefr.isEmpty {
                     metaBadge(text: cefr.uppercased(), tinted: true)
@@ -103,7 +108,14 @@ struct VocabWordDetailView: View {
                     .multilineTextAlignment(.leading)
             }
 
-            if let ipa = summary.ipa, !ipa.isEmpty {
+            // How to say it: the Turkish-letter okunuş when we know it,
+            // otherwise the IPA when the word has one.
+            if let reading = TurkishPhonetics.reading(for: summary.word) {
+                Text(reading)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.Color.textMuted)
+                    .accessibilityLabel("Okunuşu: \(reading)")
+            } else if let ipa = summary.ipa, !ipa.isEmpty {
                 Text(ipa)
                     .font(.system(size: 13, weight: .regular, design: .monospaced))
                     .foregroundStyle(Theme.Color.textMuted)
@@ -136,92 +148,43 @@ struct VocabWordDetailView: View {
             )
     }
 
-    // MARK: Mastery block
+    // MARK: Scenes block
 
-    private var masteryBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(summary.pocContextCount)")
-                    .font(.system(size: 28, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.Color.textPrimary)
-                Text("/ \(StarterWordSummary.masteryThreshold) bağlam")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(Theme.Color.textMuted)
-                Spacer(minLength: 0)
-                if summary.isMastered {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12, weight: .heavy))
-                        Text("MASTERED")
-                            .font(.system(size: 10, weight: .heavy))
-                            .tracking(1.4)
-                    }
-                    .foregroundStyle(Theme.Color.accent)
+    /// How many scenes in the library the word appears in: information
+    /// about the word, not the learner's progress (that isn't tracked yet,
+    /// so nothing here claims it). Hidden when there are none; the list
+    /// below says so.
+    @ViewBuilder
+    private var scenesBlock: some View {
+        if summary.pocContextCount > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(summary.pocContextCount)")
+                        .font(.system(size: 28, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.Color.textPrimary)
+                    Text("sahnede geçiyor")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(Theme.Color.textSecondary)
+                    Spacer(minLength: 0)
                 }
+
+                Text("Bu kelimeyi farklı sahnelerde izle; her yeni sahne onu biraz daha kalıcı yapar.")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.Color.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            // Cyan progress bar — fills proportionally to context count,
-            // clamped at the 7-context mastery threshold so the bar
-            // doesn't keep growing past "full".
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Theme.Color.backgroundSurface)
-                        .frame(height: 8)
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Theme.Color.accent, Theme.Color.accent.opacity(0.7)],
-                                startPoint: .leading,
-                                endPoint: .trailing,
-                            ),
-                        )
-                        .frame(
-                            width: max(
-                                12,
-                                geo.size.width * CGFloat(summary.contextProgressFraction),
-                            ),
-                            height: 8,
-                        )
-                        .shadow(
-                            color: Theme.Color.accent.opacity(summary.isMastered ? 0.5 : 0.15),
-                            radius: 8, x: 0, y: 0,
-                        )
-                }
-            }
-            .frame(height: 8)
-
-            Text(masteryHint)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.Color.textSecondary)
-                .lineSpacing(2)
-                .padding(.top, 2)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Theme.Color.backgroundCard.opacity(0.7)),
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Theme.Color.border.opacity(0.5), lineWidth: 1),
+            )
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.Color.backgroundCard.opacity(0.7)),
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(
-                    summary.isMastered
-                        ? Theme.Color.accent.opacity(0.4)
-                        : Theme.Color.border.opacity(0.5),
-                    lineWidth: 1,
-                ),
-        )
-    }
-
-    private var masteryHint: String {
-        if summary.isMastered {
-            return "Bu kelimeyi 7+ farklı sahnede gördün. Artık \"öğreniyor\" değil, biliyorsun."
-        }
-        let remaining = StarterWordSummary.masteryThreshold - summary.pocContextCount
-        if summary.pocContextCount == 0 {
-            return "Bu kelimeyi henüz hiçbir sette görmedin — yeni bir sahnede karşılaşmak için izlemeye devam."
-        }
-        return "Mastery için \(remaining) yeni bağlam daha. Aynı kelimeyi farklı sahnelerde görmek, ezberlemekten güçlüdür."
     }
 
     // MARK: Contexts
@@ -229,25 +192,29 @@ struct VocabWordDetailView: View {
     private var contextsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
-                Text("GÖRDÜĞÜN BAĞLAMLAR")
+                // Every scene in the library, not only the watched ones.
+                Text("BU KELİMENİN GEÇTİĞİ SAHNELER")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .tracking(2)
+                    .tracking(1.6)
                     .foregroundStyle(Theme.Color.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Rectangle()
                     .fill(Theme.Color.border.opacity(0.6))
                     .frame(height: 1)
             }
 
             if vm.isLoading && vm.detail == nil {
-                LoadingState(label: "Bağlamlar yükleniyor")
+                LoadingState(label: "Sahneler yükleniyor")
                     .padding(.top, 24)
-            } else if let err = vm.errorMessage {
+            } else if vm.detail == nil, let err = vm.errorMessage {
+                // Only with nothing loaded: a failed refresh keeps the list.
                 ErrorState(message: err) {
                     Task { await vm.load(id: summary.id, forceRefresh: true) }
                 }
             } else if let detail = vm.detail {
                 if detail.contexts.isEmpty {
-                    Text("Henüz POC setlerinde bu kelime için sahne yok.")
+                    Text("Bu kelime için henüz sahne yok.")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Theme.Color.textMuted)
                         .padding(.top, 16)
@@ -308,7 +275,7 @@ private struct ContextCard: View {
                     HStack(spacing: 6) {
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 13, weight: .heavy))
-                        Text("Sahneye dön")
+                        Text("Sahneyi izle")
                             .font(.system(size: 11, weight: .heavy))
                             .tracking(0.5)
                     }
@@ -372,28 +339,104 @@ private struct ContextCard: View {
 
 // MARK: - Context player
 
-/// Wraps ClipPlayerView for a single VocabContext — synthesizes a
-/// one-line clip from the context, drops the user into the existing
-/// player at exactly that line.
+/// Drops the learner back into the scene a VocabContext came from: the
+/// whole scene (every subtitle line) when the video's clips are at hand,
+/// otherwise just the sentence — starting at the sentence either way
+/// (`ScenePlan`).
 struct VocabContextPlayerView: View {
     let context: VocabContext
 
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @State private var plan: ScenePlan? = nil
+
+    /// How long to wait for the full scene before playing just the sentence.
+    private static let sceneTimeoutNanoseconds: UInt64 = 4_000_000_000
 
     var body: some View {
         ZStack {
             Theme.Color.background.ignoresSafeArea()
-            ClipPlayerView(
-                clips: [context.asLessonClip()],
-                onFinish: { dismiss() },
-                onExit: { dismiss() },
-            )
-            .environmentObject(appState)
+            if let plan {
+                // No `onFinish`: the scene stays open when it ends (last
+                // frame, transcript, ▶ replays it); only back leaves. No
+                // first-word hint: it would pause on the sentence the
+                // learner came to hear.
+                ClipPlayerView(
+                    clips: [plan.clip],
+                    onExit: { dismiss() },
+                    initialTime: plan.startAt,
+                    showsStarterHint: false,
+                )
+                .environmentObject(appState)
+            } else {
+                // The scene can take a few seconds to arrive, and the
+                // system bar (and its swipe back) is hidden: the way out is
+                // there from the start.
+                ZStack(alignment: .topLeading) {
+                    LoadingState(label: "Sahne hazırlanıyor")
+                    backButton
+                        .padding(.leading, 12)
+                        .padding(.top, 4)
+                }
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear { appState.isVideoPlayerActive = true }
-        .onDisappear { appState.isVideoPlayerActive = false }
+        .hidesTabBarWhileVisible()
+        .task { await preparePlan() }
     }
+
+    /// Same as the set player's close button (a 36pt circle, 44pt to tap).
+    private var backButton: some View {
+        Button {
+            Haptics.light()
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Theme.Color.textPrimary)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Theme.Color.backgroundCard))
+                .overlay(Circle().strokeBorder(Theme.Color.border, lineWidth: 1))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable)
+        .accessibilityLabel("Geri")
+    }
+
+    /// Fetches the video's scenes (session cache / saved copy answer at
+    /// once) but never waits more than a few seconds for them: past that
+    /// the sentence alone plays.
+    private func preparePlan() async {
+        guard plan == nil else { return }
+        let context = self.context
+        guard context.isPoc else {
+            plan = ScenePlan.make(context: context, videoClips: nil)
+            return
+        }
+        let fetch = Task {
+            try? await CurriculumRepository.shared.pocVideoClips(videoId: context.videoId)
+        }
+        let fallback = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.sceneTimeoutNanoseconds)
+            guard !Task.isCancelled, plan == nil else { return }
+            plan = ScenePlan.make(context: context, videoClips: nil)
+        }
+        let clips = await fetch.value
+        fallback.cancel()
+        guard plan == nil else { return }
+        plan = ScenePlan.make(context: context, videoClips: clips)
+    }
+}
+
+// MARK: - Part-of-speech badge
+
+/// `partOfSpeechTr` in capitals for the badges. Its Turkish names follow
+/// Turkish casing ("fiil" → "FİİL", "isim" → "İSİM"); a tag it passes
+/// through untranslated is English and keeps English casing.
+func partOfSpeechBadge(_ pos: String?) -> String? {
+    guard let name = partOfSpeechTr(pos) else { return nil }
+    let isTurkish = name != pos?.lowercased() || ["fiil", "sıfat", "isim", "zarf"].contains(name)
+    return name.uppercased(with: Locale(identifier: isTurkish ? "tr_TR" : "en_US"))
 }

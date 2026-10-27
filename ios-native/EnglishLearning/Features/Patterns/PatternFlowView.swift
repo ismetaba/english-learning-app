@@ -7,8 +7,8 @@ import SwiftUI
 // sentence color-coded by 3-color structure (subject sky / verb sage /
 // rest lavender) with a Turkish gloss under each chunk. After the
 // static examples a "video akış" card invites the user to see the
-// pattern in real movie clips. Last card is a finish state that
-// records completion via AppState.
+// pattern in real movie clips (only for patterns that have them). Last
+// card is a finish state; reaching it records completion via AppState.
 
 /// Lightweight nav payload — passed to navigationDestination so we
 /// push PatternReelsView on demand rather than always mounting it.
@@ -21,18 +21,22 @@ struct PatternFlowView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     let pattern: Pattern
+    /// Called by "Bitir" instead of closing just this screen (the path
+    /// closes the intro under it too).
+    var onFinished: (() -> Void)? = nil
 
     @State private var visibleIndex: Int = 0
     @State private var openedReels: PatternReelsTarget? = nil
 
     /// Number of static example cards before the trailing meta cards.
     private var exampleCount: Int { pattern.examples.count }
-    /// Index of the "video akışı" intermission card.
+    /// The pattern has movie scenes. Without them there is no video card
+    /// at all (a "yakında" card would be a dead end in the demo).
+    private var hasVideo: Bool { pattern.videoStructureId != nil }
+    /// Index of the "video akışı" intermission card (only with video).
     private var videoCardIndex: Int { exampleCount }
     /// Index of the final finish card.
-    private var finishCardIndex: Int { exampleCount + 1 }
-    /// Total number of cards in the scroll.
-    private var totalCards: Int { exampleCount + 2 }
+    private var finishCardIndex: Int { hasVideo ? exampleCount + 1 : exampleCount }
 
     var body: some View {
         ZStack {
@@ -47,20 +51,22 @@ struct PatternFlowView: View {
                                 pattern: pattern,
                                 example: example,
                                 index: idx,
-                                total: exampleCount
+                                total: exampleCount,
+                                hasVideo: hasVideo
                             )
                             .frame(width: geo.size.width, height: geo.size.height)
                             .id(idx)
                         }
 
                         // Video akış intermission
-                        PatternFlowVideoCard(
-                            pattern: pattern,
-                            onOpenReels: openReels,
-                            onContinue: { advance(to: finishCardIndex) }
-                        )
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .id(videoCardIndex)
+                        if hasVideo {
+                            PatternFlowVideoCard(
+                                pattern: pattern,
+                                onOpenReels: openReels
+                            )
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .id(videoCardIndex)
+                        }
 
                         // Finish card
                         PatternFlowFinishCard(
@@ -94,11 +100,26 @@ struct PatternFlowView: View {
         .preferredColorScheme(.dark)
         .navigationBarHidden(true)
         // Hide the floating tab bar via the same hook the video player uses.
-        .onAppear { appState.isVideoPlayerActive = true }
-        .onDisappear { appState.isVideoPlayerActive = false }
+        .hidesTabBarWhileVisible()
         .navigationDestination(item: $openedReels) { target in
             PatternReelsView(patternId: target.patternId, title: target.title)
                 .environmentObject(appState)
+        }
+        // Back from the video akış: the next step is the finish card, as
+        // the video card promised, not the video card again. A first
+        // arrival plays the completion haptic, so no light tap on top.
+        .onChange(of: openedReels) { old, new in
+            if old != nil && new == nil {
+                advance(to: finishCardIndex, haptic: appState.isPatternCompleted(pattern.id))
+            }
+        }
+        // The finish card already says "Tebrikler!" and "Bitti", so reaching
+        // it is finishing: leaving by the X, the edge swipe or another tab
+        // must count too, not only "Bitir". Idempotent: one haptic, one save.
+        .onChange(of: visibleIndex) { _, i in
+            if i >= finishCardIndex {
+                appState.markPatternComplete(pattern.id)
+            }
         }
     }
 
@@ -108,14 +129,20 @@ struct PatternFlowView: View {
         openedReels = PatternReelsTarget(patternId: id, title: pattern.titleTr)
     }
 
+    /// Goes back to the path, where the node now shows ✓. Reaching this
+    /// card already recorded the pattern (and played its haptic); marking
+    /// again is a no-op that keeps "Bitir" from ever leaving it unsaved.
     private func finish() {
-        Haptics.success()
         appState.markPatternComplete(pattern.id)
-        dismiss()
+        if let onFinished {
+            onFinished()
+        } else {
+            dismiss()
+        }
     }
 
-    private func advance(to idx: Int) {
-        Haptics.light()
+    private func advance(to idx: Int, haptic: Bool = true) {
+        if haptic { Haptics.light() }
         withAnimation(.easeInOut(duration: 0.3)) {
             visibleIndex = idx
         }
@@ -139,7 +166,7 @@ struct PatternFlowView: View {
             .buttonStyle(.pressable)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("AKIŞ · " + pattern.familyTr.uppercased())
+                Text("AKIŞ · " + pattern.familyTrCaps)
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(1.4)
                     .foregroundStyle(.white.opacity(0.6))
@@ -163,7 +190,7 @@ struct PatternFlowView: View {
 
     private var progressText: String {
         if visibleIndex >= finishCardIndex { return "Bitti" }
-        if visibleIndex == videoCardIndex  { return "Video" }
+        if hasVideo && visibleIndex == videoCardIndex { return "Video" }
         let shown = min(visibleIndex + 1, exampleCount)
         return "\(shown) / \(exampleCount)"
     }
@@ -176,6 +203,8 @@ struct PatternFlowCard: View {
     let example: PatternExample
     let index: Int
     let total: Int
+    /// The video card follows the last example; otherwise the finish card.
+    let hasVideo: Bool
 
     var body: some View {
         ZStack {
@@ -234,7 +263,7 @@ struct PatternFlowCard: View {
 
     /// One subject/verb/rest chunk — English (color-coded) on top,
     /// Turkish-style okunuş (when set) directly under the word, then
-    /// the Turkish gloss in muted italic.
+    /// the Turkish gloss, quieter but readable.
     private func chunk(text: String, phonetic: String?, tr: String, kind: PatternSlotKind) -> some View {
         VStack(spacing: 3) {
             Text(text)
@@ -250,40 +279,42 @@ struct PatternFlowCard: View {
                     .multilineTextAlignment(.center)
             }
             Text(tr)
-                .font(.system(size: 12, weight: .semibold))
-                .italic()
-                .foregroundStyle(.white.opacity(0.45))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.62))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Capitals spelled out: `.textCase(.uppercase)` ignores Turkish
+    /// casing ("VIDEO", "BITIR").
     private var hint: some View {
         HStack(spacing: 6) {
             Image(systemName: "chevron.up")
                 .font(.system(size: 11, weight: .heavy))
-            Text(index == total - 1 ? "Yukarı kaydır → video akışı" : "Yukarı kaydır")
+            Text(hintText)
                 .font(.system(size: 11, weight: .heavy))
                 .tracking(0.6)
         }
         .foregroundStyle(.white.opacity(0.45))
-        .textCase(.uppercase)
+    }
+
+    private var hintText: String {
+        guard index == total - 1 else { return "YUKARI KAYDIR" }
+        return hasVideo ? "YUKARI KAYDIR → VİDEO AKIŞI" : "YUKARI KAYDIR → BİTİR"
     }
 }
 
 // MARK: - Video akış intermission card
 
 /// Bridges the static example cards to a vertical reel of movie
-/// clips that all open with this pattern. When the pattern has a
-/// `videoStructureId` (the route key on the patterns API), tapping
-/// "Video akışını aç" pushes `PatternReelsView`. Otherwise the
-/// card sits in a "yakında" placeholder and the button advances to
-/// the finish step.
+/// clips that all open with this pattern: "Video akışını aç" pushes
+/// `PatternReelsView`. Only shown for patterns with a
+/// `videoStructureId` (the route key on the patterns API).
 struct PatternFlowVideoCard: View {
     let pattern: Pattern
     let onOpenReels: () -> Void
-    let onContinue: () -> Void
 
     var body: some View {
         ZStack {
@@ -328,36 +359,24 @@ struct PatternFlowVideoCard: View {
                         .padding(.horizontal, 32)
                 }
 
-                // Status chip — switches between "ready" and "yakında"
                 statusChip
                     .padding(.top, 4)
 
                 VStack(spacing: 10) {
                     PrimaryButton(
-                        title: pattern.videoStructureId != nil
-                            ? "Video akışını aç"
-                            : "Bitir adımına geç",
-                        icon: pattern.videoStructureId != nil
-                            ? "play.fill"
-                            : "checkmark",
+                        title: "Video akışını aç",
+                        icon: "play.fill",
                         style: .primary,
                         fullWidth: true
                     ) {
-                        if pattern.videoStructureId != nil {
-                            onOpenReels()
-                        } else {
-                            Haptics.medium()
-                            onContinue()
-                        }
+                        onOpenReels()
                     }
 
-                    Text(pattern.videoStructureId != nil
-                            ? "video akışından sonra bitir adımına geçeceksin"
-                            : "yukarı kaydırarak da bitir adımına geçebilirsin")
+                    // Capitals spelled out (Turkish İ).
+                    Text("VİDEO AKIŞINDAN SONRA BİTİR ADIMINA GEÇECEKSİN")
                         .font(.system(size: 11, weight: .heavy))
                         .tracking(0.4)
                         .foregroundStyle(.white.opacity(0.4))
-                        .textCase(.uppercase)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 32)
@@ -369,36 +388,20 @@ struct PatternFlowVideoCard: View {
         }
     }
 
-    @ViewBuilder
     private var statusChip: some View {
-        if pattern.videoStructureId != nil {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Theme.Color.success)
-                    .frame(width: 6, height: 6)
-                Text("VİDEO HAZIR")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.0)
-            }
-            .foregroundStyle(Theme.Color.success)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(Theme.Color.success.opacity(0.14)))
-            .overlay(Capsule().strokeBorder(Theme.Color.success.opacity(0.4), lineWidth: 1))
-        } else {
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .font(.system(size: 10, weight: .heavy))
-                Text("YAKINDA")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.0)
-            }
-            .foregroundStyle(Theme.Color.warning)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(Theme.Color.warning.opacity(0.14)))
-            .overlay(Capsule().strokeBorder(Theme.Color.warning.opacity(0.4), lineWidth: 1))
+        HStack(spacing: 6) {
+            Circle()
+                .fill(Theme.Color.success)
+                .frame(width: 6, height: 6)
+            Text("VİDEO HAZIR")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.0)
         }
+        .foregroundStyle(Theme.Color.success)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Theme.Color.success.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(Theme.Color.success.opacity(0.4), lineWidth: 1))
     }
 }
 
@@ -442,7 +445,7 @@ struct PatternFlowFinishCard: View {
                         .font(.system(size: 28, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .tracking(-0.5)
-                    Text(pattern.titleTr + " adımını tamamladın.")
+                    Text("Bu kalıbı tamamladın!")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -467,7 +470,7 @@ struct PatternFlowFinishCard: View {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.system(size: 12, weight: .heavy))
-                            Text("Yine geç")
+                            Text("Baştan başla")
                                 .font(.system(size: 13, weight: .heavy))
                                 .tracking(0.4)
                         }

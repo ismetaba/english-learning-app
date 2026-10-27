@@ -69,7 +69,9 @@ struct PrimaryButton: View {
 
     private var foreground: Color {
         switch style {
-        case .primary, .success: return .white
+        case .primary: return .white
+        // Dark on the green → turquoise fill; white there is hard to read.
+        case .success: return Theme.Color.onAccent
         case .secondary: return Theme.Color.textPrimary
         case .ghost: return Theme.Color.primary
         case .destructive: return Theme.Color.error

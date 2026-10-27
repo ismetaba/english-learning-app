@@ -1,46 +1,82 @@
+import Combine
 import SwiftUI
 
 /// Landscape "cinema mode" player. Full-bleed video; karaoke subtitle
 /// strip docks on the bottom of the screen with the same 3-color
 /// sentence-structure rendering and per-word Turkish gloss as the
-/// portrait clip player. Top chrome auto-hides after a few seconds
-/// of idle so the frame fills the device. Tapping the video toggles
-/// pause/play and brings the chrome back.
+/// portrait clip player, plus the whole sentence in Turkish. While the
+/// video plays the top chrome hides after a few seconds of idle so the
+/// frame fills the device; paused, the chrome stays and a centred ▶
+/// says so. Tapping the video toggles pause/play and brings the chrome
+/// back.
+///
+/// Owns its own `YouTubePlayerController` + `KaraokeSync`, like
+/// `ClipPlayerView`: the page ends each clip window itself (`clipEnded`)
+/// and the karaoke follows every player event. Plays at the learner's
+/// one speed (`AppState.playbackRate`).
 struct CinemaPlayerView: View {
-    let clips: [LessonClip]
+    /// Sanitized once (`ClipTiming.sanitize`).
+    private let clips: [LessonClip]
+    /// `ClipTiming.playbackWindow` of each clip (trimmed per `trimsSilence`).
+    private let windows: [PlaybackWindow]
     /// Resume position when the user just toggled in from portrait.
-    /// Applied only to the FIRST clip we render — once we advance via
-    /// `next()`, subsequent clips ignore it and use their natural
-    /// `clip.startTime`. nil = start at the clip's natural beginning.
-    var initialTime: Double? = nil
+    /// Applied only to the FIRST clip we render — later clips start at
+    /// the beginning of their window. nil = start at the window start.
+    let initialTime: Double?
     /// Initial clip within the `clips` array, for the same resume case.
-    var initialClipIndex: Int = 0
-    /// Fires every player tick with the current clip index + absolute
-    /// video time. Lets the parent keep portrait/cinema in sync so
-    /// toggling between modes doesn't restart the video.
-    var onTick: ((Int, Double) -> Void)? = nil
-    /// Fires when the LAST clip in `clips` plays past its endTime —
-    /// the cinema-mode equivalent of ClipPlayerView.onFinish. Parents
+    let initialClipIndex: Int
+    /// Fires on every playhead report with the current clip index +
+    /// absolute video time. Lets the parent keep portrait/cinema in sync
+    /// so toggling between modes doesn't restart the video.
+    let onTick: ((Int, Double) -> Void)?
+    /// Fires once when the LAST clip in `clips` plays to its end — the
+    /// cinema-mode equivalent of ClipPlayerView.onFinish. Parents
     /// use this to advance to the next video while keeping cinema on
     /// screen. If nil, cinema falls back to dismissing itself.
-    var onFinish: (() -> Void)? = nil
-    var onExit: (() -> Void)? = nil
+    let onFinish: (() -> Void)?
+    let onExit: (() -> Void)?
+    /// Skip for a video that can't play when there is no further clip
+    /// here; falls back to `onFinish`, then to leaving cinema. Setting it
+    /// also enables the error overlay's auto-skip countdown.
+    let onUnplayable: (() -> Void)?
+    /// Fires once per clip played to its end here (never for a skipped
+    /// one), so scenes watched in cinema count like portrait ones.
+    let onClipComplete: ((LessonClip) -> Void)?
+    /// Replaces "Sahne x / y" under the title (e.g. "Video 3 / 30" in a set).
+    let headerSubtitle: String?
+    /// Plays each clip without its silent head and tail
+    /// (`ClipTiming.playbackWindow(for:trimSilence:)`).
+    let trimsSilence: Bool
 
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    /// Portrait's "Çeviri" choice: the full Turkish sentence under the line.
+    @AppStorage("player.showSentenceTr") private var showSentenceTr = true
+
+    @StateObject private var player = YouTubePlayerController()
+    @StateObject private var sync = KaraokeSync()
+    /// Player events re-delivered through SwiftUI (`onReceive`) so they are
+    /// handled with this view's current properties.
+    @State private var playerEvents = PassthroughSubject<PlayerEvent, Never>()
 
     @State private var index: Int
-    @State private var isPlaying = false
-    @State private var currentTime: Double
-    @State private var command: YouTubePlayerView.PlayerCommand? = nil
+    @State private var didStart = false
+    @State private var hasFirstFrame = false
     @State private var chromeHidden = false
+    /// All Turkish in the strip (word glosses and the sentence).
     @State private var showTranslations = true
-    @State private var advancedFromClip: Set<Int> = []
     @State private var hideChromeWorkItem: DispatchWorkItem? = nil
-    /// True after we've called `next()` at least once. Distinguishes
-    /// "first clip, may need to honor initialTime" from "subsequent
-    /// clip, always start at clip.startTime".
-    @State private var didAdvance = false
+    /// The centred ▶: the video has been paused for a moment (debounced, so
+    /// a clip change or a buffering blip doesn't flash it).
+    @State private var showsPausedCue = false
+    /// Clips (indices) already reported through `onClipComplete`, and
+    /// whether `onFinish` has fired: a replay must not report them again.
+    @State private var completedClips: Set<Int> = []
+    @State private var didFinish = false
+    /// Cinema is handing back to portrait: whatever this player still
+    /// reports (a last tick, a clip ending under the dismiss animation)
+    /// belongs to no one.
+    @State private var isExiting = false
 
     init(
         clips: [LessonClip],
@@ -49,46 +85,78 @@ struct CinemaPlayerView: View {
         onTick: ((Int, Double) -> Void)? = nil,
         onFinish: (() -> Void)? = nil,
         onExit: (() -> Void)? = nil,
+        onUnplayable: (() -> Void)? = nil,
+        onClipComplete: ((LessonClip) -> Void)? = nil,
+        headerSubtitle: String? = nil,
+        trimsSilence: Bool = false,
     ) {
-        self.clips = clips
+        let prepared = clips.map { ClipTiming.sanitize($0) }
+        self.clips = prepared
+        self.windows = prepared.map { ClipTiming.playbackWindow(for: $0, trimSilence: trimsSilence) }
         self.initialTime = initialTime
         self.initialClipIndex = initialClipIndex
         self.onTick = onTick
         self.onFinish = onFinish
         self.onExit = onExit
+        self.onUnplayable = onUnplayable
+        self.onClipComplete = onClipComplete
+        self.headerSubtitle = headerSubtitle
+        self.trimsSilence = trimsSilence
 
-        let safeIdx = max(0, min(initialClipIndex, max(0, clips.count - 1)))
+        let safeIdx = max(0, min(initialClipIndex, max(0, prepared.count - 1)))
         self._index = State(initialValue: safeIdx)
-        let resumeStart: Double
-        if clips.indices.contains(safeIdx) {
-            resumeStart = initialTime ?? clips[safeIdx].startTime
-        } else {
-            resumeStart = initialTime ?? 0
-        }
-        self._currentTime = State(initialValue: resumeStart)
     }
 
-    private var clip: LessonClip { clips[index] }
-
-    /// Effective YouTube `startTime` for the currently-rendered clip.
-    /// Honors `initialTime` only on the very first clip, before we've
-    /// auto-advanced — this is the resume-from-portrait case.
-    private var effectiveStartTime: Double {
-        if !didAdvance, let t = initialTime { return t }
-        return clip.startTime
+    private struct SpeedOption {
+        let rate: Double
+        let title: String
     }
 
-    private var currentLineIndex: Int? {
-        guard !clip.lines.isEmpty else { return nil }
-        if let active = clip.lines.firstIndex(where: {
-            currentTime >= $0.startTime && currentTime <= $0.endTime
-        }) {
-            return active
-        }
-        if let lastPlayed = clip.lines.lastIndex(where: { $0.endTime < currentTime }) {
-            return lastPlayed
-        }
+    /// Same choices as portrait's "Hız" menu.
+    private static let speedOptions: [SpeedOption] = [
+        SpeedOption(rate: 0.5, title: "0.5× Yavaş"),
+        SpeedOption(rate: 0.75, title: "0.75× Rahat"),
+        SpeedOption(rate: 1.0, title: "1× Normal"),
+    ]
+
+    private static let emptyClip = LessonClip(id: -1, youtubeVideoId: "", movieTitle: "",
+                                              startTime: 0, endTime: 0, lines: [])
+
+    private var clip: LessonClip {
+        clips.indices.contains(index) ? clips[index] : Self.emptyClip
+    }
+
+    private var window: PlaybackWindow {
+        windows.indices.contains(index) ? windows[index] : PlaybackWindow(start: 0, end: 0)
+    }
+
+    private var hasNextClip: Bool { index < clips.count - 1 }
+
+    private var isPlaybackActive: Bool {
+        player.state == .playing || player.state == .buffering
+    }
+
+    /// Stopped where the learner can resume it: paused (by them or by the
+    /// system) or cued without autoplay. Not while loading, at the end, or
+    /// on the way out.
+    private var wantsPausedCue: Bool {
+        hasFirstFrame
+            && (player.state == .paused || player.state == .cued)
+            && playerErrorMessage == nil
+            && !player.isSlowStart
+            && !didFinish
+            && !isExiting
+    }
+
+    private var playerErrorMessage: String? {
+        if let code = player.errorCode { return YouTubeError.message(forCode: code) }
+        if clips.isEmpty { return "Bu videonun altyazıları henüz hazır değil." }
         return nil
+    }
+
+    /// The chrome stays up while an error is shown so the way out is visible.
+    private var isChromeVisible: Bool {
+        !chromeHidden || playerErrorMessage != nil
     }
 
     var body: some View {
@@ -98,49 +166,181 @@ struct CinemaPlayerView: View {
             videoLayer
                 .ignoresSafeArea()
 
-            // Tap target — toggles chrome + play/pause
+            // Tap target — brings hidden chrome back, else play/pause
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    Haptics.light()
                     if chromeHidden {
+                        Haptics.light()
                         revealChrome()
-                    } else {
-                        toggleChromeVisibility()
+                    } else if canTogglePlayback {
+                        Haptics.light()
+                        togglePlayback()
                     }
                 }
 
+            if let message = playerErrorMessage {
+                PlayerErrorOverlay(
+                    message: message,
+                    onRetry: retryAction,
+                    onSkip: skipAction,
+                    skipLabel: skipLabel,
+                    autoSkipAfter: onUnplayable != nil ? 5 : nil
+                )
+                .ignoresSafeArea()
+                .transition(.opacity)
+            }
+
             VStack(spacing: 0) {
                 topChrome
-                    .opacity(chromeHidden ? 0 : 1)
-                    .allowsHitTesting(!chromeHidden)
+                    .opacity(isChromeVisible ? 1 : 0)
+                    .allowsHitTesting(isChromeVisible)
                 Spacer(minLength: 0)
-                karaokeStrip
-                    .padding(.bottom, 18)
+                if playerErrorMessage == nil {
+                    karaokeStrip
+                        .padding(.bottom, 18)
+                }
             }
             .ignoresSafeArea()
             .animation(.easeInOut(duration: 0.25), value: chromeHidden)
+            .animation(.easeInOut(duration: 0.2), value: sync.position.lineIndex)
+
+            // Above the strip: a long line with its translation can reach
+            // the middle of a landscape screen.
+            if playerErrorMessage == nil {
+                VStack(spacing: 18) {
+                    if !hasFirstFrame {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.large)
+                            .tint(.white)
+                            .allowsHitTesting(false)
+                            .transition(.opacity)
+                    }
+                    // A ready player slow to start: say so, don't fail.
+                    if player.isSlowStart {
+                        slowStartChip
+                            .transition(.opacity)
+                    }
+                }
+            }
+
+            if showsPausedCue {
+                pausedPlayButton
+                    .transition(.opacity)
+            }
         }
         .background(Color.black.ignoresSafeArea())
+        .animation(.easeInOut(duration: 0.2), value: player.errorCode)
+        .animation(.easeInOut(duration: 0.22), value: hasFirstFrame)
+        .animation(.easeInOut(duration: 0.22), value: showsPausedCue)
+        .animation(.easeInOut(duration: 0.22), value: player.isSlowStart)
         .preferredColorScheme(.dark)
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .lockToLandscape()
+        .hidesTabBarWhileVisible()
         .onAppear {
-            appState.isVideoPlayerActive = true
             scheduleChromeHide()
+            startIfNeeded()
         }
         .onDisappear {
-            appState.isVideoPlayerActive = false
-            hideChromeWorkItem?.cancel()
+            cancelChromeHide()
         }
-        .onChange(of: clip.id) { _, _ in
-            currentTime = clip.startTime
-            command = .reload
-            advancedFromClip = []
+        .onReceive(playerEvents) { event in
+            handle(event)
         }
+        // The chrome hides only while the video plays.
+        .onChange(of: player.state) { _, state in
+            if state == .playing {
+                scheduleChromeHide()
+            } else {
+                cancelChromeHide()
+            }
+        }
+        .task(id: wantsPausedCue) {
+            await updatePausedCue()
+        }
+        // Paused, or waiting on a slow start: the way out (and the speed,
+        // the translations) must be in sight.
+        .onChange(of: showsPausedCue) { _, paused in
+            if paused { revealChrome() }
+        }
+        .onChange(of: player.isSlowStart) { _, slow in
+            if slow { revealChrome() }
+        }
+        // One speed for every player: a change made here or in portrait
+        // applies at once.
+        .onChange(of: appState.playbackRate) { _, rate in
+            player.setRate(rate)
+            sync.setRate(rate)
+        }
+    }
+
+    // MARK: - Centre controls
+
+    /// Shown while paused — the same button as portrait's.
+    private var pausedPlayButton: some View {
+        Button {
+            Haptics.medium()
+            togglePlayback()
+        } label: {
+            Image(systemName: "play.fill")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 64, height: 64)
+                .background(
+                    Circle()
+                        .fill(Color(hex: 0x080A14, opacity: 0.55))
+                        .background(Circle().fill(.ultraThinMaterial))
+                )
+                .overlay(
+                    Circle().strokeBorder(Color.white.opacity(0.3), lineWidth: 1.5)
+                )
+                .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 6)
+        }
+        .accessibilityLabel("Oynat")
+    }
+
+    /// The player is up but the video hasn't started yet (slow network,
+    /// slow YouTube). Not an error: it usually starts; the learner may move
+    /// on if there is somewhere to go.
+    private var slowStartChip: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .controlSize(.small)
+                .tint(.white)
+            Text("Video başlıyor…")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+            if let skip = slowStartSkip {
+                Button {
+                    Haptics.light()
+                    skip()
+                } label: {
+                    Text(skipLabel)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Theme.Color.accent)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.pressable)
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: 40)
+        .background(Capsule().fill(Color.black.opacity(0.75)))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+    }
+
+    /// Only a real "next": another scene here, or the host's next video.
+    private var slowStartSkip: (() -> Void)? {
+        if hasNextClip { return { switchToClip(index + 1) } }
+        if let onUnplayable { return { pauseThen(onUnplayable) } }
+        return nil
     }
 
     // MARK: - Video layer
@@ -154,12 +354,11 @@ struct CinemaPlayerView: View {
             //
             // Modern iPhones in landscape are ~19.5:9, so a plain
             // .frame(geo.size) hands the WebView a wider-than-16:9
-            // canvas and YouTube black-bars the 16:9 content with
-            // pillars on the left/right — the "shifted" look. We size
+            // canvas and YouTube pillarboxes the 16:9 content. We size
             // the WebView itself at 16:9 (matched to the wider of the
-            // two screen dimensions) so the iframe's video content
-            // fills that 16:9 area, then the outer frame + .clipped()
-            // crops whatever overflows the actual screen rectangle.
+            // two screen dimensions) so the video fills that 16:9 area,
+            // then the outer frame + .clipped() crops whatever overflows
+            // the actual screen rectangle.
             let videoAspect: CGFloat = 16.0 / 9.0
             let screenAspect = geo.size.width / max(1, geo.size.height)
             let videoSize: CGSize = screenAspect > videoAspect
@@ -168,35 +367,28 @@ struct CinemaPlayerView: View {
                 : CGSize(width: geo.size.height * videoAspect,
                          height: geo.size.height)
 
-            YouTubePlayerView(
-                videoId: clip.youtubeVideoId,
-                startTime: effectiveStartTime,
-                endTime: clip.endTime,
-                autoplay: true,
-                isPlaying: $isPlaying,
-                currentTime: { t in
-                    self.currentTime = t
-                    onTick?(index, t)
-                    if t >= clip.endTime - 0.05,
-                       !advancedFromClip.contains(index) {
-                        advancedFromClip.insert(index)
-                        next()
-                    }
-                },
-                onReady: { isPlaying = true },
-                onEnded: { next() },
-                command: $command,
-            )
-            .frame(width: videoSize.width, height: videoSize.height)
-            .frame(width: geo.size.width, height: geo.size.height)
-            .clipped()
+            YouTubePlayerView(controller: player)
+                .frame(width: videoSize.width, height: videoSize.height)
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
         }
     }
 
     // MARK: - Top chrome
 
+    /// "Video 3 / 30 · 01:12" in a set, "Sahne 2 / 4 · 00:48" for several
+    /// scenes, just the length for a single one — as in portrait.
+    private var headerSubtitleText: String {
+        let length = Self.formatTime(window.duration)
+        if let headerSubtitle { return "\(headerSubtitle) · \(length)" }
+        if clips.count > 1 { return "Sahne \(index + 1) / \(clips.count) · \(length)" }
+        return length
+    }
+
+    // 38 pt circles inside 44 pt hit frames.
     private var topChrome: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
+            // The one way back to portrait.
             Button {
                 Haptics.light()
                 exitCinema()
@@ -207,21 +399,26 @@ struct CinemaPlayerView: View {
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color.black.opacity(0.55)))
                     .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.pressable)
+            .accessibilityLabel("Sinema modundan çık")
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(clip.movieTitle)
                     .font(.system(size: 15, weight: .heavy))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                Text("Sahne \(index + 1) / \(clips.count)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.65))
+                Text(headerSubtitleText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.75))
                     .lineLimit(1)
             }
 
             Spacer(minLength: 0)
+
+            speedMenu
 
             Button {
                 Haptics.selection()
@@ -234,24 +431,15 @@ struct CinemaPlayerView: View {
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color.black.opacity(0.55)))
                     .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.pressable)
-
-            Button {
-                Haptics.light()
-                exitCinema()
-            } label: {
-                Image(systemName: "rectangle.portrait")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.black.opacity(0.55)))
-                    .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
-            }
-            .buttonStyle(.pressable)
+            .accessibilityLabel("Türkçe çeviri")
+            .accessibilityValue(showTranslations ? "Açık" : "Kapalı")
         }
-        .padding(.horizontal, 22)
-        .padding(.top, 12)
+        .padding(.horizontal, 19)
+        .padding(.top, 9)
         .background(
             LinearGradient(
                 colors: [.black.opacity(0.55), .clear],
@@ -262,18 +450,79 @@ struct CinemaPlayerView: View {
         )
     }
 
+    /// "Hız 0.75×" — one rate for every player (`AppState.playbackRate`).
+    private var speedMenu: some View {
+        Menu {
+            ForEach(Self.speedOptions, id: \.rate) { option in
+                Button {
+                    Haptics.selection()
+                    appState.playbackRate = option.rate
+                    scheduleChromeHide()
+                } label: {
+                    if option.rate == appState.playbackRate {
+                        Label(option.title, systemImage: "checkmark")
+                    } else {
+                        Text(option.title)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "speedometer")
+                    .font(.system(size: 13, weight: .heavy))
+                Text("Hız \(Self.rateLabel(appState.playbackRate))")
+                    .font(.system(size: 13, weight: .heavy))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .menuOrder(.fixed)
+        .accessibilityLabel("Oynatma hızı")
+        .accessibilityValue(Self.rateLabel(appState.playbackRate))
+    }
+
+    /// %g uses the shortest representation: 0.5 → "0.5×", 0.75 → "0.75×",
+    /// 1.0 → "1×".
+    private static func rateLabel(_ rate: Double) -> String {
+        String(format: "%g×", rate)
+    }
+
+    private static func formatTime(_ t: Double) -> String {
+        let s = max(0, Int(t.rounded()))
+        return String(format: "%02d:%02d", s / 60, s % 60)
+    }
+
     // MARK: - Karaoke strip
 
     @ViewBuilder
     private var karaokeStrip: some View {
-        if let i = currentLineIndex, !clip.lines.isEmpty {
+        let position = sync.position
+        if let i = position.lineIndex, clip.lines.indices.contains(i) {
             let line = clip.lines[i]
             VStack(spacing: 10) {
                 CinemaKaraokeLine(
                     line: line,
-                    currentTime: currentTime,
+                    lineIndex: i,
+                    position: position,
                     showTranslations: showTranslations,
                 )
+                // The glosses alone often don't add up to the meaning
+                // ("there is" → "orada -dir"); the sentence does.
+                if showTranslations, showSentenceTr, let tr = Self.sentenceTranslation(of: line) {
+                    Text(tr)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .shadow(color: .black.opacity(0.95), radius: 10, x: 0, y: 1)
+                        .shadow(color: .black.opacity(0.8), radius: 3, x: 0, y: 1)
+                }
             }
             .padding(.horizontal, 32)
             .padding(.vertical, 18)
@@ -290,38 +539,192 @@ struct CinemaPlayerView: View {
         }
     }
 
+    /// The line's Turkish sentence; nil when missing or blank.
+    private static func sentenceTranslation(of line: ClipLine) -> String? {
+        guard let tr = line.translationTr?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !tr.isEmpty else { return nil }
+        return tr
+    }
+
+    // MARK: - Error overlay actions
+
+    private var retryAction: (() -> Void)? {
+        guard !clips.isEmpty else { return nil }
+        return {
+            hasFirstFrame = false
+            player.retry()
+        }
+    }
+
+    /// Skipping credits nothing: `onClipComplete` is for clips played out.
+    private var skipAction: (() -> Void)? {
+        if hasNextClip { return { switchToClip(index + 1) } }
+        if let onUnplayable { return { pauseThen(onUnplayable) } }
+        if onFinish != nil { return { finish() } }
+        return { exitCinema() }
+    }
+
+    private var skipLabel: String {
+        if hasNextClip { return "Sonraki sahne" }
+        return onUnplayable != nil || onFinish != nil ? "Sonrakine geç" : "Sinemadan çık"
+    }
+
+    // MARK: - Player plumbing
+
+    private func startIfNeeded() {
+        guard !didStart, clips.indices.contains(index) else { return }
+        didStart = true
+
+        let karaoke = sync
+        let events = playerEvents
+        player.onEvent = { [weak karaoke] event, hostTime in
+            karaoke?.handle(event, hostTime: hostTime)
+            events.send(event)
+        }
+        // Before the first load, so the page is built at this rate.
+        player.setRate(appState.playbackRate)
+        sync.setRate(appState.playbackRate)
+        load(clipAt: index, startingAt: initialTime)
+    }
+
+    private func load(clipAt clipIndex: Int, startingAt time: Double?) {
+        guard clips.indices.contains(clipIndex) else { return }
+        let target = clips[clipIndex]
+        let window = windows[clipIndex]
+        let start = Self.startTime(time, in: window)
+        hasFirstFrame = false
+        sync.setLines(target.lines)
+        player.load(PlayerSource(videoId: target.youtubeVideoId, start: start, end: window.end, autoplay: true))
+        if start != window.start {
+            // Resumed mid-clip: a replay after the end still starts at the
+            // beginning of the clip.
+            player.setBounds(start: window.start, end: window.end, loop: false)
+        }
+        sync.jump(to: start)
+    }
+
+    /// `time` when it lies in (or just before) the window with something
+    /// left to play, else the window's start. A little slack below: a vocab
+    /// sentence's lead-in can sit a hair before the window (`ScenePlan`).
+    private static func startTime(_ time: Double?, in window: PlaybackWindow) -> Double {
+        guard let time, time.isFinite, time >= max(0, window.start - 1), time < window.end - 0.25 else {
+            return window.start
+        }
+        return time
+    }
+
+    private func handle(_ event: PlayerEvent) {
+        // Handed back: the host already has the position, and a clip ending
+        // under the dismiss animation must not advance or finish anything.
+        guard !isExiting else { return }
+        switch event {
+        case .state(let state):
+            switch state {
+            case .playing, .paused, .cued, .ended: markFirstFrame()
+            case .unstarted, .buffering: break
+            }
+        case .time(let t, let playing):
+            if playing { markFirstFrame() }
+            onTick?(index, t)
+        case .looped(let t):
+            // The page only wraps while playing: a playing tick at the
+            // window start.
+            markFirstFrame()
+            onTick?(index, t)
+        case .clipEnded:
+            markFirstFrame()
+            creditClip(at: index)
+            next()
+        case .bridgeReady, .ready, .error:
+            // Errors surface through `player.errorCode`.
+            break
+        }
+    }
+
+    private func markFirstFrame() {
+        if !hasFirstFrame { hasFirstFrame = true }
+    }
+
+    private func switchToClip(_ newIndex: Int) {
+        guard clips.indices.contains(newIndex) else { return }
+        withAnimation { index = newIndex }
+        load(clipAt: newIndex, startingAt: nil)
+    }
+
     // MARK: - Actions
 
+    /// Natural end of the current clip: next clip, or the end of the video.
     private func next() {
-        didAdvance = true
-        if index < clips.count - 1 {
+        if hasNextClip {
             Haptics.medium()
-            withAnimation { index += 1 }
+            switchToClip(index + 1)
         } else {
-            Haptics.success()
-            // Hand off to the parent so it can advance to the next video
-            // (in the SetPlayerView flow). Falling back to exit keeps the
-            // standalone cinema use cases working unchanged.
-            if let onFinish {
-                onFinish()
-            } else {
-                exitCinema()
-            }
+            if !didFinish { Haptics.success() }
+            finish()
         }
+    }
+
+    /// Each clip is reported once: replaying a finished clip doesn't
+    /// report (and reward) it again.
+    private func creditClip(at clipIndex: Int) {
+        guard clips.indices.contains(clipIndex), completedClips.insert(clipIndex).inserted else { return }
+        onClipComplete?(clips[clipIndex])
+    }
+
+    /// The video is over; the host hears it once.
+    private func finish() {
+        guard !didFinish else { return }
+        didFinish = true
+        // Hand off to the parent so it can advance to the next video
+        // (in the SetPlayerView flow). Falling back to exit keeps the
+        // standalone cinema use cases working unchanged.
+        if let onFinish {
+            onFinish()
+        } else {
+            exitCinema()
+        }
+    }
+
+    /// Stops this player before the host takes over. Left running, it plays
+    /// on under the dismiss animation while portrait resumes the same line
+    /// at its own rate: the dialogue twice, out of sync.
+    private func pauseThen(_ handOff: () -> Void) {
+        player.pause()
+        handOff()
     }
 
     private func exitCinema() {
-        if let onExit { onExit() } else { dismiss() }
+        guard !isExiting else { return }
+        isExiting = true
+        pauseThen {
+            if let onExit { onExit() } else { dismiss() }
+        }
     }
 
-    private func toggleChromeVisibility() {
-        if chromeHidden {
-            revealChrome()
+    /// There is something to play or pause: not while loading, behind an
+    /// error, past the end or on the way out.
+    private var canTogglePlayback: Bool {
+        hasFirstFrame && playerErrorMessage == nil && !didFinish && !isExiting
+    }
+
+    private func togglePlayback() {
+        guard canTogglePlayback else { return }
+        if isPlaybackActive {
+            player.pause()
         } else {
-            // Single tap with chrome visible = pause/play.
-            command = isPlaying ? .pause : .play
-            scheduleChromeHide()
+            player.play()
         }
+    }
+
+    /// Debounced ▶: shows once the video has stayed paused for a moment.
+    private func updatePausedCue() async {
+        guard wantsPausedCue else {
+            if showsPausedCue { showsPausedCue = false }
+            return
+        }
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        guard !Task.isCancelled else { return }
+        showsPausedCue = true
     }
 
     private func revealChrome() {
@@ -331,8 +734,12 @@ struct CinemaPlayerView: View {
         scheduleChromeHide()
     }
 
+    /// Hides the chrome after a few idle seconds — only while the video
+    /// plays. Paused or loading, the way out stays visible; a change of
+    /// `player.state` reschedules or cancels this.
     private func scheduleChromeHide() {
-        hideChromeWorkItem?.cancel()
+        cancelChromeHide()
+        guard player.state == .playing else { return }
         let work = DispatchWorkItem {
             withAnimation(.easeInOut(duration: 0.35)) {
                 chromeHidden = true
@@ -341,17 +748,26 @@ struct CinemaPlayerView: View {
         hideChromeWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5, execute: work)
     }
+
+    private func cancelChromeHide() {
+        hideChromeWorkItem?.cancel()
+        hideChromeWorkItem = nil
+    }
 }
 
 // MARK: - Cinema karaoke line
 
 /// Renders one subtitle line for cinema mode — bigger fonts than the
 /// portrait player, centered, with the structure colors and per-word
-/// Turkish gloss. Active word lights up cyan + scales subtly so the
-/// karaoke moves visibly without ever fragmenting the line.
+/// Turkish gloss. Words are coloured by their karaoke phase in
+/// `position`: the active word lights up in the accent colour and scales
+/// subtly, upcoming words are dimmed, past words keep their structure
+/// colour.
 struct CinemaKaraokeLine: View {
     let line: ClipLine
-    let currentTime: Double
+    /// Index of `line` in its clip, as `SyncPosition.lineIndex` counts.
+    let lineIndex: Int
+    let position: SyncPosition
     let showTranslations: Bool
 
     var body: some View {
@@ -365,24 +781,28 @@ struct CinemaKaraokeLine: View {
                 cinemaWord(
                     word: w,
                     index: w.wordIndex ?? i,
+                    phase: position.phase(ofWord: i, inLine: lineIndex),
                     subjectIdx: subjectIdx,
                     auxIdx: auxIdx,
                 )
             }
         }
         .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.22), value: currentTime)
+        // Keyed on the karaoke position (a few changes a second), never
+        // on the clock.
+        .animation(.easeInOut(duration: 0.15), value: position)
     }
 
     @ViewBuilder
     private func cinemaWord(
         word w: ClipWord,
         index idx: Int,
+        phase: WordPhase,
         subjectIdx: Set<Int>,
         auxIdx: Set<Int>,
     ) -> some View {
-        let isActive = currentTime >= w.startTime && currentTime < w.endTime
-        let isUpcoming = currentTime < w.startTime
+        let isActive = phase == .active
+        let isUpcoming = phase == .upcoming
 
         let bucketKind: BucketKind = {
             if subjectIdx.contains(idx) { return .subject }
@@ -392,7 +812,9 @@ struct CinemaKaraokeLine: View {
 
         let baseColor = bucketColor(bucketKind)
         let textColor: Color = isActive ? Theme.Color.accent : baseColor
-        let opacity: Double = isUpcoming ? 0.55 : 1.0
+        // The only dim on an upcoming word (the gloss isn't dimmed again):
+        // still readable over video, on a projector.
+        let opacity: Double = isUpcoming ? 0.72 : 1.0
         let scale: CGFloat = isActive ? 1.08 : 1.0
 
         VStack(alignment: .center, spacing: 3) {
@@ -406,8 +828,7 @@ struct CinemaKaraokeLine: View {
                let tr = w.translationTr, !tr.isEmpty, tr != "-" {
                 Text(tr)
                     .font(.system(size: 15, weight: .medium))
-                    .italic()
-                    .foregroundStyle(Color(hex: 0x9CABCC).opacity(isUpcoming ? 0.55 : 0.9))
+                    .foregroundStyle(Color(hex: 0x9CABCC))
                     .lineLimit(1)
                     .shadow(color: .black.opacity(0.95), radius: 10, x: 0, y: 1)
                     .shadow(color: .black.opacity(0.8), radius: 3, x: 0, y: 1)

@@ -34,6 +34,12 @@ enum NativeLanguage: String, Codable, CaseIterable, Identifiable {
 enum OnboardingLevel: String, Codable, CaseIterable {
     case none = ""
     case beginner, elementary, intermediate
+
+    /// The playback speed a learner who picked this level starts with.
+    /// Only "Orta" can follow native speech; everyone else starts slower.
+    var suggestedPlaybackRate: Double {
+        self == .intermediate ? 1.0 : 0.75
+    }
 }
 
 enum LearningGoal: String, Codable, CaseIterable {
@@ -155,6 +161,107 @@ struct UserProgress: Codable, Equatable {
     var dailyTasks: DailyTaskBundle? = nil
     var achievements: [String] = []
     var watchedClips: [String] = []
+    /// `PocVideo.id`s the learner watched to the end (set flow).
+    var watchedVideos: [String] = []
+}
+
+// MARK: - Tolerant decoding
+//
+// `UserProgress` is persisted as a single JSON blob. Synthesized `Decodable`
+// throws on any missing key or unknown enum raw value, so adding a field (as
+// `watchedVideos` did) made every existing blob unreadable and the learner's
+// progress was replaced with an empty record. Every field below falls back to
+// its declared default instead; only a value of the wrong JSON type still
+// throws, which `ProgressPersistence` treats as corruption and backs up.
+// Encoding stays synthesized, so the on-disk format is unchanged.
+//
+// When adding a stored property to any of these types, decode it here with
+// `decodeIfPresent` too.
+
+private extension KeyedDecodingContainer {
+    /// `decodeIfPresent` for String-backed enums that also maps a raw value
+    /// this build doesn't know (a case added in a later version) to `nil`.
+    func decodeKnownCase<E: RawRepresentable>(_ type: E.Type, forKey key: Key) throws -> E? where E.RawValue == String {
+        try decodeIfPresent(String.self, forKey: key).flatMap(E.init(rawValue:))
+    }
+}
+
+extension UserProgress {
+    init(from decoder: Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        completedLessons = try c.decodeIfPresent([String].self, forKey: .completedLessons) ?? completedLessons
+        learnedWords = try c.decodeIfPresent([String].self, forKey: .learnedWords) ?? learnedWords
+        watchedScenes = try c.decodeIfPresent([String].self, forKey: .watchedScenes) ?? watchedScenes
+        xp = try c.decodeIfPresent(Int.self, forKey: .xp) ?? xp
+        level = try c.decodeIfPresent(Int.self, forKey: .level) ?? level
+        streak = try c.decodeIfPresent(Int.self, forKey: .streak) ?? streak
+        lastActiveDate = try c.decodeIfPresent(String.self, forKey: .lastActiveDate) ?? lastActiveDate
+        onboardingCompleted = try c.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? onboardingCompleted
+        onboardingLevel = try c.decodeKnownCase(OnboardingLevel.self, forKey: .onboardingLevel) ?? onboardingLevel
+        learningGoal = try c.decodeKnownCase(LearningGoal.self, forKey: .learningGoal) ?? learningGoal
+        dailyGoalMinutes = try c.decodeIfPresent(Int.self, forKey: .dailyGoalMinutes) ?? dailyGoalMinutes
+        lessonMastery = try c.decodeIfPresent([String: LessonMastery].self, forKey: .lessonMastery) ?? lessonMastery
+        checkpointResults = try c.decodeIfPresent([String: CheckpointResult].self, forKey: .checkpointResults) ?? checkpointResults
+        sessionHistory = try c.decodeIfPresent([SessionEntry].self, forKey: .sessionHistory) ?? sessionHistory
+        // Regenerated every day, so a bundle this build can't read (e.g. a
+        // task type added later) is dropped rather than failing the blob.
+        dailyTasks = try? c.decodeIfPresent(DailyTaskBundle.self, forKey: .dailyTasks)
+        achievements = try c.decodeIfPresent([String].self, forKey: .achievements) ?? achievements
+        watchedClips = try c.decodeIfPresent([String].self, forKey: .watchedClips) ?? watchedClips
+        watchedVideos = try c.decodeIfPresent([String].self, forKey: .watchedVideos) ?? watchedVideos
+    }
+}
+
+extension LessonMastery {
+    init(from decoder: Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        stage = try c.decodeKnownCase(LessonStage.self, forKey: .stage) ?? stage
+        subProgress = try c.decodeIfPresent(LessonProgress.self, forKey: .subProgress) ?? subProgress
+        watchQuizScore = try c.decodeIfPresent(Int.self, forKey: .watchQuizScore) ?? watchQuizScore
+        watchClipsCompleted = try c.decodeIfPresent(Int.self, forKey: .watchClipsCompleted) ?? watchClipsCompleted
+        practiceScore = try c.decodeIfPresent(Int.self, forKey: .practiceScore) ?? practiceScore
+        practiceAttempts = try c.decodeIfPresent(Int.self, forKey: .practiceAttempts) ?? practiceAttempts
+        reinforceClipsWatched = try c.decodeIfPresent(Int.self, forKey: .reinforceClipsWatched) ?? reinforceClipsWatched
+        lastPracticeDate = try c.decodeIfPresent(String.self, forKey: .lastPracticeDate) ?? lastPracticeDate
+        errorCount = try c.decodeIfPresent(Int.self, forKey: .errorCount) ?? errorCount
+        errorSessionCount = try c.decodeIfPresent(Int.self, forKey: .errorSessionCount) ?? errorSessionCount
+    }
+}
+
+extension LessonProgress {
+    init(from decoder: Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        learnCompleted = try c.decodeIfPresent(Bool.self, forKey: .learnCompleted) ?? learnCompleted
+        vocabCompleted = try c.decodeIfPresent(Bool.self, forKey: .vocabCompleted) ?? vocabCompleted
+        watchCompleted = try c.decodeIfPresent(Bool.self, forKey: .watchCompleted) ?? watchCompleted
+        testScore = try c.decodeIfPresent(Int.self, forKey: .testScore)
+        testPassed = try c.decodeIfPresent(Bool.self, forKey: .testPassed) ?? testPassed
+        bonusWatchCount = try c.decodeIfPresent(Int.self, forKey: .bonusWatchCount) ?? bonusWatchCount
+    }
+}
+
+extension CheckpointResult {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        score = try c.decodeIfPresent(Int.self, forKey: .score) ?? 0
+        perLessonScores = try c.decodeIfPresent([String: Int].self, forKey: .perLessonScores) ?? [:]
+        attemptCount = try c.decodeIfPresent(Int.self, forKey: .attemptCount) ?? 0
+        passedAt = try c.decodeIfPresent(String.self, forKey: .passedAt)
+    }
+}
+
+extension SessionEntry {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        date = try c.decodeIfPresent(String.self, forKey: .date) ?? ""
+        minutesWatched = try c.decodeIfPresent(Double.self, forKey: .minutesWatched) ?? 0
+        xpEarned = try c.decodeIfPresent(Int.self, forKey: .xpEarned) ?? 0
+        clipsWatched = try c.decodeIfPresent(Int.self, forKey: .clipsWatched) ?? 0
+        wordsReviewed = try c.decodeIfPresent(Int.self, forKey: .wordsReviewed) ?? 0
+    }
 }
 
 // MARK: - Level helpers
