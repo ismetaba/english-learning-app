@@ -1,0 +1,305 @@
+{
+ "segments": [
+  {
+   "text": "Y he venido a desearle a la princesa Agnes un muy feliz cumpleaños.",
+   "start": 106.991,
+   "end": 113.676,
+   "words": [
+    {
+     "word": "Y",
+     "start": 106.991,
+     "end": 107.051,
+     "score": 0.626
+    },
+    {
+     "word": "he",
+     "start": 107.071,
+     "end": 107.291,
+     "score": 0.678
+    },
+    {
+     "word": "venido",
+     "start": 107.331,
+     "end": 108.112,
+     "score": 0.679
+    },
+    {
+     "word": "a",
+     "start": 108.572,
+     "end": 108.612,
+     "score": 0.277
+    },
+    {
+     "word": "desearle",
+     "start": 108.652,
+     "end": 109.193,
+     "score": 0.545
+    },
+    {
+     "word": "a",
+     "start": 109.233,
+     "end": 109.293,
+     "score": 0.361
+    },
+    {
+     "word": "la",
+     "start": 109.333,
+     "end": 109.413,
+     "score": 0.61
+    },
+    {
+     "word": "princesa",
+     "start": 109.453,
+     "end": 109.913,
+     "score": 0.526
+    },
+    {
+     "word": "Agnes",
+     "start": 109.933,
+     "end": 110.233,
+     "score": 0.409
+    },
+    {
+     "word": "un",
+     "start": 110.293,
+     "end": 110.353,
+     "score": 0.235
+    },
+    {
+     "word": "muy",
+     "start": 110.393,
+     "end": 110.474,
+     "score": 0.165
+    },
+    {
+     "word": "feliz",
+     "start": 110.494,
+     "end": 112.475,
+     "score": 0.632
+    },
+    {
+     "word": "cumpleaños.",
+     "start": 112.515,
+     "end": 113.676,
+     "score": 0.43
+    }
+   ]
+  },
+  {
+   "text": "¿Por qué está tan gorda?",
+   "start": 113.696,
+   "end": 115.077,
+   "words": [
+    {
+     "word": "¿Por",
+     "start": 113.696,
+     "end": 113.876,
+     "score": 0.669
+    },
+    {
+     "word": "qué",
+     "start": 113.896,
+     "end": 114.016,
+     "score": 0.595
+    },
+    {
+     "word": "está",
+     "start": 114.036,
+     "end": 114.236,
+     "score": 0.613
+    },
+    {
+     "word": "tan",
+     "start": 114.316,
+     "end": 114.496,
+     "score": 0.895
+    },
+    {
+     "word": "gorda?",
+     "start": 114.596,
+     "end": 115.077,
+     "score": 0.849
+    }
+   ]
+  },
+  {
+   "text": "¿Por qué?",
+   "start": 115.097,
+   "end": 116.878,
+   "words": [
+    {
+     "word": "¿Por",
+     "start": 115.097,
+     "end": 116.338,
+     "score": 0.918
+    },
+    {
+     "word": "qué?",
+     "start": 116.458,
+     "end": 116.878,
+     "score": 0.834
+    }
+   ]
+  },
+  {
+   "text": "Mi casa está hecha de dulce.",
+   "start": 117.919,
+   "end": 119.76,
+   "words": [
+    {
+     "word": "Mi",
+     "start": 117.919,
+     "end": 118.019,
+     "score": 0.731
+    },
+    {
+     "word": "casa",
+     "start": 118.119,
+     "end": 118.459,
+     "score": 0.851
+    },
+    {
+     "word": "está",
+     "start": 118.519,
+     "end": 118.699,
+     "score": 0.776
+    },
+    {
+     "word": "hecha",
+     "start": 118.899,
+     "end": 119.079,
+     "score": 0.817
+    },
+    {
+     "word": "de",
+     "start": 119.16,
+     "end": 119.26,
+     "score": 0.57
+    },
+    {
+     "word": "dulce.",
+     "start": 119.38,
+     "end": 119.76,
+     "score": 0.639
+    }
+   ]
+  },
+  {
+   "text": "Y a veces, yo como en lugar de enfrentar mis problemas.",
+   "start": 120.16,
+   "end": 124.003,
+   "words": [
+    {
+     "word": "Y",
+     "start": 120.16,
+     "end": 120.22,
+     "score": 0.569
+    },
+    {
+     "word": "a",
+     "start": 120.28,
+     "end": 120.34,
+     "score": 0.737
+    },
+    {
+     "word": "veces,",
+     "start": 120.36,
+     "end": 120.801,
+     "score": 0.657
+    },
+    {
+     "word": "yo",
+     "start": 121.141,
+     "end": 121.621,
+     "score": 0.81
+    },
+    {
+     "word": "como",
+     "start": 121.841,
+     "end": 122.162,
+     "score": 0.665
+    },
+    {
+     "word": "en",
+     "start": 122.242,
+     "end": 122.362,
+     "score": 0.343
+    },
+    {
+     "word": "lugar",
+     "start": 122.382,
+     "end": 122.682,
+     "score": 0.506
+    },
+    {
+     "word": "de",
+     "start": 122.702,
+     "end": 122.762,
+     "score": 0.562
+    },
+    {
+     "word": "enfrentar",
+     "start": 122.782,
+     "end": 123.142,
+     "score": 0.782
+    },
+    {
+     "word": "mis",
+     "start": 123.182,
+     "end": 123.422,
+     "score": 0.538
+    },
+    {
+     "word": "problemas.",
+     "start": 123.483,
+     "end": 124.003,
+     "score": 0.446
+    }
+   ]
+  },
+  {
+   "text": "A comer pastel.",
+   "start": 127.668,
+   "end": 128.368,
+   "words": [
+    {
+     "word": "A",
+     "start": 127.668,
+     "end": 127.708,
+     "score": 0.549
+    },
+    {
+     "word": "comer",
+     "start": 127.728,
+     "end": 127.988,
+     "score": 0.605
+    },
+    {
+     "word": "pastel.",
+     "start": 128.008,
+     "end": 128.368,
+     "score": 0.56
+    }
+   ]
+  },
+  {
+   "text": "¡Gracias, Grumpinita!",
+   "start": 131.889,
+   "end": 134.93,
+   "words": [
+    {
+     "word": "¡Gracias,",
+     "start": 131.889,
+     "end": 133.93,
+     "score": 0.441
+    },
+    {
+     "word": "Grumpinita!",
+     "start": 133.95,
+     "end": 134.93,
+     "score": 0.552
+    }
+   ]
+  }
+ ]
+}

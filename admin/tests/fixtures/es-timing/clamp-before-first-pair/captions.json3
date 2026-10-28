@@ -1,0 +1,119 @@
+{
+ "events": [
+  {
+   "tStartMs": 2360,
+   "dDurationMs": 5739,
+   "wWinId": 1,
+   "segs": [
+    {
+     "utf8": "tengo",
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " un",
+     "tOffsetMs": 1000,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " jardín",
+     "tOffsetMs": 1240,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " lleno",
+     "tOffsetMs": 1420,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " de",
+     "tOffsetMs": 2260,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " estas",
+     "tOffsetMs": 2740,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " viñetas",
+     "tOffsetMs": 2979,
+     "acAsrConf": 242
+    }
+   ]
+  },
+  {
+   "tStartMs": 5690,
+   "dDurationMs": 2409,
+   "wWinId": 1,
+   "aAppend": 1,
+   "segs": [
+    {
+     "utf8": "\n"
+    }
+   ]
+  },
+  {
+   "tStartMs": 5700,
+   "dDurationMs": 4580,
+   "wWinId": 1,
+   "segs": [
+    {
+     "utf8": "que",
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " cuentan",
+     "tOffsetMs": 900,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " con",
+     "tOffsetMs": 1139,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " la",
+     "tOffsetMs": 1260,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " pizeta",
+     "tOffsetMs": 1619,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " de",
+     "tOffsetMs": 1860,
+     "acAsrConf": 242
+    },
+    {
+     "utf8": " una",
+     "tOffsetMs": 2159,
+     "acAsrConf": 242
+    }
+   ]
+  },
+  {
+   "tStartMs": 8089,
+   "dDurationMs": 2191,
+   "wWinId": 1,
+   "aAppend": 1,
+   "segs": [
+    {
+     "utf8": "\n"
+    }
+   ]
+  },
+  {
+   "tStartMs": 8099,
+   "dDurationMs": 2181,
+   "wWinId": 1,
+   "segs": [
+    {
+     "utf8": "princesa",
+     "acAsrConf": 242
+    }
+   ]
+  }
+ ]
+}

@@ -94,3 +94,84 @@ test('without captions, a line does not start in the silence before its first wo
     .map(({ l, w }) => `"${w.word}" ${(w.end - w.start).toFixed(1)}s in "${l.text}"`);
   assert.deepEqual(stretched, []);
 });
+
+// The user still saw words "missed now and then". A measurement against
+// two independent references (wav2vec2 forced alignment of each line on
+// its own audio, and faster-whisper's word times; 1,160 lines of the live
+// set) found the captions themselves mislead the retiming in three ways.
+// Fixtures in tests/fixtures/es-timing/<case>/, cut from the real sources;
+// expected times are where both references agree.
+
+function excerpt(name: string, offset: number) {
+  const d = path.join(dir, name);
+  return toLines(JSON.parse(fs.readFileSync(path.join(d, 'whisper.json'), 'utf8')).segments, {
+    captions: JSON.parse(fs.readFileSync(path.join(d, 'captions.json3'), 'utf8')),
+    offset,
+  });
+}
+function wordOf(lines: Line[], text: string, w: string) {
+  const l = lines.find(x => x.text === text);
+  assert.ok(l, `no line "${text}"`);
+  const x = l.words.find(y => y.word === w);
+  assert.ok(x, `no "${w}" in "${text}"`);
+  return x;
+}
+function startsNear(lines: Line[], text: string, w: string, at: number, tol: number) {
+  const s = wordOf(lines, text, w).start;
+  assert.ok(Math.abs(s - at) <= tol, `"${w}" in "${text}" starts at ${s.toFixed(2)} s, heard at ${at} s`);
+}
+
+test('a caption word stamped one second before the next is not where it is said', () => {
+  // YouTube stamps a word after a pause exactly 1.000 s before the next
+  // one (5% of caption gaps); "Es" at 0.73 is heard at 1.66, "Sino" at
+  // 7.55 at 8.30. WhisperX had both right.
+  const lines = excerpt('caption-1s-before-next', 0);
+  startsNear(lines, 'Es curioso, supongo que el destino no es la senda que se nos da.', 'Es', 1.66, 0.25);
+  startsNear(lines, 'Sino la senda que uno elige para sí mismo.', 'Sino', 8.30, 0.25);
+});
+
+test('words before the first caption pair keep their own spacing', () => {
+  // The first pair ("tengo", a one-second stamp) pulled the words before
+  // it 0.6 s earlier, and the clamp at 0 s stacked "No, no, no." on 0.
+  const lines = excerpt('clamp-before-first-pair', 0);
+  const no = lines.find(l => l.text === 'No, no, no.')!.words.map(w => w.start);
+  for (let i = 1; i < no.length; i++) {
+    assert.ok(no[i] - no[i - 1] >= 0.1, `"No, no, no." starts ${no.map(s => s.toFixed(2)).join(', ')}`);
+  }
+  startsNear(lines, 'Tengo un jardín lleno de estas niñitas.', 'Tengo', 2.96, 0.25);
+});
+
+test('two words in one caption segment do not start together', () => {
+  // json3 holds " lugar de" as one segment with one onset; both words got
+  // 122.82 and "lugar" was never highlighted (heard 122.33 and 122.69).
+  const lines = excerpt('multi-word-caption-seg', 0);
+  const t = 'Y a veces, yo como en lugar de enfrentar mis problemas.';
+  assert.ok(wordOf(lines, t, 'de').start - wordOf(lines, t, 'lugar').start >= 0.1);
+});
+
+test('under music, lyric words that happen to match do not move the dialogue', () => {
+  // The captions there are the song; "a" and "por" paired 7-8 s away and
+  // dragged the unpaired words with them. WhisperX had both right.
+  const lines = excerpt('music-coincidental-pairs', 48);
+  startsNear(lines, '¿Quién se puso los cuernos?', 'se', 92.38, 0.25);
+  startsNear(lines, '¿A qué horas vas por el pan?', '¿A', 51.16, 0.5);
+});
+
+test('every word is highlighted: after the one before it, for at least 80 ms', () => {
+  // The app highlights a word from its start until the next word starts
+  // (the last word: until its end). 26 words across these fixtures were
+  // held under 80 ms or started with the word before them, so they never
+  // showed.
+  const all: [string, Line[]][] = [
+    ...['p4NOnmGN5Ws', '2M4HROpx2hY'].map(id => [id, toLines(whisper(id), { captions: captions(id) })] as [string, Line[]]),
+    ['caption-1s-before-next', excerpt('caption-1s-before-next', 0)],
+    ['clamp-before-first-pair', excerpt('clamp-before-first-pair', 0)],
+    ['multi-word-caption-seg', excerpt('multi-word-caption-seg', 0)],
+    ['music-coincidental-pairs', excerpt('music-coincidental-pairs', 48)],
+  ];
+  const unseen = all.flatMap(([name, lines]) => lines.flatMap(l => l.words.flatMap((w, i) => {
+    const until = i + 1 < l.words.length ? l.words[i + 1].start : w.end;
+    return until - w.start < 0.08 ? [`${name} "${w.word}" in "${l.text}" (${(until - w.start).toFixed(2)} s)`] : [];
+  })));
+  assert.deepEqual(unseen, []);
+});

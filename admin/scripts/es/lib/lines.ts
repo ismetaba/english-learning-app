@@ -147,30 +147,90 @@ function trimEdges(words: Word[]): Word[] {
 interface CaptionWord {
   w: string;
   t: number;
+  /** The onset is where the word is said. Unsure words still pair, so the
+   *  words around them pair right, but they time nothing. */
+  sure: boolean;
 }
 
+/** YouTube stamps a word after a pause exactly this long before the next
+ *  one: 1,325 of the live set's 25,957 caption gaps are 1000 ms, ten times
+ *  the gaps around them, and such words were a median 0.73 s from where
+ *  they are heard ("Es" stamped 0.73 s, heard 1.66 s), the others 0.09 s. */
+const STAMPED_GAP_MS = 1000;
+
 /** The captions' words (normalized) with their onsets in WAV time. Sound
- *  tags ("[música]") and words before the window are left out. */
+ *  tags ("[música]") and words before the window are left out. A segment
+ *  that holds several words (" lugar de") has one onset for all of them,
+ *  so none of them is sure; nor is a word stamped STAMPED_GAP_MS before
+ *  the next. */
 function captionWords(json3: Json3, offset: number): CaptionWord[] {
-  const out: CaptionWord[] = [];
+  const out: (CaptionWord & { ms: number })[] = [];
   for (const e of json3.events ?? []) {
     for (const s of e.segs ?? []) {
-      const t = ((e.tStartMs ?? 0) + (s.tOffsetMs ?? 0)) / 1000 - offset;
-      for (const tok of (s.utf8 ?? '').split(/\s+/)) {
-        const w = normWord(tok);
-        if (w && t >= 0 && !/^\[.*\]$/.test(tok)) out.push({ w, t });
-      }
+      const ms = (e.tStartMs ?? 0) + (s.tOffsetMs ?? 0);
+      const toks = (s.utf8 ?? '').split(/\s+/).filter(tok => normWord(tok) && !/^\[.*\]$/.test(tok));
+      for (const tok of toks) out.push({ w: normWord(tok), t: ms / 1000 - offset, ms, sure: toks.length === 1 });
     }
   }
-  return out;
+  out.forEach((c, k) => {
+    if (k + 1 < out.length && out[k + 1].ms - c.ms === STAMPED_GAP_MS) c.sure = false;
+  });
+  return out.filter(c => c.t >= 0).map(({ w, t, sure }) => ({ w, t, sure }));
+}
+
+/** Under music the captions are the song, and short lyric words pair by
+ *  chance ("a" and "por" 7-8 s from the dialogue they matched). Such a
+ *  pair is a word of at most CHANCE_LETTERS letters with no pair beside it
+ *  (within two words on both sides, agreeing within OUTLIER_SEC), and
+ *  hardly any pairs around it: below MIN_PAIRED of the LOCAL_WORDS words
+ *  on either side, the captions there are of something else, as
+ *  MIN_PAIRED says of a whole video. It still stands when its offset
+ *  (caption onset minus WhisperX start) is within OUTLIER_SEC of the pairs
+ *  nearest it (OUTLIER_NEIGHBOURS on each side). Longer words and pairs in
+ *  steady dialogue stand however far off they are: there it is WhisperX
+ *  that is off ("¡Ay!" 3.0 s, heard 4.8 s; "Himalaya" 6.5 s early; a Frozen
+ *  line 19 s early). Of the 37 sparse off pairs faster-whisper timed in
+ *  the 1,160-line sample, the short lone ones were where WhisperX had them
+ *  7 times in 10, the others where the captions had them 15 times in 27. */
+const CHANCE_LETTERS = 3;
+const LOCAL_WORDS = 8;
+const OUTLIER_SEC = 0.5;
+const OUTLIER_NEIGHBOURS = 3;
+
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+};
+
+/** Unpairs (in place) the chance pairs. */
+function dropChancePairs(pair: number[], words: Word[], caps: CaptionWord[]) {
+  const paired = pair.flatMap((j, i) => (j >= 0 ? [i] : []));
+  const off = paired.map(i => caps[pair[i]].t - words[i].start);
+  const drop = paired.filter((i, k) => {
+    if (normWord(words[i].word).length > CHANCE_LETTERS) return false;
+    const beside = [k - 2, k - 1, k + 1, k + 2].some(k2 => {
+      const i2 = paired[k2];
+      return i2 !== undefined && Math.abs(i2 - i) <= 2 && Math.abs(pair[i2] - pair[i]) <= 2 &&
+        Math.abs(off[k2] - off[k]) <= OUTLIER_SEC;
+    });
+    if (beside) return false;
+    const from = Math.max(0, i - LOCAL_WORDS);
+    const to = Math.min(words.length, i + LOCAL_WORDS + 1);
+    if (pair.slice(from, to).filter(j => j >= 0).length >= (to - from) * MIN_PAIRED) return false;
+    const near = [...off.slice(Math.max(0, k - OUTLIER_NEIGHBOURS), k), ...off.slice(k + 1, k + 1 + OUTLIER_NEIGHBOURS)];
+    return near.length > 0 && Math.abs(off[k] - median(near)) > OUTLIER_SEC;
+  });
+  for (const i of drop) pair[i] = -1;
 }
 
 /** Each word's caption word (index into caps), or -1: the longest common
  *  subsequence of the two normalized word streams, pairing only words
  *  within MAX_DRIFT_SEC of each other. A word paired on its own (neither
  *  neighbour paired with the caption word next to its own) that is more
- *  than MAX_JUMP_SEC farther off than the pairs around it is unpaired. */
-function align(words: Word[], caps: CaptionWord[]): number[] {
+ *  than MAX_JUMP_SEC farther off than the pairs around it is unpaired, as
+ *  are chance pairs. A word paired with an unsure caption word is unpaired
+ *  too, but keeps that onset in `weak`: roughly where it is said. */
+function align(words: Word[], caps: CaptionWord[]): { pair: number[]; weak: number[] } {
   const ws = words.map(w => normWord(w.word));
   const n = ws.length;
   const m = caps.length;
@@ -199,33 +259,71 @@ function align(words: Word[], caps: CaptionWord[]): number[] {
     return jumps.length > 0 && Math.min(...jumps) > MAX_JUMP_SEC;
   });
   for (const i of lone) pair[i] = -1;
-  return pair;
+  dropChancePairs(pair, words, caps);
+  const weak = words.map(() => NaN);
+  for (const i of paired) {
+    if (pair[i] >= 0 && !caps[pair[i]].sure) {
+      weak[i] = caps[pair[i]].t;
+      pair[i] = -1;
+    }
+  }
+  return { pair, weak };
 }
 
+/** How far WhisperX is off, an unpaired word takes from a pair this far
+ *  from it (WhisperX time): fully within NEAR_SEC, not at all from FAR_SEC
+ *  on, where WhisperX's own time stands. Unpaired words timed by pairs
+ *  over 5 s away were a median 0.81 s off, by nearer ones 0.33 s; and of
+ *  the words the captions moved wrong, WhisperX had 79% within 0.3 s. */
+const NEAR_SEC = 1;
+const FAR_SEC = 4;
+const trust = (d: number) => Math.min(1, Math.max(0, (FAR_SEC - d) / (FAR_SEC - NEAR_SEC)));
+/** Two pairs this close in offset agree on how far WhisperX is off
+ *  between them, however far apart they are. */
+const AGREE_SEC = 0.5;
+
 /** Words timed by the captions: a paired word starts at its caption
- *  word's onset; the words between two paired ones keep their place
- *  between them (WhisperX's times mapped onto that stretch), and words
- *  before the first or after the last pair move with it. A word then lasts
- *  until the next one starts, or as long as WhisperX made it (at most
- *  maxWordSec) when a pause follows. */
+ *  word's onset; an unpaired word moves as far as the pairs on either side
+ *  say WhisperX is off: where they agree, it keeps its place between them
+ *  (WhisperX's times mapped onto that stretch); where they disagree, it
+ *  trusts only a pair near it, and as far as it does not, it stays where
+ *  its unsure caption word is, or else where WhisperX has it (a stamped
+ *  "¿Qué tal" 11 s from WhisperX was heard at its stamps). A word then
+ *  lasts until the next one starts, or as long as WhisperX made it (at
+ *  most maxWordSec) when a pause follows. */
 function retime(words: Word[], caps: CaptionWord[]): Word[] {
-  const pair = align(words, caps);
+  const { pair, weak } = align(words, caps);
   const paired = pair.flatMap((j, i) => (j >= 0 ? [i] : []));
   if (paired.length < words.length * MIN_PAIRED) return words;
 
   const start = words.map((w, i) => (pair[i] >= 0 ? caps[pair[i]].t : NaN));
+  const off = (i: number) => start[i] - words[i].start;
   for (let k = 0; k <= paired.length; k++) {
     const a = paired[k - 1];
     const b = paired[k];
     for (let i = a === undefined ? 0 : a + 1; i < (b === undefined ? words.length : b); i++) {
-      if (a === undefined) start[i] = Math.max(0, words[i].start + start[b] - words[b].start);
-      else if (b === undefined) start[i] = words[i].start + start[a] - words[a].start;
+      // The pairs' shift, and how much the word trusts it.
+      let shift: number;
+      let sure: number;
+      if (a === undefined) [shift, sure] = [off(b), trust(words[b].start - words[i].start)];
+      else if (b === undefined) [shift, sure] = [off(a), trust(words[i].start - words[a].start)];
       else {
         const span = words[b].start - words[a].start;
         let f = span > 0 ? (words[i].start - words[a].start) / span : NaN;
         if (!(f > 0 && f < 1)) f = (i - a) / (b - a);
-        start[i] = start[a] + f * (start[b] - start[a]);
+        if (Math.abs(off(a) - off(b)) <= AGREE_SEC) [shift, sure] = [off(a) + f * (off(b) - off(a)), 1];
+        else {
+          const ta = trust(words[i].start - words[a].start);
+          const tb = trust(words[b].start - words[i].start);
+          const wa = (1 - f) * ta;
+          const wb = f * tb;
+          [shift, sure] = [wa + wb > 0 ? (wa * off(a) + wb * off(b)) / (wa + wb) : 0, Math.max(ta, tb)];
+        }
       }
+      const own = Number.isNaN(weak[i]) ? words[i].start : weak[i];
+      start[i] = sure * (words[i].start + shift) + (1 - sure) * own;
+      // Not before the audio: the clamp at 0 s stacked "No, no, no." on 0.
+      if (a === undefined) start[i] = Math.max(start[i], words[i].start - words[0].start);
     }
   }
 
@@ -276,7 +374,47 @@ export function toLines(segments: WhisperSegment[], opts: LineOptions = {}): Lin
   }
   const toVideo = (w: Word): Word =>
     offset ? { ...w, start: +(w.start + offset).toFixed(3), end: +(w.end + offset).toFixed(3) } : w;
-  return joinContinuations(groups).map(ws => makeLine(ws.map(toVideo)));
+  return holdEveryWord(joinContinuations(groups).map(ws => ws.map(toVideo))).map(makeLine);
+}
+
+/** Shortest time a word holds the highlight. The app highlights a word
+ *  from its start until the next one starts (a line's last word: until its
+ *  end), and 922 words of the live set (3.3%) were held under 80 ms, so
+ *  they never showed; both references heard most of them for over 100 ms
+ *  ("iba" 59.93-59.96 s, heard 60.02-60.24 s). A millisecond over 80, so
+ *  that no difference of two times rounded to ms comes out under it. */
+const HOLD_MS = 81;
+
+/** Every word starts HOLD_MS after the one before it, across lines too
+ *  (the next line takes the highlight as it starts), and a line's last
+ *  word lasts HOLD_MS. The words move as little as they can: starts are
+ *  the least-squares fit (pool adjacent violators over start - k*HOLD_MS),
+ *  so a word squeezed between two others shares out the time around it. */
+function holdEveryWord(lines: Word[][]): Word[][] {
+  const flat = lines.flat();
+  const blocks: { sum: number; n: number }[] = [];
+  flat.forEach((w, k) => {
+    blocks.push({ sum: w.start * 1000 - k * HOLD_MS, n: 1 });
+    for (let b = blocks.length - 1; b > 0 && blocks[b - 1].sum / blocks[b - 1].n > blocks[b].sum / blocks[b].n; b--) {
+      blocks[b - 1].sum += blocks[b].sum;
+      blocks[b - 1].n += blocks[b].n;
+      blocks.pop();
+    }
+  });
+  const ms: number[] = [];
+  for (const b of blocks) for (let k = 0; k < b.n; k++) ms.push(Math.round(b.sum / b.n + ms.length * HOLD_MS));
+  ms.forEach((s, k) => (ms[k] = Math.max(s, k ? ms[k - 1] + HOLD_MS : 0)));
+
+  let k = 0;
+  return lines.map(ws =>
+    ws.map((w, i) => {
+      const s = ms[k++];
+      const start = s === Math.round(w.start * 1000) ? w.start : s / 1000;
+      const end = Math.round(w.end * 1000);
+      const endMs = i + 1 < ws.length ? Math.min(Math.max(end, s), ms[k]) : Math.max(end, s + HOLD_MS);
+      return { ...w, start, end: endMs === end ? w.end : endMs / 1000 };
+    }),
+  );
 }
 
 /** Puts a sentence cut in two back together ("¡Está" | "entrenado!"):

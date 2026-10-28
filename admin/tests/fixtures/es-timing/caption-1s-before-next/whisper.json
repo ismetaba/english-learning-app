@@ -1,0 +1,156 @@
+{
+ "segments": [
+  {
+   "text": "Es curioso, supongo que el destino no es la senda que se nos da.",
+   "start": 1.707,
+   "end": 5.069,
+   "words": [
+    {
+     "word": "Es",
+     "start": 1.707,
+     "end": 1.767,
+     "score": 0.852
+    },
+    {
+     "word": "curioso,",
+     "start": 1.827,
+     "end": 2.247,
+     "score": 0.862
+    },
+    {
+     "word": "supongo",
+     "start": 2.327,
+     "end": 2.668,
+     "score": 0.896
+    },
+    {
+     "word": "que",
+     "start": 2.748,
+     "end": 2.888,
+     "score": 0.819
+    },
+    {
+     "word": "el",
+     "start": 2.928,
+     "end": 3.008,
+     "score": 0.655
+    },
+    {
+     "word": "destino",
+     "start": 3.048,
+     "end": 3.428,
+     "score": 0.92
+    },
+    {
+     "word": "no",
+     "start": 3.508,
+     "end": 3.588,
+     "score": 0.766
+    },
+    {
+     "word": "es",
+     "start": 3.628,
+     "end": 3.688,
+     "score": 0.986
+    },
+    {
+     "word": "la",
+     "start": 3.748,
+     "end": 3.808,
+     "score": 0.932
+    },
+    {
+     "word": "senda",
+     "start": 3.908,
+     "end": 4.209,
+     "score": 0.894
+    },
+    {
+     "word": "que",
+     "start": 4.289,
+     "end": 4.389,
+     "score": 0.733
+    },
+    {
+     "word": "se",
+     "start": 4.469,
+     "end": 4.569,
+     "score": 0.824
+    },
+    {
+     "word": "nos",
+     "start": 4.609,
+     "end": 4.729,
+     "score": 0.882
+    },
+    {
+     "word": "da.",
+     "start": 4.789,
+     "end": 5.069,
+     "score": 0.634
+    }
+   ]
+  },
+  {
+   "text": "Sino la senda que uno elige para sí mismo.",
+   "start": 8.311,
+   "end": 18.357,
+   "words": [
+    {
+     "word": "Sino",
+     "start": 8.311,
+     "end": 8.511,
+     "score": 0.907
+    },
+    {
+     "word": "la",
+     "start": 8.591,
+     "end": 8.671,
+     "score": 0.878
+    },
+    {
+     "word": "senda",
+     "start": 8.771,
+     "end": 9.072,
+     "score": 0.913
+    },
+    {
+     "word": "que",
+     "start": 9.152,
+     "end": 9.292,
+     "score": 0.78
+    },
+    {
+     "word": "uno",
+     "start": 9.372,
+     "end": 9.512,
+     "score": 0.833
+    },
+    {
+     "word": "elige",
+     "start": 9.552,
+     "end": 10.032,
+     "score": 0.783
+    },
+    {
+     "word": "para",
+     "start": 10.112,
+     "end": 10.252,
+     "score": 0.832
+    },
+    {
+     "word": "sí",
+     "start": 10.332,
+     "end": 10.452,
+     "score": 0.725
+    },
+    {
+     "word": "mismo.",
+     "start": 10.492,
+     "end": 18.357,
+     "score": 0.78
+    }
+   ]
+  }
+ ]
+}

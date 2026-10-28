@@ -1,0 +1,554 @@
+{
+ "segments": [
+  {
+   "text": "¡Yatones de champaña!",
+   "start": 0.533,
+   "end": 2.159,
+   "words": [
+    {
+     "word": "¡Yatones",
+     "start": 0.533,
+     "end": 1.035,
+     "score": 0.423
+    },
+    {
+     "word": "de",
+     "start": 1.075,
+     "end": 1.135,
+     "score": 0.565
+    },
+    {
+     "word": "champaña!",
+     "start": 1.196,
+     "end": 2.159,
+     "score": 0.651
+    }
+   ]
+  },
+  {
+   "text": "¡Nenora!",
+   "start": 2.24,
+   "end": 3.143,
+   "words": [
+    {
+     "word": "¡Nenora!",
+     "start": 2.24,
+     "end": 3.143,
+     "score": 0.687
+    }
+   ]
+  },
+  {
+   "text": "¿A qué horas vas por el pan?",
+   "start": 3.164,
+   "end": 4.69,
+   "words": [
+    {
+     "word": "¿A",
+     "start": 3.164,
+     "end": 3.525,
+     "score": 0.83
+    },
+    {
+     "word": "qué",
+     "start": 3.565,
+     "end": 3.625,
+     "score": 0.206
+    },
+    {
+     "word": "horas",
+     "start": 3.645,
+     "end": 3.806,
+     "score": 0.496
+    },
+    {
+     "word": "vas",
+     "start": 3.886,
+     "end": 4.027,
+     "score": 0.61
+    },
+    {
+     "word": "por",
+     "start": 4.107,
+     "end": 4.248,
+     "score": 0.611
+    },
+    {
+     "word": "el",
+     "start": 4.288,
+     "end": 4.368,
+     "score": 0.651
+    },
+    {
+     "word": "pan?",
+     "start": 4.429,
+     "end": 4.69,
+     "score": 0.72
+    }
+   ]
+  },
+  {
+   "text": "¡Adiós, muñecas!",
+   "start": 41.04,
+   "end": 42.241,
+   "words": [
+    {
+     "word": "¡Adiós,",
+     "start": 41.04,
+     "end": 42.041,
+     "score": 0.416
+    },
+    {
+     "word": "muñecas!",
+     "start": 42.081,
+     "end": 42.241,
+     "score": 0.029
+    }
+   ]
+  },
+  {
+   "text": "¡Gózenme, que me les voy!",
+   "start": 42.261,
+   "end": 43.503,
+   "words": [
+    {
+     "word": "¡Gózenme,",
+     "start": 42.261,
+     "end": 42.722,
+     "score": 0.565
+    },
+    {
+     "word": "que",
+     "start": 42.742,
+     "end": 42.842,
+     "score": 0.288
+    },
+    {
+     "word": "me",
+     "start": 42.862,
+     "end": 42.942,
+     "score": 0.71
+    },
+    {
+     "word": "les",
+     "start": 43.002,
+     "end": 43.082,
+     "score": 0.555
+    },
+    {
+     "word": "voy!",
+     "start": 43.122,
+     "end": 43.503,
+     "score": 0.393
+    }
+   ]
+  },
+  {
+   "text": "¡Órale!",
+   "start": 43.683,
+   "end": 44.203,
+   "words": [
+    {
+     "word": "¡Órale!",
+     "start": 43.683,
+     "end": 44.203,
+     "score": 0.643
+    }
+   ]
+  },
+  {
+   "text": "¿Quién se puso los cuernos?",
+   "start": 44.223,
+   "end": 45.084,
+   "words": [
+    {
+     "word": "¿Quién",
+     "start": 44.223,
+     "end": 44.364,
+     "score": 0.495
+    },
+    {
+     "word": "se",
+     "start": 44.384,
+     "end": 44.464,
+     "score": 0.775
+    },
+    {
+     "word": "puso",
+     "start": 44.484,
+     "end": 44.664,
+     "score": 0.485
+    },
+    {
+     "word": "los",
+     "start": 44.704,
+     "end": 44.784,
+     "score": 0.733
+    },
+    {
+     "word": "cuernos?",
+     "start": 44.844,
+     "end": 45.084,
+     "score": 0.446
+    }
+   ]
+  },
+  {
+   "text": "¡Miren!",
+   "start": 45.104,
+   "end": 45.885,
+   "words": [
+    {
+     "word": "¡Miren!",
+     "start": 45.104,
+     "end": 45.885,
+     "score": 0.549
+    }
+   ]
+  },
+  {
+   "text": "¡Ahí se ve la greñuda de Rapunzel!",
+   "start": 46.486,
+   "end": 48.568,
+   "words": [
+    {
+     "word": "¡Ahí",
+     "start": 46.486,
+     "end": 46.586,
+     "score": 0.291
+    },
+    {
+     "word": "se",
+     "start": 46.606,
+     "end": 46.646,
+     "score": 0.128
+    },
+    {
+     "word": "ve",
+     "start": 46.686,
+     "end": 46.766,
+     "score": 0.374
+    },
+    {
+     "word": "la",
+     "start": 46.786,
+     "end": 46.846,
+     "score": 0.736
+    },
+    {
+     "word": "greñuda",
+     "start": 46.886,
+     "end": 47.207,
+     "score": 0.688
+    },
+    {
+     "word": "de",
+     "start": 47.247,
+     "end": 47.327,
+     "score": 0.852
+    },
+    {
+     "word": "Rapunzel!",
+     "start": 47.387,
+     "end": 48.568,
+     "score": 0.654
+    }
+   ]
+  },
+  {
+   "text": "Y allá a la izquierda está el cantón de la Cenicienta.",
+   "start": 48.908,
+   "end": 53.293,
+   "words": [
+    {
+     "word": "Y",
+     "start": 48.908,
+     "end": 50.11,
+     "score": 0.783
+    },
+    {
+     "word": "allá",
+     "start": 50.71,
+     "end": 51.111,
+     "score": 0.502
+    },
+    {
+     "word": "a",
+     "start": 51.191,
+     "end": 51.231,
+     "score": 0.839
+    },
+    {
+     "word": "la",
+     "start": 51.271,
+     "end": 51.331,
+     "score": 0.663
+    },
+    {
+     "word": "izquierda",
+     "start": 51.371,
+     "end": 51.711,
+     "score": 0.832
+    },
+    {
+     "word": "está",
+     "start": 52.012,
+     "end": 52.152,
+     "score": 0.632
+    },
+    {
+     "word": "el",
+     "start": 52.232,
+     "end": 52.332,
+     "score": 0.459
+    },
+    {
+     "word": "cantón",
+     "start": 52.372,
+     "end": 52.592,
+     "score": 0.279
+    },
+    {
+     "word": "de",
+     "start": 52.612,
+     "end": 52.672,
+     "score": 0.772
+    },
+    {
+     "word": "la",
+     "start": 52.713,
+     "end": 52.773,
+     "score": 0.813
+    },
+    {
+     "word": "Cenicienta.",
+     "start": 52.793,
+     "end": 53.293,
+     "score": 0.68
+    }
+   ]
+  },
+  {
+   "text": "¡Por esto sigues visitando a las estrellas!",
+   "start": 53.313,
+   "end": 54.695,
+   "words": [
+    {
+     "word": "¡Por",
+     "start": 53.313,
+     "end": 53.433,
+     "score": 0.313
+    },
+    {
+     "word": "esto",
+     "start": 53.493,
+     "end": 53.694,
+     "score": 0.504
+    },
+    {
+     "word": "sigues",
+     "start": 53.734,
+     "end": 53.934,
+     "score": 0.271
+    },
+    {
+     "word": "visitando",
+     "start": 53.954,
+     "end": 54.154,
+     "score": 0.083
+    },
+    {
+     "word": "a",
+     "start": 54.174,
+     "end": 54.194,
+     "score": 0.037
+    },
+    {
+     "word": "las",
+     "start": 54.214,
+     "end": 54.294,
+     "score": 0.537
+    },
+    {
+     "word": "estrellas!",
+     "start": 54.354,
+     "end": 54.695,
+     "score": 0.426
+    }
+   ]
+  },
+  {
+   "text": "Anunciamos el tan esperado regreso de la hermosa Princesa Fiona y su nuevo esposo.",
+   "start": 92.221,
+   "end": 98.224,
+   "words": [
+    {
+     "word": "Anunciamos",
+     "start": 92.221,
+     "end": 92.961,
+     "score": 0.843
+    },
+    {
+     "word": "el",
+     "start": 93.081,
+     "end": 93.182,
+     "score": 0.544
+    },
+    {
+     "word": "tan",
+     "start": 93.242,
+     "end": 93.402,
+     "score": 0.956
+    },
+    {
+     "word": "esperado",
+     "start": 93.502,
+     "end": 94.022,
+     "score": 0.897
+    },
+    {
+     "word": "regreso",
+     "start": 94.122,
+     "end": 94.582,
+     "score": 0.893
+    },
+    {
+     "word": "de",
+     "start": 94.642,
+     "end": 94.702,
+     "score": 0.914
+    },
+    {
+     "word": "la",
+     "start": 94.742,
+     "end": 94.802,
+     "score": 0.826
+    },
+    {
+     "word": "hermosa",
+     "start": 94.822,
+     "end": 95.283,
+     "score": 0.825
+    },
+    {
+     "word": "Princesa",
+     "start": 95.383,
+     "end": 95.943,
+     "score": 0.871
+    },
+    {
+     "word": "Fiona",
+     "start": 96.023,
+     "end": 96.423,
+     "score": 0.764
+    },
+    {
+     "word": "y",
+     "start": 96.443,
+     "end": 96.463,
+     "score": 0.038
+    },
+    {
+     "word": "su",
+     "start": 97.043,
+     "end": 97.184,
+     "score": 0.97
+    },
+    {
+     "word": "nuevo",
+     "start": 97.284,
+     "end": 97.564,
+     "score": 0.859
+    },
+    {
+     "word": "esposo.",
+     "start": 97.644,
+     "end": 98.224,
+     "score": 0.929
+    }
+   ]
+  },
+  {
+   "text": "Bueno, ¿elos aquí?",
+   "start": 100.605,
+   "end": 102.066,
+   "words": [
+    {
+     "word": "Bueno,",
+     "start": 100.605,
+     "end": 100.905,
+     "score": 0.414
+    },
+    {
+     "word": "¿elos",
+     "start": 101.606,
+     "end": 101.846,
+     "score": 0.399
+    },
+    {
+     "word": "aquí?",
+     "start": 101.886,
+     "end": 102.066,
+     "score": 0.783
+    }
+   ]
+  },
+  {
+   "text": "Elos aquí.",
+   "start": 102.746,
+   "end": 103.387,
+   "words": [
+    {
+     "word": "Elos",
+     "start": 102.746,
+     "end": 103.046,
+     "score": 0.756
+    },
+    {
+     "word": "aquí.",
+     "start": 103.106,
+     "end": 103.387,
+     "score": 0.607
+    }
+   ]
+  },
+  {
+   "text": "Elos aquí.",
+   "start": 103.847,
+   "end": 104.387,
+   "words": [
+    {
+     "word": "Elos",
+     "start": 103.847,
+     "end": 104.087,
+     "score": 0.779
+    },
+    {
+     "word": "aquí.",
+     "start": 104.127,
+     "end": 104.387,
+     "score": 0.894
+    }
+   ]
+  },
+  {
+   "text": "Elos aquí.",
+   "start": 105.087,
+   "end": 105.608,
+   "words": [
+    {
+     "word": "Elos",
+     "start": 105.087,
+     "end": 105.288,
+     "score": 0.66
+    },
+    {
+     "word": "aquí.",
+     "start": 105.408,
+     "end": 105.608,
+     "score": 0.362
+    }
+   ]
+  }
+ ]
+}
