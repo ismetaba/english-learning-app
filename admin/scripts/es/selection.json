@@ -1045,5 +1045,96 @@
     "movieTitle": "Monsters University",
     "title": "Mike conoce a Randall",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "SeKhrC0sBbw",
+    "slug": "el-camino-hacia-el-dorado-el-juego-de-pelota",
+    "movieTitle": "El camino hacia El Dorado",
+    "title": "El juego de pelota",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "lanPQqoAlQI",
+    "slug": "el-camino-hacia-el-dorado-el-final",
+    "movieTitle": "El camino hacia El Dorado",
+    "title": "El final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "fT5uTrUHC0o",
+    "slug": "trolls-3-velvet-y-veneer",
+    "movieTitle": "Trolls 3",
+    "title": "Velvet y Veneer",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "OXoZA69AnQU",
+    "slug": "ralph-rompe-internet-la-subasta-del-volante",
+    "movieTitle": "Ralph rompe internet",
+    "title": "La subasta del volante",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "4yGWKRQ9xJE",
+    "slug": "ralph-rompe-internet-la-carrera",
+    "movieTitle": "Ralph rompe internet",
+    "title": "La carrera",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "_91HElWS9zI",
+    "slug": "madagascar-2-bebe-alex",
+    "movieTitle": "Madagascar 2",
+    "title": "Bebé Alex",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "4AXLg8zWJO0",
+    "slug": "pinocho-chao-papa",
+    "movieTitle": "Pinocho",
+    "title": "Chao, papá",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uIjwGUsTu-U",
+    "slug": "la-era-de-hielo-cuidando-al-bebe",
+    "movieTitle": "La era de hielo",
+    "title": "Cuidando al bebé",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "R-kS-0hXO5A",
+    "slug": "madagascar-3-lo-mejor",
+    "movieTitle": "Madagascar 3",
+    "title": "Lo mejor",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "wigbqtSikCs",
+    "slug": "turbo-turbo-gana-la-carrera",
+    "movieTitle": "Turbo",
+    "title": "Turbo gana la carrera",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "jynPv18KgDo",
+    "slug": "turbo-empieza-la-carrera",
+    "movieTitle": "Turbo",
+    "title": "Empieza la carrera",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "mJi02txuWBo",
+    "slug": "la-vida-secreta-de-tus-mascotas-2-salvan-al-tigre",
+    "movieTitle": "La vida secreta de tus mascotas 2",
+    "title": "Snowball y Daisy salvan al tigre",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "-1Jbg6rCwT8",
+    "slug": "la-vida-secreta-de-tus-mascotas-2-daisy-pide-ayuda",
+    "movieTitle": "La vida secreta de tus mascotas 2",
+    "title": "Daisy pide ayuda a Snowball",
+    "genre": "animation"
   }
 ]
