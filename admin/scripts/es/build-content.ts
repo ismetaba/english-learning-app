@@ -323,7 +323,9 @@ const LEMMA_SCHEMA = {
   additionalProperties: false,
 };
 
-const STARTER_COUNT = 50;
+/** Enough for each pattern of the path to bring its own words (up to 8,
+ *  lib/pattern-sets.ts) without running out. */
+const STARTER_COUNT = 100;
 
 /** ASCII id stem: accents dropped, ñ → n ("niño" → "nino"). */
 const idStem = (lemma: string) => lemma.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z]+/g, '-');
@@ -336,7 +338,7 @@ async function vocabAll() {
     const k = esGlossKey(r.word);
     if (k.length > 2 && !STOPWORDS.has(k) && !/\d/.test(k)) freq.set(k, (freq.get(k) ?? 0) + 1);
   }
-  const candidates = [...freq.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 250).map(([k]) => k);
+  const candidates = [...freq.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 500).map(([k]) => k);
   const todo = candidates.filter(k => cache.get(k) === undefined);
   for (let i = 0; i < todo.length; i += 20) {
     const batch = todo.slice(i, i + 20);

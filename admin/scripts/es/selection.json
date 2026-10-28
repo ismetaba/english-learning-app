@@ -870,5 +870,180 @@
     "movieTitle": "Atlantis: el imperio perdido",
     "title": "Regresen con su pueblo",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "Ufedo0EmGEc",
+    "slug": "toy-story-3-conoce-a-ken",
+    "movieTitle": "Toy Story 3",
+    "title": "Conoce a Ken",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "vU3hOjKJpyo",
+    "slug": "monsters-inc-mike-y-sullivan-expulsados",
+    "movieTitle": "Monsters Inc",
+    "title": "Mike y Sullivan, expulsados",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "msVEG9dAfmQ",
+    "slug": "los-increibles-mr-increible-conoce-a-sindrome",
+    "movieTitle": "Los Increíbles",
+    "title": "Mr. Increíble conoce a Síndrome",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "inlPdJpWE-E",
+    "slug": "cars-la-carrera-final",
+    "movieTitle": "Cars",
+    "title": "La carrera final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "5zyThNG7GtE",
+    "slug": "cars-aventuras-con-mack",
+    "movieTitle": "Cars",
+    "title": "Aventuras con Mack",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "TgCK7USqfD4",
+    "slug": "buscando-a-nemo-el-ataque-de-la-barracuda",
+    "movieTitle": "Buscando a Nemo",
+    "title": "El ataque de la barracuda",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "htvgcBIvTjA",
+    "slug": "grandes-heroes-el-descubrimiento",
+    "movieTitle": "Grandes héroes",
+    "title": "El descubrimiento",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "iIE7Qq0yj0M",
+    "slug": "enredados-rapunzel-y-madre-gothel",
+    "movieTitle": "Enredados",
+    "title": "Rapunzel y madre Gothel",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "jqgm-mQeLVo",
+    "slug": "madagascar-mort-llorando",
+    "movieTitle": "Madagascar",
+    "title": "Mort llorando",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "4ajMVjQ3l6A",
+    "slug": "como-entrenar-a-tu-dragon-2-carreras-de-dragones",
+    "movieTitle": "Cómo entrenar a tu dragón 2",
+    "title": "Carreras de dragones",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uf6iemtzG18",
+    "slug": "como-entrenar-a-tu-dragon-3-la-pelea-final",
+    "movieTitle": "Cómo entrenar a tu dragón 3",
+    "title": "La pelea final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "56cGQAwcBBU",
+    "slug": "el-rey-leon-mejores-momentos",
+    "movieTitle": "El rey león",
+    "title": "Mejores momentos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "eX2fLTlK9gE",
+    "slug": "lilo-y-stitch-stitch-contra-jumba",
+    "movieTitle": "Lilo y Stitch",
+    "title": "Stitch contra Jumba",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "2Q4QjaFSwj8",
+    "slug": "lilo-y-stitch-stitch-el-persuasivo",
+    "movieTitle": "Lilo y Stitch",
+    "title": "Stitch el persuasivo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "q8EmYB6QTEo",
+    "slug": "hercules-la-cita-con-megara",
+    "movieTitle": "Hércules",
+    "title": "La cita con Megara",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "IXMM2hmBW9o",
+    "slug": "hercules-la-ultima-esperanza",
+    "movieTitle": "Hércules",
+    "title": "La última esperanza",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "VPibIRxEb48",
+    "slug": "las-locuras-del-emperador-el-rescate-en-la-jungla",
+    "movieTitle": "Las locuras del emperador",
+    "title": "El rescate en la jungla",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "dwDBbwDgSa0",
+    "slug": "ralph-el-demoledor-ralph-destruye-el-auto",
+    "movieTitle": "Ralph el demoledor",
+    "title": "Ralph destruye el auto",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "S69-SGWplI8",
+    "slug": "megamente-metro-man-esta-vivo",
+    "movieTitle": "Megamente",
+    "title": "Metro Man está vivo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "8aEzcy8QR3g",
+    "slug": "valiente-habla-conmigo",
+    "movieTitle": "Valiente",
+    "title": "Habla conmigo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "6we-LuoWtYQ",
+    "slug": "la-era-de-hielo-2-el-parque-acuatico",
+    "movieTitle": "La era de hielo 2",
+    "title": "El parque acuático",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "NbnZUrNzNz0",
+    "slug": "aviones-el-taj-mahal",
+    "movieTitle": "Aviones",
+    "title": "Dusty e Ishani en el Taj Mahal",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "7BpwDUkti40",
+    "slug": "cars-toon-aero-mate",
+    "movieTitle": "Cars Toon",
+    "title": "Aero Mate",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "xqZa_v_y31M",
+    "slug": "aviones-conoce-a-dusty",
+    "movieTitle": "Aviones",
+    "title": "Conoce a Dusty",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "YLE_KLr0nQo",
+    "slug": "monsters-university-mike-conoce-a-randall",
+    "movieTitle": "Monsters University",
+    "title": "Mike conoce a Randall",
+    "genre": "animation"
   }
 ]
