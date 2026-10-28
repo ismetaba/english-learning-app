@@ -1178,5 +1178,118 @@
     "movieTitle": "Bob Esponja: un héroe fuera del agua",
     "title": "Bob Esponja contra Plankton",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "j5T2i_MhufU",
+    "slug": "el-libro-de-la-selva-mowgli-y-baloo",
+    "movieTitle": "El libro de la selva",
+    "title": "Mowgli y la patrulla",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "t4U1krtKRqY",
+    "slug": "los-aristogatos-george",
+    "movieTitle": "Los Aristogatos",
+    "title": "El abogado George",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "7AWWvDtSLDM",
+    "slug": "los-aristogatos-roquefort",
+    "movieTitle": "Los Aristogatos",
+    "title": "Roquefort",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "wUWenzNhGm0",
+    "slug": "101-dalmatas-cruella-se-entera",
+    "movieTitle": "101 dálmatas",
+    "title": "Cruella se entera",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "SNNJenyEg8o",
+    "slug": "cenicienta-las-hermanastras",
+    "movieTitle": "La Cenicienta",
+    "title": "Las hermanastras",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "vuWmDrU5ljc",
+    "slug": "cenicienta-un-toque-de-magia",
+    "movieTitle": "La Cenicienta",
+    "title": "Un toque de magia",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "XzPqLHpiP_w",
+    "slug": "bambi-se-reencuentra-con-sus-amigos",
+    "movieTitle": "Bambi",
+    "title": "Bambi y sus amigos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "vLzOpgaGKho",
+    "slug": "bambi-2-ser-valiente",
+    "movieTitle": "Bambi 2",
+    "title": "Ser valiente",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "x7zWkB0PMmY",
+    "slug": "el-rey-leon-simba-confronta-a-scar",
+    "movieTitle": "El rey león",
+    "title": "Simba confronta a Scar",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "kYYGWOXlwZ4",
+    "slug": "ciguenas-los-lobos-1",
+    "movieTitle": "Cigüeñas",
+    "title": "Los lobos (1)",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "1LY4LhjJrzw",
+    "slug": "ciguenas-los-lobos-2",
+    "movieTitle": "Cigüeñas",
+    "title": "Los lobos (2)",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "OlWFcnvHX4k",
+    "slug": "gnomeo-y-julieta-el-terrafirminator",
+    "movieTitle": "Gnomeo y Julieta",
+    "title": "El Terrafirminator",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uTTmrAtsrVI",
+    "slug": "madagascar-la-tripulacion-del-rey-julien",
+    "movieTitle": "Madagascar",
+    "title": "La tripulación del rey Julien",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "3Uuat2ASUx4",
+    "slug": "encanto-la-vision-de-bruno",
+    "movieTitle": "Encanto",
+    "title": "La visión de Bruno",
+    "genre": "animation",
+    "maxSec": 178
+  },
+  {
+    "youtubeId": "iPBvs15C2j8",
+    "slug": "kung-fu-panda-dime-que-estas-orgulloso",
+    "movieTitle": "Kung Fu Panda",
+    "title": "Dime que estás orgulloso",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "wMfPNIYnnGk",
+    "slug": "como-entrenar-a-tu-dragon-2-chimuelo-y-el-alfa",
+    "movieTitle": "Cómo entrenar a tu dragón 2",
+    "title": "Chimuelo y el alfa",
+    "genre": "animation"
   }
 ]
