@@ -12,8 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import { MIN_SCENE_LINES, MIN_SCENE_SEC } from './lib/lines';
-import type { Json3 } from './lib/media';
+import { captionWords, MIN_SCENE_LINES, MIN_SCENE_SEC, type CaptionWord } from './lib/lines';
 import { cleanTranslation } from './lib/translate';
 
 const [dbPath, workDir] = process.argv.slice(2);
@@ -23,33 +22,27 @@ if (!dbPath || !workDir) {
 }
 const db = new Database(dbPath, { readonly: true });
 
-/** Most words a video may have more than 0.5 s from where YouTube hears them. */
+/** Most words a video may have more than 0.5 s from where YouTube hears them,
+ *  and fewer than this many always pass: in a scene the captions hardly
+ *  match, one or two words are already 5%. */
 const MAX_OFF_SHARE = 0.05;
+const MIN_OFF_WORDS = 3;
 /** The set player plays one short scene per video (PrimaryClip, ≤150 s). */
 const MAX_SCENE_SEC = 155;
 
 const norm = (w: string) => w.toLocaleLowerCase('es').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
-
-function captionOnsets(json3: Json3): { w: string; t: number }[] {
-  const out: { w: string; t: number }[] = [];
-  for (const e of json3.events ?? []) {
-    for (const s of e.segs ?? []) {
-      for (const tok of (s.utf8 ?? '').split(/\s+/)) {
-        const w = norm(tok);
-        if (w && !/^\[.*\]$/.test(tok)) out.push({ w, t: ((e.tStartMs ?? 0) + (s.tOffsetMs ?? 0)) / 1000 });
-      }
-    }
-  }
-  return out;
-}
 
 /** Farther apart than this, a lone pair is a common word ("que", "los")
  *  matched to another of its occurrences; a line that really jumped moves
  *  its words together. */
 const LONE_PAIR_SEC = 5;
 
-/** Share of matched words (longest common subsequence) more than 0.5 s off. */
-function offShare(words: { w: string; t: number; line: number }[], ref: { w: string; t: number }[]) {
+/** Share of matched words (longest common subsequence) more than 0.5 s off.
+ *  Only caption words whose onset is where they are said count (the same
+ *  rule the build times words by, lib/lines.ts captionWords): a word
+ *  stamped one second before the next is not, and a build that rightly
+ *  ignores it is not off. */
+function offShare(words: { w: string; t: number; line: number }[], ref: CaptionWord[]) {
   const n = words.length, m = ref.length;
   const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
   for (let i = n - 1; i >= 0; i--) {
@@ -61,7 +54,7 @@ function offShare(words: { w: string; t: number; line: number }[], ref: { w: str
   const pairs: { line: number; d: number }[] = [];
   for (let i = 0, j = 0; i < n && j < m; ) {
     if (words[i].w === ref[j].w && Math.abs(words[i].t - ref[j].t) < 30) {
-      pairs.push({ line: words[i].line, d: words[i].t - ref[j].t });
+      if (ref[j].sure) pairs.push({ line: words[i].line, d: words[i].t - ref[j].t });
       i++; j++;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
     else j++;
@@ -96,13 +89,13 @@ for (const v of videos) {
   const capFile = path.join(workDir, v.yt, 'captions.es-orig.json3');
   let sync = 'no captions';
   if (fs.existsSync(capFile)) {
-    const ref = captionOnsets(JSON.parse(fs.readFileSync(capFile, 'utf8')));
+    const ref = captionWords(JSON.parse(fs.readFileSync(capFile, 'utf8')), 0);
     const words = (wordsOf.all(v.clip) as { word: string; t: number; line: number }[])
       .map(r => ({ w: norm(r.word), t: r.t, line: r.line })).filter(r => r.w);
     const s = offShare(words, ref.filter(r => r.t >= v.start - 5 && r.t <= v.end + 5));
     sync = `${s.off}/${s.matched} off (${s.matched}/${s.total} matched)`;
     if (s.matched < s.total * 0.5) warnings.push(`${v.id}: captions match only ${s.matched}/${s.total} words`);
-    if (s.off > s.matched * MAX_OFF_SHARE) problems.push(`${v.id}: ${s.off}/${s.matched} words >0.5 s off`);
+    if (s.off >= MIN_OFF_WORDS && s.off > s.matched * MAX_OFF_SHARE) problems.push(`${v.id}: ${s.off}/${s.matched} words >0.5 s off`);
   } else uncaptioned++;
   console.log(`${v.id.padEnd(46)} ${String(v.lines).padStart(5)}  ${sync}`);
   if (v.untranslated) problems.push(`${v.id}: ${v.untranslated} untranslated lines`);

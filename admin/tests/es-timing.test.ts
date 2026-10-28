@@ -157,6 +157,20 @@ test('under music, lyric words that happen to match do not move the dialogue', (
   startsNear(lines, '¿A qué horas vas por el pan?', '¿A', 51.16, 0.5);
 });
 
+test('where WhisperX drifted, the captions that agree with each other time the line', () => {
+  // Buscando a Dory "¡Manos!": WhisperX put "Perdón por no poderme
+  // acordarte." at 125.0 s, 6.5 s early (all its words around there drift
+  // alike). The captions, the forced alignment of the line (131.55, 132.11,
+  // 132.37, 132.65) and faster-whisper (131.08, 131.98, 132.20, 132.46)
+  // agree it is said from 131.1 s; the first fix fell back to WhisperX.
+  const lines = excerpt('whisperx-drift', 0);
+  const t = 'Perdón por no poderme acordarte.';
+  startsNear(lines, t, 'Perdón', 131.35, 0.4);
+  startsNear(lines, t, 'por', 132.0, 0.3);
+  startsNear(lines, t, 'no', 132.25, 0.3);
+  startsNear(lines, t, 'poderme', 132.5, 0.3);
+});
+
 test('every word is highlighted: after the one before it, for at least 80 ms', () => {
   // The app highlights a word from its start until the next word starts
   // (the last word: until its end). 26 words across these fixtures were
@@ -168,6 +182,7 @@ test('every word is highlighted: after the one before it, for at least 80 ms', (
     ['clamp-before-first-pair', excerpt('clamp-before-first-pair', 0)],
     ['multi-word-caption-seg', excerpt('multi-word-caption-seg', 0)],
     ['music-coincidental-pairs', excerpt('music-coincidental-pairs', 48)],
+    ['whisperx-drift', excerpt('whisperx-drift', 0)],
   ];
   const unseen = all.flatMap(([name, lines]) => lines.flatMap(l => l.words.flatMap((w, i) => {
     const until = i + 1 < l.words.length ? l.words[i + 1].start : w.end;

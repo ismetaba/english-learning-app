@@ -144,7 +144,7 @@ function trimEdges(words: Word[]): Word[] {
   return out;
 }
 
-interface CaptionWord {
+export interface CaptionWord {
   w: string;
   t: number;
   /** The onset is where the word is said. Unsure words still pair, so the
@@ -163,7 +163,7 @@ const STAMPED_GAP_MS = 1000;
  *  that holds several words (" lugar de") has one onset for all of them,
  *  so none of them is sure; nor is a word stamped STAMPED_GAP_MS before
  *  the next. */
-function captionWords(json3: Json3, offset: number): CaptionWord[] {
+export function captionWords(json3: Json3, offset: number): CaptionWord[] {
   const out: (CaptionWord & { ms: number })[] = [];
   for (const e of json3.events ?? []) {
     for (const s of e.segs ?? []) {
@@ -230,7 +230,7 @@ function dropChancePairs(pair: number[], words: Word[], caps: CaptionWord[]) {
  *  than MAX_JUMP_SEC farther off than the pairs around it is unpaired, as
  *  are chance pairs. A word paired with an unsure caption word is unpaired
  *  too, but keeps that onset in `weak`: roughly where it is said. */
-function align(words: Word[], caps: CaptionWord[]): { pair: number[]; weak: number[] } {
+function align(words: Word[], caps: CaptionWord[]): { pair: number[]; weak: number[]; matched: number } {
   const ws = words.map(w => normWord(w.word));
   const n = ws.length;
   const m = caps.length;
@@ -259,6 +259,7 @@ function align(words: Word[], caps: CaptionWord[]): { pair: number[]; weak: numb
     return jumps.length > 0 && Math.min(...jumps) > MAX_JUMP_SEC;
   });
   for (const i of lone) pair[i] = -1;
+  const matched = pair.filter(j => j >= 0).length;
   dropChancePairs(pair, words, caps);
   const weak = words.map(() => NaN);
   for (const i of paired) {
@@ -267,7 +268,7 @@ function align(words: Word[], caps: CaptionWord[]): { pair: number[]; weak: numb
       pair[i] = -1;
     }
   }
-  return { pair, weak };
+  return { pair, weak, matched };
 }
 
 /** How far WhisperX is off, an unpaired word takes from a pair this far
@@ -281,37 +282,65 @@ const trust = (d: number) => Math.min(1, Math.max(0, (FAR_SEC - d) / (FAR_SEC - 
 /** Two pairs this close in offset agree on how far WhisperX is off
  *  between them, however far apart they are. */
 const AGREE_SEC = 0.5;
+/** Trusting only near pairs must not turn words back by more than this:
+ *  then WhisperX drifted as a block and its own times are no fallback. In
+ *  Buscando a Dory it had "Perdón por no poderme acordarte." 6.5 s early
+ *  (the captions, the forced alignment and faster-whisper agree), with the
+ *  lines around it; falling back to it put "Ay, nena. No, nena." before
+ *  the line they follow. */
+const REVERSE_SEC = 0.1;
 
 /** Words timed by the captions: a paired word starts at its caption
  *  word's onset; an unpaired word moves as far as the pairs on either side
  *  say WhisperX is off: where they agree, it keeps its place between them
- *  (WhisperX's times mapped onto that stretch); where they disagree, it
- *  trusts only a pair near it, and as far as it does not, it stays where
- *  its unsure caption word is, or else where WhisperX has it (a stamped
- *  "¿Qué tal" 11 s from WhisperX was heard at its stamps). A word then
- *  lasts until the next one starts, or as long as WhisperX made it (at
- *  most maxWordSec) when a pause follows. */
-function retime(words: Word[], caps: CaptionWord[]): Word[] {
-  const { pair, weak } = align(words, caps);
+ *  (WhisperX's times mapped onto that stretch). Where they disagree, it
+ *  moves with a backed pair of its own line, since WhisperX misplaces
+ *  whole lines ("No" of "No es lo que parece." stayed 4 s off between a
+ *  pair before it and its line's pairs 14 s on; heard where its line is).
+ *  Otherwise it trusts only a pair near it, and as far as it does not, it
+ *  stays where its unsure caption word is, or else where WhisperX has it (a
+ *  stamped "¿Qué tal" 11 s from WhisperX was heard at its stamps) - unless
+ *  that turns words back (REVERSE_SEC), when the stretch is mapped after
+ *  all. A word then lasts until the next one starts, or as long as
+ *  WhisperX made it (at most maxWordSec) when a pause follows. */
+function retime(words: Word[], caps: CaptionWord[], line: number[]): Word[] {
+  const { pair, weak, matched } = align(words, caps);
+  // Whether the captions are of this video at all is a matter of how many
+  // words match, unsure and chance ones included.
+  if (matched < words.length * MIN_PAIRED) return words;
   const paired = pair.flatMap((j, i) => (j >= 0 ? [i] : []));
-  if (paired.length < words.length * MIN_PAIRED) return words;
+  if (!paired.length) return words;
 
   const start = words.map((w, i) => (pair[i] >= 0 ? caps[pair[i]].t : NaN));
   const off = (i: number) => start[i] - words[i].start;
+  // A pair another pair of its line agrees with: its line is where the
+  // captions have it, not one word WhisperX misplaced ("Oye," 2 s early).
+  const backed = (i: number) =>
+    paired.some(i2 => i2 !== i && line[i2] === line[i] && Math.abs(off(i2) - off(i)) <= AGREE_SEC);
   for (let k = 0; k <= paired.length; k++) {
     const a = paired[k - 1];
     const b = paired[k];
-    for (let i = a === undefined ? 0 : a + 1; i < (b === undefined ? words.length : b); i++) {
-      // The pairs' shift, and how much the word trusts it.
+    const gap: number[] = [];
+    for (let i = a === undefined ? 0 : a + 1; i < (b === undefined ? words.length : b); i++) gap.push(i);
+    // Each word's start mapped by the pairs, and trusting only near ones.
+    const mapped: number[] = [];
+    const trusting: number[] = [];
+    for (const i of gap) {
+      // The pairs' shift as mapped, the one the word trusts, and how much.
+      let map: number;
       let shift: number;
       let sure: number;
-      if (a === undefined) [shift, sure] = [off(b), trust(words[b].start - words[i].start)];
-      else if (b === undefined) [shift, sure] = [off(a), trust(words[i].start - words[a].start)];
+      const withA = a !== undefined && line[a] === line[i] && backed(a);
+      const withB = b !== undefined && line[b] === line[i] && backed(b);
+      if (a === undefined) [map, shift, sure] = [off(b), off(b), withB ? 1 : trust(words[b].start - words[i].start)];
+      else if (b === undefined) [map, shift, sure] = [off(a), off(a), withA ? 1 : trust(words[i].start - words[a].start)];
       else {
         const span = words[b].start - words[a].start;
         let f = span > 0 ? (words[i].start - words[a].start) / span : NaN;
         if (!(f > 0 && f < 1)) f = (i - a) / (b - a);
-        if (Math.abs(off(a) - off(b)) <= AGREE_SEC) [shift, sure] = [off(a) + f * (off(b) - off(a)), 1];
+        map = off(a) + f * (off(b) - off(a));
+        if (Math.abs(off(a) - off(b)) <= AGREE_SEC) [shift, sure] = [map, 1];
+        else if (withA !== withB) [shift, sure] = [withA ? off(a) : off(b), 1];
         else {
           const ta = trust(words[i].start - words[a].start);
           const tb = trust(words[b].start - words[i].start);
@@ -321,10 +350,16 @@ function retime(words: Word[], caps: CaptionWord[]): Word[] {
         }
       }
       const own = Number.isNaN(weak[i]) ? words[i].start : weak[i];
-      start[i] = sure * (words[i].start + shift) + (1 - sure) * own;
+      mapped.push(words[i].start + map);
+      trusting.push(sure * (words[i].start + shift) + (1 - sure) * own);
+    }
+    const ends = [a === undefined ? -Infinity : start[a], ...trusting, b === undefined ? Infinity : start[b]];
+    const keeps = ends.every((s, n) => n === 0 || s >= ends[n - 1] - REVERSE_SEC);
+    gap.forEach((i, n) => {
+      start[i] = keeps ? trusting[n] : mapped[n];
       // Not before the audio: the clamp at 0 s stacked "No, no, no." on 0.
       if (a === undefined) start[i] = Math.max(start[i], words[i].start - words[0].start);
-    }
+    });
   }
 
   return words.map((w, i) => {
@@ -368,7 +403,8 @@ export function toLines(segments: WhisperSegment[], opts: LineOptions = {}): Lin
     .map(trimEdges);
   if (opts.captions) {
     // Kept words only, so a hallucinated line cannot pair with real speech.
-    const words = retime(groups.flat(), captionWords(opts.captions, offset));
+    const line = groups.flatMap((ws, g) => ws.map(() => g));
+    const words = retime(groups.flat(), captionWords(opts.captions, offset), line);
     let k = 0;
     groups = groups.map(ws => words.slice(k, (k += ws.length)));
   }
