@@ -1403,5 +1403,131 @@
     "movieTitle": "La vida secreta de tus mascotas 2",
     "title": "Gidget",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "znsbw4NQ9Vw",
+    "slug": "ratatouille-el-reto-de-anton-ego",
+    "movieTitle": "Ratatouille",
+    "title": "El reto de Anton Ego",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "eSrxcZNXfwI",
+    "slug": "monsters-inc-escapando-de-randall",
+    "movieTitle": "Monsters Inc",
+    "title": "Escapando de Randall",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uAtoPg7-fkE",
+    "slug": "monsters-inc-las-escenas-de-roz",
+    "movieTitle": "Monsters Inc",
+    "title": "Las escenas de Roz",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "4r9qnFlJ1fc",
+    "slug": "toy-story-3-el-pasado-de-lotso",
+    "movieTitle": "Toy Story 3",
+    "title": "El pasado de Lotso",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "PIDV0JvjOw0",
+    "slug": "toy-story-3-el-final",
+    "movieTitle": "Toy Story 3",
+    "title": "El final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "BdsLTz22nJc",
+    "slug": "toy-story-2-la-jugueteria",
+    "movieTitle": "Toy Story 2",
+    "title": "La juguetería",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "UOHvHfOzO3s",
+    "slug": "buscando-a-nemo-la-reunion-de-los-tiburones",
+    "movieTitle": "Buscando a Nemo",
+    "title": "La reunión de los tiburones",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "SobtbYA9lbw",
+    "slug": "cars-por-que-doc-hudson-dejo-de-correr",
+    "movieTitle": "Cars",
+    "title": "¿Por qué Doc Hudson dejó de correr?",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "B6WHcS3q9RU",
+    "slug": "cars-mcqueen-contra-doc-hudson",
+    "movieTitle": "Cars",
+    "title": "McQueen contra Doc Hudson",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uJs5PHHkzbU",
+    "slug": "shrek-2-la-pelea-por-la-varita",
+    "movieTitle": "Shrek 2",
+    "title": "La pelea por la varita",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "onriJvKLzBc",
+    "slug": "shrek-2-el-hada-madrina-contra-shrek",
+    "movieTitle": "Shrek 2",
+    "title": "El Hada Madrina contra Shrek",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "WjEjjsg3z6I",
+    "slug": "ralph-el-demoledor-la-carrera-final",
+    "movieTitle": "Ralph el demoledor",
+    "title": "La carrera final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "ZwaUixS7XNE",
+    "slug": "los-increibles-trabajo-solo",
+    "movieTitle": "Los Increíbles",
+    "title": "Trabajo solo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "MAjNiRVZMpk",
+    "slug": "megamente-megamente-contra-titan",
+    "movieTitle": "Megamente",
+    "title": "Megamente contra Titán",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "mxhD5K1Ic2w",
+    "slug": "megamente-megamente-rescata-a-roxanne",
+    "movieTitle": "Megamente",
+    "title": "Megamente rescata a Roxanne",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "EzIh0cQMJ8s",
+    "slug": "megamente-un-mal-dia",
+    "movieTitle": "Megamente",
+    "title": "Un mal día",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "8bDlgGHHD_s",
+    "slug": "lilo-y-stitch-stitch-y-cobra-bubbles",
+    "movieTitle": "Lilo y Stitch",
+    "title": "Stitch y Cobra Bubbles",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "dYlNlPB_NAI",
+    "slug": "como-entrenar-a-tu-dragon-2-astrid-imita-a-hipo",
+    "movieTitle": "Cómo entrenar a tu dragón 2",
+    "title": "Astrid imita a Hipo",
+    "genre": "animation"
   }
 ]
