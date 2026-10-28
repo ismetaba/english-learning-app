@@ -1529,5 +1529,152 @@
     "movieTitle": "Cómo entrenar a tu dragón 2",
     "title": "Astrid imita a Hipo",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "UC9LWoZN5XE",
+    "slug": "toy-story-4-el-plan-de-ducky-y-bunny",
+    "movieTitle": "Toy Story 4",
+    "title": "El plan de Ducky y Bunny",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "RIMiznIyLiU",
+    "slug": "toy-story-4-gabby-gabby-quiere-la-caja-de-voz",
+    "movieTitle": "Toy Story 4",
+    "title": "Gabby Gabby quiere la caja de voz",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "SHdSeV7leSg",
+    "slug": "toy-story-4-woody-conoce-a-gabby-gabby",
+    "movieTitle": "Toy Story 4",
+    "title": "Woody conoce a Gabby Gabby",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "LhUrJ-G8ZRw",
+    "slug": "toy-story-4-rescatando-a-control",
+    "movieTitle": "Toy Story 4",
+    "title": "Rescatando a Control",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "ufyHNghVAKE",
+    "slug": "monsters-inc-la-escena-final",
+    "movieTitle": "Monsters Inc",
+    "title": "La escena final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "99rH_RaT-lw",
+    "slug": "buscando-a-dory-destiny-y-bailey",
+    "movieTitle": "Buscando a Dory",
+    "title": "Destiny y Bailey",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Wu7nWgu9ksM",
+    "slug": "elementos-ember-conoce-a-wade",
+    "movieTitle": "Elementos",
+    "title": "Ember conoce a Wade",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "_PDGTCSVA8c",
+    "slug": "elementos-wade-hace-llorar-a-ember",
+    "movieTitle": "Elementos",
+    "title": "Wade hace llorar a Ember",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "slGe7MTN3Dk",
+    "slug": "red-mei-encuentra-a-su-mama-de-nina",
+    "movieTitle": "Red",
+    "title": "Mei encuentra a su mamá de niña",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "SNpnb8jWzpQ",
+    "slug": "red-mei-habla-con-su-papa",
+    "movieTitle": "Red",
+    "title": "Mei habla con su papá",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "qSJpIwwnXno",
+    "slug": "red-el-momento-incomodo-de-mei",
+    "movieTitle": "Red",
+    "title": "El momento incómodo de Mei",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "IKvAa3e6HIE",
+    "slug": "el-espantatiburones-angie-y-oscar",
+    "movieTitle": "El espantatiburones",
+    "title": "Angie y Oscar",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "z4-rFbNl4G8",
+    "slug": "el-espantatiburones-oscar-conoce-a-lola",
+    "movieTitle": "El espantatiburones",
+    "title": "Oscar conoce a Lola",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Wmz0gAkW7QA",
+    "slug": "kung-fu-panda-4-zhen-pelea-con-po",
+    "movieTitle": "Kung Fu Panda 4",
+    "title": "Zhen pelea con Po",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "UK0BEBioHBk",
+    "slug": "kung-fu-panda-4-la-fortaleza-de-la-camaleona",
+    "movieTitle": "Kung Fu Panda 4",
+    "title": "La fortaleza de la Camaleona",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "5qr7nWMeGXE",
+    "slug": "la-vida-secreta-de-tus-mascotas-2-max-y-liam",
+    "movieTitle": "La vida secreta de tus mascotas 2",
+    "title": "Max y Liam",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Vm3XsobMstE",
+    "slug": "el-gato-con-botas-el-ultimo-deseo-equipo-amistad",
+    "movieTitle": "El Gato con Botas: el último deseo",
+    "title": "Equipo Amistad",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "ybz5Nw-_9pE",
+    "slug": "el-gato-con-botas-el-ultimo-deseo-conoce-a-perrito",
+    "movieTitle": "El Gato con Botas: el último deseo",
+    "title": "El Gato conoce a Perrito",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "hjPOYwZe3CU",
+    "slug": "el-gato-con-botas-el-ultimo-deseo-perrito-lo-calma",
+    "movieTitle": "El Gato con Botas: el último deseo",
+    "title": "Perrito lo calma",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Tw-U6T7OrsI",
+    "slug": "simbad-el-comienzo",
+    "movieTitle": "Simbad: La leyenda de los siete mares",
+    "title": "El comienzo",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "8QviZ2ee8yA",
+    "slug": "simbad-el-final",
+    "movieTitle": "Simbad: La leyenda de los siete mares",
+    "title": "El final",
+    "genre": "animation"
   }
 ]
