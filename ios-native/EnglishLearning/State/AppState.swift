@@ -17,7 +17,10 @@ final class AppState: ObservableObject {
     /// learner picks Spanish in Profile, so existing installs keep the
     /// English app.
     @Published var learningLanguage: LearningLanguage = .en {
-        didSet { defaults.set(learningLanguage.rawValue, forKey: Keys.learningLanguage) }
+        didSet {
+            defaults.set(learningLanguage.rawValue, forKey: Keys.learningLanguage)
+            playbackRate = PlaybackRates.load(for: learningLanguage, from: defaults)
+        }
     }
     @Published private(set) var progress: UserProgress = UserProgress() {
         didSet { persistProgress() }
@@ -60,10 +63,10 @@ final class AppState: ObservableObject {
 
     /// One playback speed for every player (portrait, cinema, reels), so a
     /// learner who slowed down doesn't snap back to native speed on the
-    /// next video or in cinema mode. 0.75× by default: comprehension over
-    /// speed for A2 learners.
-    @Published var playbackRate: Double = 0.75 {
-        didSet { defaults.set(playbackRate, forKey: Keys.playbackRate) }
+    /// next video or in cinema mode. Kept per learning language
+    /// (`PlaybackRates`): 0.75× until the learner picks another.
+    @Published var playbackRate: Double = PlaybackRates.defaultRate {
+        didSet { PlaybackRates.save(playbackRate, for: learningLanguage, to: defaults) }
     }
 
     /// The learner has added a word from a video at least once. Until then
@@ -75,7 +78,6 @@ final class AppState: ObservableObject {
         static let nativeLanguage = "native_language"
         static let learningLanguage = "learning_language_v1"
         static let completedPatterns = "completed_patterns_v1"
-        static let playbackRate = "playback_rate_v1"
         static let hasCaughtFirstWord = "has_caught_first_word_v1"
     }
     private let defaults = UserDefaults.standard
@@ -106,10 +108,7 @@ final class AppState: ObservableObject {
         if let raw = defaults.array(forKey: Keys.completedPatterns) as? [String] {
             completedPatterns = Set(raw)
         }
-        let storedRate = defaults.double(forKey: Keys.playbackRate)
-        if [0.5, 0.75, 1.0].contains(storedRate) {
-            playbackRate = storedRate
-        }
+        playbackRate = PlaybackRates.load(for: learningLanguage, from: defaults)
         hasCaughtFirstWord = defaults.bool(forKey: Keys.hasCaughtFirstWord) || !progress.learnedWords.isEmpty
         selectedTab = MainTab.launch(learning: learningLanguage, completedPatterns: completedPatterns)
         rebuildTranslations()

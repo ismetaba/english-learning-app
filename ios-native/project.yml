@@ -12,7 +12,7 @@ settings:
     # Single source of truth for the shipped version — the committed
     # .xcodeproj is regenerated from this file (`xcodegen generate`).
     MARKETING_VERSION: "2.0"
-    CURRENT_PROJECT_VERSION: "3"
+    CURRENT_PROJECT_VERSION: "4"
     DEVELOPMENT_TEAM: "HJ9ZP4QLTL"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: "NO"
