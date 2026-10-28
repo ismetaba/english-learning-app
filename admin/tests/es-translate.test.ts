@@ -218,6 +218,19 @@ test('a sentence too short to split keeps its whole Turkish on each of its lines
   assert.equal(again.asks.length, 0);
 });
 
+test('a part with no words is no translation', async () => {
+  // Frozen 2: "Los" | "abrazos." came back as "Sarılmaları" | ".", and the
+  // second line showed a lone full stop as its Turkish.
+  assert.equal(cleanTranslation('.', 'abrazos.'), null);
+  const lines = [line(1, 'Los'), line(2, 'abrazos.')];
+  const model = fakeModel(user => {
+    if (user.includes('LINES')) return '{"sentence": "Sarılmalar.", "parts": ["Sarılmaları", "."]}';
+    return 'Sarılmalar.';
+  });
+  const out = await translateLines(lines, model.ask, new Map());
+  for (const id of [1, 2]) assert.match(out.get(id) ?? '', /\p{L}/u, `line ${id} has no words: ${out.get(id)}`);
+});
+
 test('a hand correction wins and is not asked', async () => {
   // The model loops on "hasta" (sick) in this line; the audit's corrections
   // of wrong meanings are kept by line text.

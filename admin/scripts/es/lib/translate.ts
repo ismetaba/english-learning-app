@@ -29,6 +29,7 @@ const WRAP: Record<string, string> = { '"': '"', "'": "'", '«': '»', '“': '�
 
 const words = (s: string) => s.split(/\s+/).map(esGlossKey).filter(Boolean);
 const oddQuotes = (s: string) => (s.match(/"/g)?.length ?? 0) % 2 === 1;
+const hasLetters = (s: string) => /\p{L}/u.test(s);
 
 /** Most times one word comes up in the text. */
 function maxRepeat(s: string): number {
@@ -41,7 +42,8 @@ function maxRepeat(s: string): number {
  *  one line, markdown or a note about the translation, the context lines
  *  copied in (" / "), a loop cut off at the token limit (far longer than
  *  the source, one word over and over), a quote left open that the source
- *  doesn't leave open. A leading dialogue dash goes, and quotes go only
+ *  doesn't leave open, no words at all for a source that has some ("." for
+ *  "abrazos."). A leading dialogue dash goes, and quotes go only
  *  when they wrap the whole reply (`"Gelmeyecek" derken…` keeps its own). */
 export function cleanTranslation(raw: string | null | undefined, source: string): string | null {
   let t = (raw ?? '').trim();
@@ -51,6 +53,7 @@ export function cleanTranslation(raw: string | null | undefined, source: string)
   if (t.length > source.length * 3 + 20) return null;
   if (maxRepeat(t) > maxRepeat(source) + 3) return null;
   if (oddQuotes(t) && !oddQuotes(source)) return null;
+  if (!hasLetters(t) && hasLetters(source)) return null;
   t = t.replace(/^[—–-]+\s*/, '');
   const close = WRAP[t[0]];
   const src = source.trim();
