@@ -1291,5 +1291,117 @@
     "movieTitle": "Cómo entrenar a tu dragón 2",
     "title": "Chimuelo y el alfa",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "d_2P_uvXSpM",
+    "slug": "toy-story-4-forky-y-la-basura",
+    "movieTitle": "Toy Story 4",
+    "title": "Forky y la basura",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "WOVeMkS1EiI",
+    "slug": "buscando-a-nemo-momentos-de-dory",
+    "movieTitle": "Buscando a Nemo",
+    "title": "Momentos de Dory",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "5hHaatM8VvE",
+    "slug": "buscando-a-dory-hank-maneja",
+    "movieTitle": "Buscando a Dory",
+    "title": "Hank maneja",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "7fobr8r7QOs",
+    "slug": "los-increibles-sin-capas",
+    "movieTitle": "Los Increíbles",
+    "title": "¡Sin capas!",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Gh0jXWjnwx4",
+    "slug": "cars-toon-el-materdor",
+    "movieTitle": "Cars Toon",
+    "title": "El Materdor",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "bmE-NcnbYU0",
+    "slug": "cars-toon-mate-monster-truck",
+    "movieTitle": "Cars Toon",
+    "title": "Mate, Monster Truck",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "3FLY1H640eI",
+    "slug": "lilo-y-stitch-stitch-escapa",
+    "movieTitle": "Lilo y Stitch",
+    "title": "Stitch escapa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Y3g8tMKN4MM",
+    "slug": "hercules-hades-se-enoja",
+    "movieTitle": "Hércules",
+    "title": "Hades se enoja",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "U1Lwa2_mtOM",
+    "slug": "aladdin-aladdin-conoce-al-genio",
+    "movieTitle": "Aladdín",
+    "title": "Aladdín conoce al Genio",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "QdC9vbsyaaI",
+    "slug": "mulan-mushu-y-el-general-shang",
+    "movieTitle": "Mulán",
+    "title": "Mushu y el general Shang",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "uNLXXMW6kTA",
+    "slug": "las-locuras-del-emperador-la-mision-de-kronk",
+    "movieTitle": "Las locuras del emperador",
+    "title": "La misión de Kronk",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "UUSKVBv-St0",
+    "slug": "las-locuras-de-kronk-el-papa-de-kronk",
+    "movieTitle": "Las locuras de Kronk",
+    "title": "El papá de Kronk",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "BsI2Kn138ig",
+    "slug": "shrek-shrek-y-fiona",
+    "movieTitle": "Shrek",
+    "title": "Shrek y Fiona",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "sOPFv7hnkLo",
+    "slug": "shrek-lord-farquaad-elige-esposa",
+    "movieTitle": "Shrek",
+    "title": "Lord Farquaad elige esposa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "mK61A_Mtbhk",
+    "slug": "madagascar-alex-se-vuelve-loco",
+    "movieTitle": "Madagascar",
+    "title": "Alex se vuelve loco",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "RNU5f7rFdCs",
+    "slug": "la-vida-secreta-de-tus-mascotas-2-gidget",
+    "movieTitle": "La vida secreta de tus mascotas 2",
+    "title": "Gidget",
+    "genre": "animation"
   }
 ]
