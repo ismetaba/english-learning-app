@@ -892,6 +892,13 @@ enum SpanishPhonetics {
         return out.isEmpty ? nil : out
     }
 
+    /// A few words ("ir a casa", the "(Yo)" of a dropped subject), read
+    /// word by word.
+    static func reading(ofPhrase phrase: String) -> String? {
+        let words = phrase.split(separator: " ").compactMap { reading(for: String($0)) }
+        return words.isEmpty ? nil : words.joined(separator: " ")
+    }
+
     /// á é í ó ú → a e i o u; ü and ñ stay, the scan reads them.
     private static func dropAcuteAccents(_ s: String) -> String {
         var r = s

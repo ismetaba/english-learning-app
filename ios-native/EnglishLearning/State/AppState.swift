@@ -111,6 +111,7 @@ final class AppState: ObservableObject {
             playbackRate = storedRate
         }
         hasCaughtFirstWord = defaults.bool(forKey: Keys.hasCaughtFirstWord) || !progress.learnedWords.isEmpty
+        selectedTab = MainTab.launch(learning: learningLanguage, completedPatterns: completedPatterns)
         rebuildTranslations()
         isLoaded = true
     }

@@ -301,9 +301,12 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
     let isTarget: Bool?
     let structure: ClipLineStructure?
     let words: [ClipWord]
+    /// The Spanish patterns (`Pattern.id`s, in path order) the line holds;
+    /// nil from the English server, which doesn't send them.
+    let patternIds: [String]?
 
     enum CodingKeys: String, CodingKey {
-        case id, speaker, text, translationTr, startTime, endTime, isTarget, structure, words
+        case id, speaker, text, translationTr, startTime, endTime, isTarget, structure, words, patternIds
     }
 
     init(
@@ -315,7 +318,8 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
         endTime: Double,
         isTarget: Bool?,
         structure: ClipLineStructure?,
-        words: [ClipWord]
+        words: [ClipWord],
+        patternIds: [String]? = nil
     ) {
         self.id = id
         self.speaker = speaker
@@ -326,6 +330,7 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
         self.isTarget = isTarget
         self.structure = structure
         self.words = words
+        self.patternIds = patternIds
     }
 
     init(from decoder: Decoder) throws {
@@ -341,6 +346,13 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
         self.isTarget      = try c.decodeIfPresent(Bool.self, forKey: .isTarget)
         self.structure     = try c.decodeIfPresent(ClipLineStructure.self, forKey: .structure)
         self.words         = try c.decode([ClipWord].self, forKey: .words)
+        self.patternIds    = try c.decodeIfPresent([String].self, forKey: .patternIds)
+    }
+
+    /// The first pattern of the line the learner has finished: the player
+    /// marks the line with it.
+    func finishedPatternId(completed: Set<String>) -> String? {
+        patternIds?.first { completed.contains($0) }
     }
 
     /// Every line in the database defaults to the speaker "Speaker", which

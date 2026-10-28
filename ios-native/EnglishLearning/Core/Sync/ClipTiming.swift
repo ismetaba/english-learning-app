@@ -67,7 +67,8 @@ enum ClipTiming {
         let end = max(hi, sorted.map(\.endTime).max() ?? hi)
         return ClipLine(id: line.id, speaker: line.speaker, text: line.text,
                         translationTr: line.translationTr, startTime: lo, endTime: end,
-                        isTarget: line.isTarget, structure: line.structure, words: sorted)
+                        isTarget: line.isTarget, structure: line.structure, words: sorted,
+                        patternIds: line.patternIds)
     }
 
     /// `w` moved to `start`, lasting at least `minimumWordDuration`.

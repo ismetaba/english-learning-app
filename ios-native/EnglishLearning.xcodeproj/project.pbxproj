@@ -65,6 +65,7 @@
 		AC19CF8434A80835DFA5D0A3 /* OrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA690E87E4214D984E567F7 /* OrientationLock.swift */; };
 		B04B8FE9311C041AA299F4A4 /* FeedOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 995DA7FA13466F5F358501EA /* FeedOrderTests.swift */; };
 		B19C0853ED3BEEB14690AD3F /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36BE3A80DC7932C2C14FB9AE /* SectionHeader.swift */; };
+		B681681443E7B81B3983ECC1 /* PatternPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57B5619231E6C4F1D24DE0B7 /* PatternPathTests.swift */; };
 		B6D6BDCF15CF42DEC65A4685 /* PlaybackClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39C112D6773158587135E3 /* PlaybackClock.swift */; };
 		B88BC7E80260C0ED81DC0441 /* VocabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1842E14861A6BC6F0BD5B5B1 /* VocabView.swift */; };
 		BBB38A0AAC293522F48BE12A /* YouTubePlayerEmbedIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */; };
@@ -139,6 +140,7 @@
 		55AF77A282D56DAA0463B5C4 /* EnglishLearning.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishLearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		55BD9A0A39879BD2D0571E3A /* SpanishPayloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanishPayloadTests.swift; sourceTree = "<group>"; };
 		56C0D5ADC9824E2AC03B4433 /* VocabContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabContext.swift; sourceTree = "<group>"; };
+		57B5619231E6C4F1D24DE0B7 /* PatternPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternPathTests.swift; sourceTree = "<group>"; };
 		5CD83700756191A1F66AC4B4 /* ImmersivePresenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersivePresenceTests.swift; sourceTree = "<group>"; };
 		5D0948B281F0BB584F7C58E9 /* NetworkingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTests.swift; sourceTree = "<group>"; };
 		5F5BC20192E0E809F48816B5 /* PatternReelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternReelsView.swift; sourceTree = "<group>"; };
@@ -503,6 +505,7 @@
 		C43B29CC2B198C6DD66E2BB8 /* EnglishLearningTests */ = {
 			isa = PBXGroup;
 			children = (
+				57B5619231E6C4F1D24DE0B7 /* PatternPathTests.swift */,
 				952B9A22BF2E1FC6A165E39B /* TurkishPhoneticsTests.swift */,
 				275B442F077C49F46E544C6F /* YouTubePlayerEmbedIntegrationTests.swift */,
 				6B07A67602923C68DCC7A572 /* YouTubePlayerViewTests.swift */,
@@ -590,7 +593,6 @@
 				};
 			};
 			buildConfigurationList = 15D56C0CA101FC10C5492005 /* Build configuration list for PBXProject "EnglishLearning" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -600,6 +602,7 @@
 			mainGroup = 285591553784E5F620CC50F1;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 691E76DE42E340F6480ED6A3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -708,6 +711,7 @@
 				6D3C09544DBEA0C70F71073A /* NetworkingTests.swift in Sources */,
 				F319FC06D18923FF642C4B28 /* OkunusCoverageTests.swift in Sources */,
 				33355DDC78D954A4A7EB278E /* OnboardingLevelTests.swift in Sources */,
+				B681681443E7B81B3983ECC1 /* PatternPathTests.swift in Sources */,
 				E2FF4671E075627836D34662 /* PlaybackClockTests.swift in Sources */,
 				7D1AD839992A522BD05F80B6 /* PlayerProtocolTests.swift in Sources */,
 				273DE23D88FD93B53F7F6A7E /* ProgressPersistenceTests.swift in Sources */,

@@ -1,10 +1,10 @@
 // Reads a database through the real v1 route handlers the way the app's
 // Spanish mode does, and reports what a learner would get: the set and
-// its scenes, ser/estar scenes per pattern, the vocab feed, glosses.
+// its scenes, scenes per pattern, the vocab feed, glosses.
 //
 //   DATABASE_PATH=<copy of the db> npx tsx scripts/es/check-api.ts
 import { NextRequest } from 'next/server';
-import { COPULAS_BY_PATTERN } from '../../lib/es-copula';
+import { SPANISH_PATTERN_IDS } from '../../lib/pattern-filters';
 
 async function call(route: string, url: string, params: Record<string, string> = {}) {
   const { GET } = await import(`../../app/api/v1/${route}/route`);
@@ -35,8 +35,8 @@ async function call(route: string, url: string, params: Record<string, string> =
     console.log('  ' + line.words.map((w: { word: string; translationTr: string | null }) => `${w.word}=${w.translationTr ?? '∅'}`).join('  '));
   }
 
-  console.log('\nser/estar scenes per pattern:');
-  for (const p of Object.keys(COPULAS_BY_PATTERN)) {
+  console.log('\nscenes per pattern:');
+  for (const p of SPANISH_PATTERN_IDS) {
     const r = await call('patterns/[patternId]/scenes', `/api/v1/patterns/${p}/scenes?limit=300`, { patternId: p });
     console.log(`  ${p.padEnd(24)} ${String(r.total).padStart(3)}  e.g. ${r.items.slice(0, 2).map((i: { text: string }) => `"${i.text}"`).join(', ')}`);
   }

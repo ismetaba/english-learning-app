@@ -873,6 +873,10 @@ struct ClipPlayerView: View {
                     .foregroundStyle(Color(hex: 0x8577FF))
             }
 
+            if let pattern = Self.finishedPattern(of: line, completed: appState.completedPatterns) {
+                patternChip(pattern)
+            }
+
             tappableWordsLine(for: line, lineIndex: lineIndex, pool: pool)
 
             if showSentenceTr, let tr = Self.sentenceTranslation(of: line) {
@@ -898,6 +902,28 @@ struct ClipPlayerView: View {
             .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
             .padding(.vertical, 6)
         }
+    }
+
+    /// A pattern of the line the learner has finished on Kalıplar, so they
+    /// spot it in the scene.
+    private static func finishedPattern(of line: ClipLine, completed: Set<String>) -> Pattern? {
+        line.finishedPatternId(completed: completed).flatMap(PatternCatalog.pattern(id:))
+    }
+
+    private func patternChip(_ pattern: Pattern) -> some View {
+        let color = PatternSlotKind.verb.color
+        return HStack(spacing: 5) {
+            Image(systemName: "puzzlepiece.fill")
+                .font(.system(size: 9, weight: .bold))
+            Text("Kalıp: " + pattern.titleTr)
+                .font(.system(size: 11, weight: .heavy))
+                .lineLimit(1)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(color.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(color.opacity(0.35), lineWidth: 1))
     }
 
     /// One-time teaching moment (until the learner has caught a word): the

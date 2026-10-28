@@ -45,6 +45,13 @@ enum MainTab: Hashable, CaseIterable {
     }
 
     static var displayed: [MainTab] { [.patterns, .home, .vocab, .profile] }
+
+    /// The tab the app opens on: the videos, except that a Spanish learner
+    /// starts on the patterns until they have finished one.
+    static func launch(learning: LearningLanguage, completedPatterns: Set<String>) -> MainTab {
+        let spanish = PatternCatalog.catalog(for: .es).map(\.id)
+        return learning == .es && completedPatterns.isDisjoint(with: spanish) ? .patterns : .home
+    }
 }
 
 struct MainTabView: View {

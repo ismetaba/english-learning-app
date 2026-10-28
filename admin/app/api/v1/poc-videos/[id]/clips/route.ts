@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Database from 'better-sqlite3';
 import { getDb } from '@/lib/db';
+import { PATTERN_FILTERS, SPANISH_PATTERN_IDS } from '@/lib/pattern-filters';
 import { prepareWordRows } from '@/lib/word-gloss';
 
 const CORS_HEADERS = {
@@ -57,7 +58,8 @@ export async function GET(
     // The video's own language picks the word-gloss table, so a clip
     // request needs no ?lang= (video ids are unique across languages).
     const stmts = prepareClipStatements(db, video.language);
-    const formatted = clips.map(clip => formatClip(clip, video, stmts));
+    const patterns = video.language === 'es' ? linePatterns(db, video.id) : null;
+    const formatted = clips.map(clip => formatClip(clip, video, stmts, patterns));
 
     return NextResponse.json(formatted, { headers: CORS_HEADERS });
   } catch (error) {
@@ -121,10 +123,28 @@ function prepareClipStatements(db: Database.Database, language: string) {
   };
 }
 
+/** The Spanish patterns each line of the video holds, in path order. The
+ *  player marks a line with a pattern the learner has finished. */
+function linePatterns(db: Database.Database, videoId: string): Map<number, string[]> {
+  const byLine = new Map<number, string[]>();
+  for (const id of SPANISH_PATTERN_IDS) {
+    const rows = db
+      .prepare(
+        `SELECT sl.id FROM subtitle_lines sl
+         JOIN clips c ON c.id = sl.clip_id
+         WHERE c.video_id = ? ${PATTERN_FILTERS[id].sqlPredicate}`,
+      )
+      .all(videoId) as { id: number }[];
+    for (const r of rows) byLine.set(r.id, [...(byLine.get(r.id) ?? []), id]);
+  }
+  return byLine;
+}
+
 function formatClip(
   clip: { id: number; start_time: number; end_time: number },
   video: { youtube_video_id: string; movie_title: string },
   stmts: ReturnType<typeof prepareClipStatements>,
+  patterns: Map<number, string[]> | null,
 ) {
   const lines = stmts.lines.all(
     clip.id,
@@ -166,6 +186,8 @@ function formatClip(
           starterTr: w.starter_tr ?? null,
           translationTr: w.word_tr ?? null,
         })),
+        // English lines keep their old shape.
+        ...(patterns ? { patternIds: patterns.get(line.id) ?? [] } : {}),
       };
     }),
   };

@@ -66,4 +66,13 @@ final class SpanishPhoneticsTests: XCTestCase {
         XCTAssertEqual(Okunus.displayWord("¿Está"), "Está")
         XCTAssertEqual(Okunus.displayWord("niño!"), "niño")
     }
+
+    /// A pattern card's chunk is a few words ("ir a casa", "¿quieres"); its
+    /// okunuş reads each word, and the "(Yo)" of a dropped subject too.
+    func test_phraseReading() {
+        XCTAssertEqual(SpanishPhonetics.reading(ofPhrase: "ir a casa"), "ir a kasa")
+        XCTAssertEqual(SpanishPhonetics.reading(ofPhrase: "¿quieres"), "kieres")
+        XCTAssertEqual(SpanishPhonetics.reading(ofPhrase: "(Yo)"), "yo")
+        XCTAssertEqual(SpanishPhonetics.reading(ofPhrase: "no hay"), "no ay")
+    }
 }

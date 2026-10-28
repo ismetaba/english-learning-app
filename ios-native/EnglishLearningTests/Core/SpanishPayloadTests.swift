@@ -57,3 +57,35 @@ final class ThumbnailMosaicTests: XCTestCase {
         XCTAssertEqual(mixed.mosaicVideos.map(\.id), Array(distinct.prefix(4)).map(\.id))
     }
 }
+
+/// Spanish clip lines name the patterns they hold; the player marks a line
+/// with one the learner has finished. English lines have no such field.
+final class ClipLinePatternTests: XCTestCase {
+
+    private func line(_ extra: String) throws -> ClipLine {
+        let json = """
+        {"id": 7, "text": "Tengo que irme.", "startTime": 1, "endTime": 2,
+         "words": [{"word": "Tengo", "startTime": 1, "endTime": 1.4, "wordIndex": 0}]\(extra)}
+        """
+        return try JSONDecoder().decode(ClipLine.self, from: Data(json.utf8))
+    }
+
+    func test_marksTheFirstFinishedPattern() throws {
+        let l = try line(#", "patternIds": ["es-tengo", "es-tengo-que"]"#)
+        XCTAssertEqual(l.patternIds, ["es-tengo", "es-tengo-que"])
+        XCTAssertEqual(l.finishedPatternId(completed: ["es-tengo-que", "es-hay"]), "es-tengo-que")
+        XCTAssertNil(l.finishedPatternId(completed: ["es-hay"]))
+    }
+
+    /// The player shows lines as `ClipTiming.sanitize` rebuilt them.
+    func test_sanitizedLinesKeepTheirPatterns() throws {
+        let l = try line(#", "patternIds": ["es-tengo-que"]"#)
+        XCTAssertEqual(ClipTiming.sanitize(l).patternIds, ["es-tengo-que"])
+    }
+
+    func test_linesWithoutPatternsDecode() throws {
+        let l = try line("")
+        XCTAssertNil(l.patternIds)
+        XCTAssertNil(l.finishedPatternId(completed: ["es-tengo-que"]))
+    }
+}

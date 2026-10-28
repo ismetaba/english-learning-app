@@ -62,12 +62,14 @@ enum LearningLanguage: String, Codable, CaseIterable, Identifiable {
 
     // Ids are namespaced per language, so an id alone names its language
     // (and its server): videos "es-<slug>", starter words "a2-es-<word>"
-    // (English "a2-<word>"), patterns "ser-estar-…". Everything else is
-    // English.
+    // (English "a2-<word>"), patterns "ser-estar-…" and "es-…". Everything
+    // else is English.
 
     static func of(videoId: String) -> LearningLanguage { videoId.hasPrefix("es-") ? .es : .en }
     static func of(wordId: String) -> LearningLanguage { wordId.hasPrefix("a2-es-") ? .es : .en }
-    static func of(patternId: String) -> LearningLanguage { patternId.hasPrefix("ser-estar-") ? .es : .en }
+    static func of(patternId: String) -> LearningLanguage {
+        patternId.hasPrefix("ser-estar-") || patternId.hasPrefix("es-") ? .es : .en
+    }
 
     /// One stored word list serves both tracks; each screen shows the
     /// active language's share of it.

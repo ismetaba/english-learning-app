@@ -46,6 +46,7 @@ final class LanguageServerTests: XCTestCase {
         XCTAssertEqual(LearningLanguage.of(wordId: "a2-es-gustar"), .es)
         XCTAssertEqual(LearningLanguage.of(wordId: "a2-make"), .en)
         XCTAssertEqual(LearningLanguage.of(patternId: "ser-estar-adj-el"), .es)
+        XCTAssertEqual(LearningLanguage.of(patternId: "es-tengo-que"), .es)
         XCTAssertEqual(LearningLanguage.of(patternId: "be-adj-i"), .en)
     }
 

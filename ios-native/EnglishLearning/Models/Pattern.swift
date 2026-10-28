@@ -135,13 +135,20 @@ enum PatternCatalog {
         wantToI, wantToYou, wantToWeThey, wantToHeSheIt,
     ]
 
-    /// ser/estar + adjective, one row per subject. `serEstarAdjNosotros`
-    /// and `serEstarAdjEllos` wait off the path until the Spanish corpus has
-    /// scenes for them (the animated-film set has 0 and 1; a near-empty
-    /// reel is a dead end).
+    /// ser/estar + adjective, one row per subject, then the verb patterns
+    /// a beginner says most: want, have, have to, can, going to, know,
+    /// there is. `serEstarAdjNosotros` and `serEstarAdjEllos` wait off the
+    /// path until the Spanish corpus has scenes for them (the animated-film
+    /// set has 2 and 8; a near-empty reel is a dead end).
     static let spanishAll: [Pattern] = [
         serEstarAdjYo, serEstarAdjTu, serEstarAdjEl,
+        esQuiero, esTengo, esTengoQue, esPuedo, esVoyA, esSe, esHay,
     ]
+
+    /// The pattern of either language with this id.
+    static func pattern(id: String) -> Pattern? {
+        (all + spanishAll).first { $0.id == id }
+    }
 
     // MARK: BE + adjective ------------------------------------------------
 
@@ -970,5 +977,236 @@ enum PatternCatalog {
             "kadın) eril çoğul kullanılır: ellos, contentos.",
         icon: "person.3.fill",
         videoStructureId: "ser-estar-adj-ellos"
+    )
+
+    // MARK: Spanish verb patterns --------------------------------------
+    //
+    // Each pairs the yo form with the tú form learners hear asked
+    // ("¿Quieres…?", "¿Puedes…?"). The subject Spanish drops is shown in
+    // parentheses: "(Yo) quiero comer" is said "Quiero comer".
+
+    /// A Spanish example card. The okunuş under each chunk is read by the
+    /// same rules as the subtitles' (`SpanishPhonetics`).
+    private static func es(_ subject: String, _ subjectTr: String,
+                           _ verb: String, _ verbTr: String,
+                           _ rest: String, _ restTr: String,
+                           tr: String) -> PatternExample {
+        PatternExample(subject: subject, subjectTr: subjectTr,
+                       verb: verb, verbTr: verbTr,
+                       rest: rest, restTr: restTr,
+                       tr: tr,
+                       subjectPhonetic: SpanishPhonetics.reading(ofPhrase: subject),
+                       verbPhonetic: SpanishPhonetics.reading(ofPhrase: verb),
+                       restPhonetic: SpanishPhonetics.reading(ofPhrase: rest))
+    }
+
+    static let esQuiero = Pattern(
+        id: "es-quiero",
+        familyTr: "querer + fiil",
+        familyTrCaps: "QUERER + FİİL",
+        titleTr: "Quiero / ¿Quieres? + fiil",
+        titleEn: "Quiero / ¿Quieres? + infinitivo",
+        summaryTr: "Ne istediğini söyle: \"Quiero comer\" = Yemek istiyorum.",
+        introTr:
+            "\"Quiero\" = istiyorum. Arkasına fiilin yalın hâli gelir (sonu -ar, " +
+            "-er, -ir): \"Quiero ir\" = Gitmek istiyorum. Karşındakine sormak " +
+            "için \"¿Quieres…?\": \"¿Quieres jugar?\" = Oynamak ister misin?",
+        formula: [
+            PatternToken(text: "yo / tú", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "quiero / quieres", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("(Yo)", "Ben", "quiero", "istiyorum", "comer", "yemek", tr: "Yemek istiyorum."),
+            es("(Yo)", "Ben", "quiero", "istiyorum", "ir a casa", "eve gitmek", tr: "Eve gitmek istiyorum."),
+            es("(Yo)", "Ben", "no quiero", "istemiyorum", "dormir", "uyumak", tr: "Uyumak istemiyorum."),
+            es("¿Tú", "Sen", "quieres", "istiyor musun", "jugar?", "oynamak", tr: "Oynamak ister misin?"),
+        ],
+        tipTr:
+            "\"Te quiero\" başka bir şeydir: \"Seni seviyorum\". \"Quiero\"dan " +
+            "sonra fiil gelirse \"istiyorum\" olur.",
+        icon: "star.fill",
+        videoStructureId: "es-quiero"
+    )
+
+    static let esTengo = Pattern(
+        id: "es-tengo",
+        familyTr: "tener + isim",
+        familyTrCaps: "TENER + İSİM",
+        titleTr: "Tengo / ¿Tienes? + isim",
+        titleEn: "Tengo / ¿Tienes? + sustantivo",
+        summaryTr: "Sahip olduğun şey: \"Tengo un plan\" = Bir planım var.",
+        introTr:
+            "\"Tengo\" = benim … var. Arkasına isim gelir: \"Tengo una idea\" = " +
+            "Bir fikrim var. Olumsuzu \"No tengo\": \"No tengo tiempo\" = " +
+            "Zamanım yok. Sormak için \"¿Tienes…?\"",
+        formula: [
+            PatternToken(text: "yo / tú", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "tengo / tienes", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "isim", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("(Yo)", "Ben", "tengo", "-im var", "una idea", "bir fikir", tr: "Bir fikrim var."),
+            es("(Yo)", "Ben", "tengo", "-im var", "hambre", "açlık", tr: "Acıktım."),
+            es("(Yo)", "Ben", "no tengo", "-im yok", "tiempo", "zaman", tr: "Zamanım yok."),
+            es("¿Tú", "Sen", "tienes", "-in var mı", "un plan?", "bir plan", tr: "Bir planın var mı?"),
+        ],
+        tipTr:
+            "Türkçede \"acıktım\", \"korkuyorum\" dediğin yerde İspanyolca " +
+            "\"tener\" kullanır: \"Tengo hambre\" (açlığım var), \"Tengo miedo\" " +
+            "(korkum var).",
+        icon: "bag.fill",
+        videoStructureId: "es-tengo"
+    )
+
+    static let esTengoQue = Pattern(
+        id: "es-tengo-que",
+        familyTr: "tener que + fiil",
+        familyTrCaps: "TENER QUE + FİİL",
+        titleTr: "Tengo que / Tienes que + fiil",
+        titleEn: "Tengo que / Tienes que + infinitivo",
+        summaryTr: "Yapman gereken: \"Tengo que irme\" = Gitmem lazım.",
+        introTr:
+            "\"Tengo que\" + fiil = -mam lazım, -malıyım: \"Tengo que trabajar\" " +
+            "= Çalışmam lazım. Karşındakine \"Tienes que…\": \"Tienes que verlo\" " +
+            "= Onu görmen lazım.",
+        formula: [
+            PatternToken(text: "yo / tú", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "tengo que / tienes que", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("(Yo)", "Ben", "tengo que", "-malıyım", "irme", "gitmek", tr: "Gitmem lazım."),
+            es("(Yo)", "Ben", "tengo que", "-malıyım", "trabajar", "çalışmak", tr: "Çalışmam lazım."),
+            es("(Tú)", "Sen", "tienes que", "-malısın", "escuchar", "dinlemek", tr: "Dinlemen lazım."),
+            es("(Tú)", "Sen", "no tienes que", "zorunda değilsin", "hacerlo", "onu yapmak",
+               tr: "Onu yapmak zorunda değilsin."),
+        ],
+        tipTr:
+            "\"Tengo\" tek başına \"var\" demek; arkasına \"que\" gelince " +
+            "\"zorundayım\" olur. \"Tengo un perro\" (köpeğim var) ama " +
+            "\"Tengo que correr\" (koşmam lazım).",
+        icon: "exclamationmark.circle.fill",
+        videoStructureId: "es-tengo-que"
+    )
+
+    static let esPuedo = Pattern(
+        id: "es-puedo",
+        familyTr: "poder + fiil",
+        familyTrCaps: "PODER + FİİL",
+        titleTr: "Puedo / ¿Puedes? + fiil",
+        titleEn: "Puedo / ¿Puedes? + infinitivo",
+        summaryTr: "Yapabildiğin şey: \"Puedo volar\" = Uçabilirim.",
+        introTr:
+            "\"Puedo\" + fiil = -ebilirim: \"Puedo ayudar\" = Yardım edebilirim. " +
+            "\"No puedo\" = -emem. Rica etmek için \"¿Puedes…?\": " +
+            "\"¿Puedes ayudarme?\" = Bana yardım edebilir misin?",
+        formula: [
+            PatternToken(text: "yo / tú", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "puedo / puedes", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("(Yo)", "Ben", "puedo", "-ebilirim", "volar", "uçmak", tr: "Uçabilirim."),
+            es("(Yo)", "Ben", "puedo", "-ebilirim", "hacerlo", "onu yapmak", tr: "Onu yapabilirim."),
+            es("(Yo)", "Ben", "no puedo", "-emem", "creerlo", "ona inanmak", tr: "Buna inanamıyorum."),
+            es("¿Tú", "Sen", "puedes", "-ebilir misin", "ayudarme?", "bana yardım etmek",
+               tr: "Bana yardım edebilir misin?"),
+        ],
+        tipTr:
+            "Fiilin sonuna eklenen -lo, -me, -te nesnedir: \"hacerlo\" = onu " +
+            "yapmak, \"ayudarme\" = bana yardım etmek.",
+        icon: "bolt.fill",
+        videoStructureId: "es-puedo"
+    )
+
+    static let esVoyA = Pattern(
+        id: "es-voy-a",
+        familyTr: "ir a + fiil",
+        familyTrCaps: "IR A + FİİL",
+        titleTr: "Voy a / Vamos a + fiil",
+        titleEn: "Voy a / Vamos a + infinitivo",
+        summaryTr: "Yakın gelecek: \"Voy a ganar\" = Kazanacağım.",
+        introTr:
+            "\"Voy a\" + fiil = -eceğim: \"Voy a comer\" = Yemek yiyeceğim. " +
+            "\"Vamos a\" + fiil hem \"-eceğiz\" hem \"hadi, -elim\" demek: " +
+            "\"¡Vamos a jugar!\" = Hadi oynayalım!",
+        formula: [
+            PatternToken(text: "yo / nosotros", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "voy a / vamos a", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("(Yo)", "Ben", "voy a", "-eceğim", "ganar", "kazanmak", tr: "Kazanacağım."),
+            es("(Yo)", "Ben", "voy a", "-eceğim", "comer", "yemek", tr: "Yemek yiyeceğim."),
+            es("(Nosotros)", "Biz", "vamos a", "hadi, -elim", "jugar", "oynamak", tr: "Hadi oynayalım!"),
+            es("(Nosotros)", "Biz", "vamos a", "-eceğiz", "ver", "görmek", tr: "Göreceğiz."),
+        ],
+        tipTr:
+            "Arkasında yer varsa \"gidiyorum\" demek: \"Voy a la escuela\" = " +
+            "Okula gidiyorum. Arkasında fiil varsa gelecek zaman olur.",
+        icon: "arrow.right.circle.fill",
+        videoStructureId: "es-voy-a"
+    )
+
+    static let esSe = Pattern(
+        id: "es-se",
+        familyTr: "saber",
+        familyTrCaps: "SABER",
+        titleTr: "(No) sé / ¿Sabes?",
+        titleEn: "(No) sé / ¿Sabes?",
+        summaryTr: "Bilmek: \"No sé\" = Bilmiyorum.",
+        introTr:
+            "\"Sé\" = biliyorum, \"No sé\" = bilmiyorum. Arkasına \"qué\" (ne), " +
+            "\"dónde\" (nerede) gibi soru kelimeleri gelebilir: \"No sé qué " +
+            "hacer\" = Ne yapacağımı bilmiyorum. Sormak için: \"¿Sabes…?\"",
+        formula: [
+            PatternToken(text: "yo / tú", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "sé / sabes", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "qué / dónde…", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("(Yo)", "Ben", "no sé", "bilmiyorum", "qué hacer", "ne yapacağımı",
+               tr: "Ne yapacağımı bilmiyorum."),
+            es("(Yo)", "Ben", "sé", "biliyorum", "la respuesta", "cevabı", tr: "Cevabı biliyorum."),
+            es("¿Tú", "Sen", "sabes", "biliyor musun", "dónde está?", "nerede olduğunu",
+               tr: "Nerede olduğunu biliyor musun?"),
+            es("(Yo)", "Ben", "no sé", "bilmiyorum", "nadar", "yüzmek", tr: "Yüzme bilmiyorum."),
+        ],
+        tipTr:
+            "\"Saber\" + fiil bir şeyi yapmayı bilmek demek: \"Sé nadar\" = " +
+            "Yüzme bilirim. \"Bilmek\" olan \"sé\" aksanlıdır; aksansız \"se\" " +
+            "başka bir kelimedir.",
+        icon: "lightbulb.fill",
+        videoStructureId: "es-se"
+    )
+
+    static let esHay = Pattern(
+        id: "es-hay",
+        familyTr: "hay + isim",
+        familyTrCaps: "HAY + İSİM",
+        titleTr: "Hay + isim",
+        titleEn: "Hay + sustantivo",
+        summaryTr: "Bir şey var demek: \"Hay un problema\" = Bir sorun var.",
+        introTr:
+            "\"Hay\" = var. Tekil, çoğul fark etmez: \"Hay un gato\" = Bir kedi " +
+            "var, \"Hay dos gatos\" = İki kedi var. Olumsuzu \"No hay\": " +
+            "\"No hay tiempo\" = Zaman yok.",
+        formula: [
+            PatternToken(text: "(aquí)", kind: .subject, isPlaceholder: false),
+            PatternToken(text: "hay", kind: .verb, isPlaceholder: false),
+            PatternToken(text: "isim", kind: .rest, isPlaceholder: true),
+        ],
+        examples: [
+            es("Aquí", "Burada", "hay", "var", "un gato", "bir kedi", tr: "Burada bir kedi var."),
+            es("Aquí", "Burada", "no hay", "yok", "nadie", "kimse", tr: "Burada kimse yok."),
+            es("Ahora", "Şimdi", "no hay", "yok", "tiempo", "zaman", tr: "Şimdi vakit yok."),
+            es("¿Aquí", "Burada", "hay", "var mı", "comida?", "yemek", tr: "Burada yemek var mı?"),
+        ],
+        tipTr:
+            "\"Hay que\" + fiil başka bir kalıptır, \"-mek lazım\" demek: " +
+            "\"Hay que correr\" = Koşmak lazım.",
+        icon: "eye.fill",
+        videoStructureId: "es-hay"
     )
 }
