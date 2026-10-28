@@ -196,6 +196,28 @@ test('a line the model keeps answering with its context still gets its Turkish',
   assert.equal(out.get(3), 'Hiç sıra beklemek zorunda kalmamamız.');
 });
 
+test('a sentence too short to split keeps its whole Turkish on each of its lines', async () => {
+  // Bob Esponja: "¡Se está" | "acercando!" is "Yaklaşıyor!", one Turkish
+  // word: no reply can give each line a part of its own, so both lines
+  // were left without Turkish. Each line shows the sentence's Turkish.
+  const lines = [line(1, '¡Se está'), line(2, 'acercando!')];
+  const model = fakeModel(user => {
+    if (user.includes('LINES')) return '{"sentence": "Yaklaşıyor!", "parts": ["Yaklaşıyor!", ""]}';
+    return 'Yaklaşıyor!';
+  });
+  const cache = new Map<string, string>();
+  const out = await translateLines(lines, model.ask, cache);
+  assert.equal(out.get(1), 'Yaklaşıyor!');
+  assert.equal(out.get(2), 'Yaklaşıyor!');
+  for (const a of model.asks) {
+    assert.ok(!(a.includes('¡Se está') !== a.includes('acercando!')), `a half was asked alone: ${a}`);
+  }
+  // Kept for the next build like any answer.
+  const again = fakeModel(() => 'Yaklaşıyor!');
+  await translateLines(lines, again.ask, cache);
+  assert.equal(again.asks.length, 0);
+});
+
 test('a hand correction wins and is not asked', async () => {
   // The model loops on "hasta" (sick) in this line; the audit's corrections
   // of wrong meanings are kept by line text.

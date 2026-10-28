@@ -61,23 +61,34 @@ export function cleanTranslation(raw: string | null | undefined, source: string)
   return t || null;
 }
 
+/** The JSON in a reply, bare or fenced, or undefined. */
+function jsonOf(raw: string | null | undefined): unknown {
+  if (!raw) return undefined;
+  const start = raw.search(/[[{]/);
+  const end = Math.max(raw.lastIndexOf(']'), raw.lastIndexOf('}'));
+  if (start < 0 || end < start) return undefined;
+  try {
+    return JSON.parse(raw.slice(start, end + 1));
+  } catch {
+    return undefined;
+  }
+}
+
 /** The parts of a group reply: JSON, bare or fenced, an array or
  *  {"parts": […]}, with exactly one non-empty string per line. */
 export function parseParts(raw: string | null | undefined, n: number): string[] | null {
-  if (!raw) return null;
-  const start = raw.search(/[[{]/);
-  const end = Math.max(raw.lastIndexOf(']'), raw.lastIndexOf('}'));
-  if (start < 0 || end < start) return null;
-  let j: unknown;
-  try {
-    j = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-  const parts = Array.isArray(j) ? j : (j as { parts?: unknown })?.parts;
+  const j = jsonOf(raw);
+  const parts = Array.isArray(j) ? j : (j as { parts?: unknown } | undefined)?.parts;
   if (!Array.isArray(parts) || parts.length !== n) return null;
   if (!parts.every(p => typeof p === 'string' && p.trim())) return null;
   return parts.map(p => (p as string).trim());
+}
+
+/** The "sentence" of a group reply: the Turkish written out whole before
+ *  it was split, still good when no split is. */
+function parseSentence(raw: string | null | undefined): string | null {
+  const s = (jsonOf(raw) as { sentence?: unknown } | undefined)?.sentence;
+  return typeof s === 'string' ? s : null;
 }
 
 // ── Lines ────────────────────────────────────────────────────────────
@@ -122,15 +133,19 @@ const TEMPS = [0.2, 0.6, 0.9];
  *  lines around it as context and cached under `before|text|after`, as the
  *  build always has, so earlier answers are reused. The lines of one
  *  sentence are asked together, for one part each; when that fails, line
- *  by line with the whole sentence in view, never a half alone. Every
- *  reply, fresh or cached, goes through cleanTranslation: a broken one is
- *  asked again and never cached. */
+ *  by line with the whole sentence in view, never a half alone; when no
+ *  split works ("¡Se está" | "acercando!" is one Turkish word), each line
+ *  gets the whole sentence's Turkish. Every reply, fresh or cached, goes
+ *  through cleanTranslation: a broken one is asked again and never cached. */
 export async function translateLines(lines: TranslateLine[], ask: Ask, cache: StringCache,
                                      progress?: (done: number, asked: number) => void): Promise<Map<number, string>> {
   const out = new Map<number, string>();
   let asked = 0;
   const sameClip = (i: number, k: number) => lines[k]?.clip_id === lines[i].clip_id ? lines[k].text : null;
   const beforeOf = (i: number) => [sameClip(i, i - 2), sameClip(i, i - 1)].filter(Boolean).join(' / ');
+  /** The ask for one line (TRANSLATE_SYS), or a whole sentence as one. */
+  const lineAsk = (title: string, b: string, text: string, a: string) =>
+    `Source: ${title}\nBefore: ${b || '—'}\nLINE: ${text}\nAfter: ${a || '—'}`;
 
   async function askClean(system: string, user: string, maxTokens: number,
                           accept: (raw: string | null) => string | null, temps = TEMPS): Promise<string | null> {
@@ -149,7 +164,7 @@ export async function translateLines(lines: TranslateLine[], ask: Ask, cache: St
     const before = beforeOf(i);
     const after = sameClip(i, i + 1) ?? '';
     const key = `${before}|${l.text}|${after}`;
-    const user = (b: string, a: string) => `Source: ${l.movie_title}\nBefore: ${b || '—'}\nLINE: ${l.text}\nAfter: ${a || '—'}`;
+    const user = (b: string, a: string) => lineAsk(l.movie_title, b, l.text, a);
     const accept = (raw: string | null) => cleanTranslation(raw, l.text);
     let tr = accept(cache.get(key) ?? null);
     if (!tr) {
@@ -167,24 +182,43 @@ export async function translateLines(lines: TranslateLine[], ask: Ask, cache: St
     const fixed = ls.map(l => overrideOf(l.text));
     const before = beforeOf(g[0]);
     const after = sameClip(g[0], g[g.length - 1] + 1) ?? '';
+    const sentence = ls.map(l => l.text).join(' ');
     // A newline never occurs in a single line's key, so the two can't meet.
     const key = `group\n${before}|${ls.map(l => l.text).join('\n')}|${after}`;
     const accept = (raw: string | null) => {
       const parts = cleanParts(parseParts(raw, ls.length), ls);
       return parts && JSON.stringify(parts);
     };
-    let json = accept(cache.get(key) ?? null);
+    /** The sentence's Turkish whole, kept as {"sentence": …}: no parts
+     *  array, so a cached one is never read as a split. */
+    const acceptWhole = (tr: string | null) => {
+      const clean = cleanTranslation(tr, sentence);
+      return clean && JSON.stringify({ sentence: clean });
+    };
+    const cached = cache.get(key) ?? null;
+    let json = accept(cached) ?? acceptWhole(parseSentence(cached));
     if (!json) {
-      // A corrected line is never asked, so its group goes part by part.
-      if (!fixed.some(Boolean)) json = await askClean(GROUP_SYS,
-        `Source: ${ls[0].movie_title}\nBefore: ${before || '—'}\nSENTENCE: ${ls.map(l => l.text).join(' ')}\n` +
+      // A corrected line is never asked, so its group goes part by part
+      // and is never asked whole.
+      const askable = !fixed.some(Boolean);
+      // Not narrowed to null: the group replies' accept sets it.
+      let whole = null as string | null;
+      if (askable) json = await askClean(GROUP_SYS,
+        `Source: ${ls[0].movie_title}\nBefore: ${before || '—'}\nSENTENCE: ${sentence}\n` +
           `LINES (the sentence over ${ls.length} subtitles):\n${ls.map((l, k) => `${k + 1}. ${l.text}`).join('\n')}\n` +
           `After: ${after || '—'}`,
-        250 * ls.length + 100, accept);
+        250 * ls.length + 100, raw => { whole ??= acceptWhole(parseSentence(raw)); return accept(raw); });
       if (!json) json = await partByPart(ls, before, after, fixed);
+      // Too short to split ("Yaklaşıyor!"): no reply gives each line a part
+      // of its own, so each line shows the whole, asked as one line.
+      if (!json && askable) json = whole ?? await askClean(TRANSLATE_SYS,
+        lineAsk(ls[0].movie_title, before, sentence, after), 200 * ls.length, acceptWhole, TEMPS.slice(0, 1));
       if (json) cache.set(key, json);
     }
-    if (json) (JSON.parse(json) as string[]).forEach((tr, k) => out.set(ls[k].id, fixed[k] ?? tr));
+    if (json) {
+      const j = JSON.parse(json) as string[] | { sentence: string };
+      ls.forEach((l, k) => out.set(l.id, fixed[k] ?? (Array.isArray(j) ? j[k] : j.sentence)));
+    }
   }
 
   /** The fallback: each line on its own, with the whole sentence and the
