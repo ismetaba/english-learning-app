@@ -32,6 +32,17 @@ final class PatternPathTests: XCTestCase {
         }
     }
 
+    /// Each Spanish example says why it is built that way, and reads aloud
+    /// as the sentence the card shows.
+    func test_spanishExamplesExplainThemselves() {
+        for p in PatternCatalog.catalog(for: .es) {
+            for e in p.examples {
+                XCTAssertFalse((e.noteTr ?? "").isEmpty, "\(p.id) \(e.subject) \(e.verb) \(e.rest)")
+                XCTAssertFalse(e.spoken.contains("("), e.spoken)
+            }
+        }
+    }
+
     func test_patternLookup() {
         XCTAssertEqual(PatternCatalog.pattern(id: "es-hay")?.titleTr, "Hay + isim")
         XCTAssertNil(PatternCatalog.pattern(id: "nope"))

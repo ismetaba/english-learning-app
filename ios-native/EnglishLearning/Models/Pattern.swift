@@ -50,6 +50,9 @@ struct PatternExample: Identifiable {
     let subjectPhonetic: String?
     let verbPhonetic: String?
     let restPhonetic: String?
+    /// One line on why the sentence is built this way ("estar: şu anki
+    /// durum"). Written for the Spanish path.
+    let noteTr: String?
 
     init(
         subject: String,
@@ -61,7 +64,8 @@ struct PatternExample: Identifiable {
         tr: String,
         subjectPhonetic: String? = nil,
         verbPhonetic: String? = nil,
-        restPhonetic: String? = nil
+        restPhonetic: String? = nil,
+        noteTr: String? = nil
     ) {
         self.subject = subject
         self.subjectTr = subjectTr
@@ -73,7 +77,12 @@ struct PatternExample: Identifiable {
         self.subjectPhonetic = subjectPhonetic
         self.verbPhonetic = verbPhonetic
         self.restPhonetic = restPhonetic
+        self.noteTr = noteTr
     }
+
+    /// The sentence as it is said aloud: a dropped subject in parentheses
+    /// is left out ("(Yo) quiero comer" → "Quiero comer.").
+    var spoken: String { SpokenSentence.text([subject, verb, rest]) }
 
     /// Reconstructed English sentence — used as fallback rendering.
     var en: String {
@@ -735,34 +744,18 @@ enum PatternCatalog {
             PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            PatternExample(subject: "Yo", subjectTr: "Ben",
-                           verb: "estoy", verbTr: "(durum)",
-                           rest: "cansado", restTr: "yorgun",
-                           tr: "Yorgunum.",
-                           subjectPhonetic: "yo",
-                           verbPhonetic: "estoy",
-                           restPhonetic: "kansado"),
-            PatternExample(subject: "Yo", subjectTr: "Ben",
-                           verb: "soy", verbTr: "(özellik)",
-                           rest: "feliz", restTr: "mutlu",
-                           tr: "Mutluyum.",
-                           subjectPhonetic: "yo",
-                           verbPhonetic: "soy",
-                           restPhonetic: "felis"),
-            PatternExample(subject: "Yo", subjectTr: "Ben",
-                           verb: "estoy", verbTr: "(durum)",
-                           rest: "listo", restTr: "hazır",
-                           tr: "Hazırım.",
-                           subjectPhonetic: "yo",
-                           verbPhonetic: "estoy",
-                           restPhonetic: "listo"),
-            PatternExample(subject: "Yo", subjectTr: "Ben",
-                           verb: "soy", verbTr: "(özellik)",
-                           rest: "alto", restTr: "uzun boylu",
-                           tr: "Uzun boyluyum.",
-                           subjectPhonetic: "yo",
-                           verbPhonetic: "soy",
-                           restPhonetic: "alto"),
+            es("(Yo)", "Ben", "estoy", "-ım (şu an)", "cansado", "yorgun",
+               tr: "Yorgunum.",
+               note: "Yorgunluk geçici bir durum, o yüzden estar: estoy. \"Yo\" çoğu zaman söylenmez."),
+            es("(Yo)", "Ben", "soy", "-ım (kalıcı)", "feliz", "mutlu",
+               tr: "Mutlu biriyim.",
+               note: "Soy feliz = mutlu bir insanım (kalıcı). Şu an mutluysan: Estoy feliz."),
+            es("(Yo)", "Ben", "estoy", "-ım (şu an)", "listo", "hazır",
+               tr: "Hazırım.",
+               note: "estar + listo = hazırım. Dikkat: ser ile \"Soy listo\" = zekiyim demek!"),
+            es("(Yo)", "Ben", "soy", "-ım (kalıcı)", "alto", "uzun boylu",
+               tr: "Uzun boyluyum.",
+               note: "Boy kalıcı bir özellik, o yüzden ser: soy. Bir kadın \"Soy alta\" der."),
         ],
         tipTr:
             "ser (soy) = kalıcı özellik, estar (estoy) = geçici durum. " +
@@ -787,34 +780,18 @@ enum PatternCatalog {
             PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            PatternExample(subject: "Tú", subjectTr: "Sen",
-                           verb: "eres", verbTr: "(özellik)",
-                           rest: "amable", restTr: "nazik",
-                           tr: "Naziksin.",
-                           subjectPhonetic: "tu",
-                           verbPhonetic: "eres",
-                           restPhonetic: "amable"),
-            PatternExample(subject: "Tú", subjectTr: "Sen",
-                           verb: "estás", verbTr: "(durum)",
-                           rest: "cansado", restTr: "yorgun",
-                           tr: "Yorgunsun.",
-                           subjectPhonetic: "tu",
-                           verbPhonetic: "estas",
-                           restPhonetic: "kansado"),
-            PatternExample(subject: "Tú", subjectTr: "Sen",
-                           verb: "eres", verbTr: "(özellik)",
-                           rest: "guapo", restTr: "yakışıklı",
-                           tr: "Yakışıklısın.",
-                           subjectPhonetic: "tu",
-                           verbPhonetic: "eres",
-                           restPhonetic: "guapo"),
-            PatternExample(subject: "Tú", subjectTr: "Sen",
-                           verb: "estás", verbTr: "(durum)",
-                           rest: "listo", restTr: "hazır",
-                           tr: "Hazırsın.",
-                           subjectPhonetic: "tu",
-                           verbPhonetic: "estas",
-                           restPhonetic: "listo"),
+            es("(Tú)", "Sen", "eres", "-sın (kalıcı)", "amable", "nazik",
+               tr: "Naziksin.",
+               note: "Nazik olmak karakterin bir parçası: ser → eres."),
+            es("(Tú)", "Sen", "estás", "-sın (şu an)", "cansado", "yorgun",
+               tr: "Yorgunsun.",
+               note: "Yorgunluk geçer: estar → estás. Soru olarak: ¿Estás cansado? = Yorgun musun?"),
+            es("(Tú)", "Sen", "eres", "-sın (kalıcı)", "guapo", "yakışıklı",
+               tr: "Yakışıklısın.",
+               note: "Görünüş kalıcı bir özellik: eres. Bir kadına: \"Eres guapa\"."),
+            es("¿Tú", "Sen", "estás", "-sın (şu an)", "listo?", "hazır",
+               tr: "Hazır mısın?",
+               note: "Soru için başa ¿, sona ? gelir; kelime sırası değişmez. Filmlerde çok duyarsın."),
         ],
         tipTr:
             "\"Eres guapo\" (yakışıklısın — özellik) ama \"Estás cansado\" " +
@@ -839,34 +816,18 @@ enum PatternCatalog {
             PatternToken(text: "sıfat", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            PatternExample(subject: "Ella", subjectTr: "O (kadın)",
-                           verb: "es", verbTr: "(özellik)",
-                           rest: "fuerte", restTr: "güçlü",
-                           tr: "O güçlü.",
-                           subjectPhonetic: "eya",
-                           verbPhonetic: "es",
-                           restPhonetic: "fuerte"),
-            PatternExample(subject: "Él", subjectTr: "O (erkek)",
-                           verb: "está", verbTr: "(durum)",
-                           rest: "enfermo", restTr: "hasta",
-                           tr: "O hasta.",
-                           subjectPhonetic: "el",
-                           verbPhonetic: "esta",
-                           restPhonetic: "enfermo"),
-            PatternExample(subject: "Él", subjectTr: "O (erkek)",
-                           verb: "es", verbTr: "(özellik)",
-                           rest: "alto", restTr: "uzun boylu",
-                           tr: "O uzun boylu.",
-                           subjectPhonetic: "el",
-                           verbPhonetic: "es",
-                           restPhonetic: "alto"),
-            PatternExample(subject: "Ella", subjectTr: "O (kadın)",
-                           verb: "está", verbTr: "(durum)",
-                           rest: "contenta", restTr: "memnun",
-                           tr: "O memnun.",
-                           subjectPhonetic: "eya",
-                           verbPhonetic: "esta",
-                           restPhonetic: "kontenta"),
+            es("Ella", "O (kadın)", "es", "-dır (kalıcı)", "fuerte", "güçlü",
+               tr: "O güçlü.",
+               note: "Güçlü olmak bir özellik: es. -e ile biten sıfat kadın ve erkek için aynıdır."),
+            es("Él", "O (erkek)", "está", "-dır (şu an)", "enfermo", "hasta",
+               tr: "O hasta.",
+               note: "Hastalık geçici bir durum: está. Bir kadın için \"Ella está enferma\"."),
+            es("Él", "O (erkek)", "es", "-dır (kalıcı)", "alto", "uzun boylu",
+               tr: "O uzun boylu.",
+               note: "Boy kalıcı: es. \"Es\" nesneler için de kullanılır: Es grande = Büyük."),
+            es("Ella", "O (kadın)", "está", "-dır (şu an)", "contenta", "memnun",
+               tr: "O memnun.",
+               note: "Kadın için sıfat -a ile biter: contenta. Erkek için contento."),
         ],
         tipTr:
             "Sıfat özneye uyar: erkek için -o (cansado), kadın için -a " +
@@ -990,14 +951,15 @@ enum PatternCatalog {
     private static func es(_ subject: String, _ subjectTr: String,
                            _ verb: String, _ verbTr: String,
                            _ rest: String, _ restTr: String,
-                           tr: String) -> PatternExample {
+                           tr: String, note: String) -> PatternExample {
         PatternExample(subject: subject, subjectTr: subjectTr,
                        verb: verb, verbTr: verbTr,
                        rest: rest, restTr: restTr,
                        tr: tr,
                        subjectPhonetic: SpanishPhonetics.reading(ofPhrase: subject),
                        verbPhonetic: SpanishPhonetics.reading(ofPhrase: verb),
-                       restPhonetic: SpanishPhonetics.reading(ofPhrase: rest))
+                       restPhonetic: SpanishPhonetics.reading(ofPhrase: rest),
+                       noteTr: note)
     }
 
     static let esQuiero = Pattern(
@@ -1017,10 +979,14 @@ enum PatternCatalog {
             PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            es("(Yo)", "Ben", "quiero", "istiyorum", "comer", "yemek", tr: "Yemek istiyorum."),
-            es("(Yo)", "Ben", "quiero", "istiyorum", "ir a casa", "eve gitmek", tr: "Eve gitmek istiyorum."),
-            es("(Yo)", "Ben", "no quiero", "istemiyorum", "dormir", "uyumak", tr: "Uyumak istemiyorum."),
-            es("¿Tú", "Sen", "quieres", "istiyor musun", "jugar?", "oynamak", tr: "Oynamak ister misin?"),
+            es("(Yo)", "Ben", "quiero", "istiyorum", "comer", "yemek", tr: "Yemek istiyorum.",
+               note: "\"comer\" fiilin yalın hâli (-er ile biter). \"Quiero\" zaten \"ben istiyorum\" demek, \"yo\" gerekmez."),
+            es("(Yo)", "Ben", "quiero", "istiyorum", "ir a casa", "eve gitmek", tr: "Eve gitmek istiyorum.",
+               note: "ir = gitmek, a casa = eve. İstediğin şey fiil olarak gelir: ir."),
+            es("(Yo)", "Ben", "no quiero", "istemiyorum", "dormir", "uyumak", tr: "Uyumak istemiyorum.",
+               note: "Olumsuz için fiilin önüne \"no\" gelir: no quiero."),
+            es("¿Tú", "Sen", "quieres", "istiyor musun", "jugar?", "oynamak", tr: "Oynamak ister misin?",
+               note: "Karşındakine sorarken quiero → quieres olur. Birini davet etmenin en kolay yolu."),
         ],
         tipTr:
             "\"Te quiero\" başka bir şeydir: \"Seni seviyorum\". \"Quiero\"dan " +
@@ -1046,10 +1012,14 @@ enum PatternCatalog {
             PatternToken(text: "isim", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            es("(Yo)", "Ben", "tengo", "-im var", "una idea", "bir fikir", tr: "Bir fikrim var."),
-            es("(Yo)", "Ben", "tengo", "-im var", "hambre", "açlık", tr: "Acıktım."),
-            es("(Yo)", "Ben", "no tengo", "-im yok", "tiempo", "zaman", tr: "Zamanım yok."),
-            es("¿Tú", "Sen", "tienes", "-in var mı", "un plan?", "bir plan", tr: "Bir planın var mı?"),
+            es("(Yo)", "Ben", "tengo", "-im var", "una idea", "bir fikir", tr: "Bir fikrim var.",
+               note: "una = bir (dişil isimler, la idea). Eril isimlerde un: un plan."),
+            es("(Yo)", "Ben", "tengo", "-im var", "hambre", "açlık", tr: "Acıktım.",
+               note: "Türkçe \"acıktım\" der, İspanyolca \"açlığım var\": tengo hambre. Aynı şekilde tengo frío = üşüyorum."),
+            es("(Yo)", "Ben", "no tengo", "-im yok", "tiempo", "zaman", tr: "Zamanım yok.",
+               note: "\"No tengo\" = benim … yok. Filmlerde çok duyarsın: ¡No tengo tiempo!"),
+            es("¿Tú", "Sen", "tienes", "-in var mı", "un plan?", "bir plan", tr: "Bir planın var mı?",
+               note: "Ben için tengo, sen için tienes: fiilin sonu kişiye göre değişir."),
         ],
         tipTr:
             "Türkçede \"acıktım\", \"korkuyorum\" dediğin yerde İspanyolca " +
@@ -1076,11 +1046,15 @@ enum PatternCatalog {
             PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            es("(Yo)", "Ben", "tengo que", "-malıyım", "irme", "gitmek", tr: "Gitmem lazım."),
-            es("(Yo)", "Ben", "tengo que", "-malıyım", "trabajar", "çalışmak", tr: "Çalışmam lazım."),
-            es("(Tú)", "Sen", "tienes que", "-malısın", "escuchar", "dinlemek", tr: "Dinlemen lazım."),
+            es("(Yo)", "Ben", "tengo que", "-malıyım", "irme", "gitmek", tr: "Gitmem lazım.",
+               note: "irme = gitmek; sondaki -me \"kendim\" demek. Vedalaşırken çok kullanılır."),
+            es("(Yo)", "Ben", "tengo que", "-malıyım", "trabajar", "çalışmak", tr: "Çalışmam lazım.",
+               note: "tengo que + fiilin yalın hâli = yapmam gerek. \"que\" burada ayrıca çevrilmez."),
+            es("(Tú)", "Sen", "tienes que", "-malısın", "escuchar", "dinlemek", tr: "Dinlemen lazım.",
+               note: "Karşındakine öğüt verirken: tienes que = -malısın."),
             es("(Tú)", "Sen", "no tienes que", "zorunda değilsin", "hacerlo", "onu yapmak",
-               tr: "Onu yapmak zorunda değilsin."),
+               tr: "Onu yapmak zorunda değilsin.",
+               note: "Dikkat: no tienes que = zorunda değilsin (yasak değil). hacerlo = onu yapmak."),
         ],
         tipTr:
             "\"Tengo\" tek başına \"var\" demek; arkasına \"que\" gelince " +
@@ -1107,11 +1081,15 @@ enum PatternCatalog {
             PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            es("(Yo)", "Ben", "puedo", "-ebilirim", "volar", "uçmak", tr: "Uçabilirim."),
-            es("(Yo)", "Ben", "puedo", "-ebilirim", "hacerlo", "onu yapmak", tr: "Onu yapabilirim."),
-            es("(Yo)", "Ben", "no puedo", "-emem", "creerlo", "ona inanmak", tr: "Buna inanamıyorum."),
+            es("(Yo)", "Ben", "puedo", "-ebilirim", "volar", "uçmak", tr: "Uçabilirim.",
+               note: "puedo + fiilin yalın hâli = -ebilirim."),
+            es("(Yo)", "Ben", "puedo", "-ebilirim", "hacerlo", "onu yapmak", tr: "Onu yapabilirim.",
+               note: "hacer + lo = hacerlo (onu yapmak): \"lo\" fiilin sonuna yapışır."),
+            es("(Yo)", "Ben", "no puedo", "-emem", "creerlo", "ona inanmak", tr: "Buna inanamıyorum.",
+               note: "Çok şaşırınca söylenir: \"İnanamıyorum!\" Olumsuzu \"no\" ile: no puedo."),
             es("¿Tú", "Sen", "puedes", "-ebilir misin", "ayudarme?", "bana yardım etmek",
-               tr: "Bana yardım edebilir misin?"),
+               tr: "Bana yardım edebilir misin?",
+               note: "ayudar + me = ayudarme (bana yardım etmek). Rica ederken kullanılır."),
         ],
         tipTr:
             "Fiilin sonuna eklenen -lo, -me, -te nesnedir: \"hacerlo\" = onu " +
@@ -1137,10 +1115,14 @@ enum PatternCatalog {
             PatternToken(text: "fiil", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            es("(Yo)", "Ben", "voy a", "-eceğim", "ganar", "kazanmak", tr: "Kazanacağım."),
-            es("(Yo)", "Ben", "voy a", "-eceğim", "comer", "yemek", tr: "Yemek yiyeceğim."),
-            es("(Nosotros)", "Biz", "vamos a", "hadi, -elim", "jugar", "oynamak", tr: "Hadi oynayalım!"),
-            es("(Nosotros)", "Biz", "vamos a", "-eceğiz", "ver", "görmek", tr: "Göreceğiz."),
+            es("(Yo)", "Ben", "voy a", "-eceğim", "ganar", "kazanmak", tr: "Kazanacağım.",
+               note: "voy a + fiil = yakında yapacağın şey: kazanacağım."),
+            es("(Yo)", "Ben", "voy a", "-eceğim", "comer", "yemek", tr: "Yemek yiyeceğim.",
+               note: "Planını söylersin. \"a\" ayrıca çevrilmez: voy a = -eceğim."),
+            es("(Nosotros)", "Biz", "vamos a", "hadi, -elim", "jugar", "oynamak", tr: "Hadi oynayalım!",
+               note: "Vamos a + fiil bir öneri de olur: \"Hadi oynayalım!\""),
+            es("(Nosotros)", "Biz", "vamos a", "-eceğiz", "ver", "görmek", tr: "Bakalım (göreceğiz).",
+               note: "\"Vamos a ver\" kalıplaşmış bir sözdür: \"Bakalım\"."),
         ],
         tipTr:
             "Arkasında yer varsa \"gidiyorum\" demek: \"Voy a la escuela\" = " +
@@ -1167,11 +1149,15 @@ enum PatternCatalog {
         ],
         examples: [
             es("(Yo)", "Ben", "no sé", "bilmiyorum", "qué hacer", "ne yapacağımı",
-               tr: "Ne yapacağımı bilmiyorum."),
-            es("(Yo)", "Ben", "sé", "biliyorum", "la respuesta", "cevabı", tr: "Cevabı biliyorum."),
+               tr: "Ne yapacağımı bilmiyorum.",
+               note: "qué hacer = ne yapacağımı. Soru kelimeleri aksanlıdır: qué, dónde, cómo."),
+            es("(Yo)", "Ben", "sé", "biliyorum", "la respuesta", "cevabı", tr: "Cevabı biliyorum.",
+               note: "sé = biliyorum. Aksansız \"se\" başka bir kelimedir."),
             es("¿Tú", "Sen", "sabes", "biliyor musun", "dónde está?", "nerede olduğunu",
-               tr: "Nerede olduğunu biliyor musun?"),
-            es("(Yo)", "Ben", "no sé", "bilmiyorum", "nadar", "yüzmek", tr: "Yüzme bilmiyorum."),
+               tr: "Nerede olduğunu biliyor musun?",
+               note: "dónde está = nerede (olduğu). Bir yeri sormanın en sık yolu."),
+            es("(Yo)", "Ben", "no sé", "bilmiyorum", "nadar", "yüzmek", tr: "Yüzme bilmiyorum.",
+               note: "saber + fiil = bir şeyi yapmayı bilmek: yüzme bilmiyorum."),
         ],
         tipTr:
             "\"Saber\" + fiil bir şeyi yapmayı bilmek demek: \"Sé nadar\" = " +
@@ -1198,10 +1184,14 @@ enum PatternCatalog {
             PatternToken(text: "isim", kind: .rest, isPlaceholder: true),
         ],
         examples: [
-            es("Aquí", "Burada", "hay", "var", "un gato", "bir kedi", tr: "Burada bir kedi var."),
-            es("Aquí", "Burada", "no hay", "yok", "nadie", "kimse", tr: "Burada kimse yok."),
-            es("Ahora", "Şimdi", "no hay", "yok", "tiempo", "zaman", tr: "Şimdi vakit yok."),
-            es("¿Aquí", "Burada", "hay", "var mı", "comida?", "yemek", tr: "Burada yemek var mı?"),
+            es("Aquí", "Burada", "hay", "var", "un gato", "bir kedi", tr: "Burada bir kedi var.",
+               note: "hay = var. Tekil ya da çoğul fark etmez: hay dos gatos."),
+            es("Aquí", "Burada", "no hay", "yok", "nadie", "kimse", tr: "Burada kimse yok.",
+               note: "no hay = yok. nadie = kimse; İspanyolcada \"no\" ile \"nadie\" birlikte gelir."),
+            es("Ahora", "Şimdi", "no hay", "yok", "tiempo", "zaman", tr: "Şimdi vakit yok.",
+               note: "\"No hay tiempo\" filmlerde çok geçer: vakit yok, acele et!"),
+            es("¿Aquí", "Burada", "hay", "var mı", "comida?", "yemek", tr: "Burada yemek var mı?",
+               note: "Soru için sadece ¿ ? eklenir: ¿Hay comida? = Yemek var mı?"),
         ],
         tipTr:
             "\"Hay que\" + fiil başka bir kalıptır, \"-mek lazım\" demek: " +

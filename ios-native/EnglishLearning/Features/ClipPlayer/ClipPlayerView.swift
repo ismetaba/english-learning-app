@@ -21,9 +21,6 @@ struct ClipPlayerView: View {
     private let prepared: [LessonClip]
     /// `ClipTiming.playbackWindow` of each prepared clip.
     private let windows: [PlaybackWindow]
-    /// Structure-coloured text of every line of every clip, built once
-    /// instead of on each karaoke update.
-    private let contextTexts: [[AttributedString]]
 
     let onClipComplete: ((LessonClip) -> Void)?
     /// Fires when the LAST clip plays to the end of its window — i.e. the
@@ -161,9 +158,6 @@ struct ClipPlayerView: View {
         let prepared = clips.map { ClipTiming.sanitize($0) }
         self.prepared = prepared
         self.windows = prepared.map { ClipTiming.playbackWindow(for: $0, trimSilence: trimsSilence) }
-        self.contextTexts = prepared.map { clip in
-            clip.lines.map { ClipPlayerView.structureAttributed(for: $0) }
-        }
         self.onClipComplete = onClipComplete
         self.onFinish = onFinish
         self.onExit = onExit
@@ -602,10 +596,10 @@ struct ClipPlayerView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// What the three colours mean, plus the sentence-translation toggle.
+    /// The sentence-translation toggle. The three structure colours are
+    /// taught on Kalıplar; a legend over every scene was one more row to read.
     private var legendRow: some View {
         HStack(spacing: 8) {
-            StructureLegend()
             Spacer(minLength: 0)
             translationToggle
         }
@@ -667,11 +661,7 @@ struct ClipPlayerView: View {
                                 if currentLine == idx {
                                     currentLineBlock(line, lineIndex: idx, pool: pool)
                                 } else {
-                                    contextRow(line, idx: idx, currentLine: currentLine, pool: pool)
-                                }
-                                if idx < lines.count - 1 {
-                                    dividerRule
-                                        .padding(.leading, currentLine == idx || currentLine == idx + 1 ? 0 : 48)
+                                    contextRow(line, idx: idx, currentLine: currentLine)
                                 }
                             }
                             .id("line-\(idx)")
@@ -787,56 +777,39 @@ struct ClipPlayerView: View {
         .padding(.vertical, 14)
     }
 
-    /// Compact row for non-current lines in the scrollable transcript —
-    /// timestamp on the left, structure-coloured text (target words
-    /// underlined amber), and for lines already played their Turkish
-    /// sentence. Tapping seeks.
-    private func contextRow(_ line: ClipLine, idx: Int, currentLine: Int?, pool: Set<String>) -> some View {
+    /// A line other than the current one: plain text that fades with its
+    /// distance from the current line, and for lines already played their
+    /// Turkish sentence. Colours, word glosses and target marks belong to
+    /// the current line only, so the eye has one place to read. Tapping seeks.
+    private func contextRow(_ line: ClipLine, idx: Int, currentLine: Int?) -> some View {
         let distance = currentLine.map { abs(idx - $0) } ?? 0
-        let opacity = max(0.55, 0.9 - Double(distance) * 0.08)
         let isPlayed = currentLine.map { idx < $0 } ?? false
+        let opacity = max(0.3, (isPlayed ? 0.6 : 0.8) - Double(distance - 1) * 0.12)
         return Button(action: {
             Haptics.selection()
             jumpToLine(idx)
         }) {
-            HStack(alignment: .top, spacing: 12) {
-                Text(formatTime(line.startTime - window.start))
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Theme.Color.textMuted)
-                    .frame(width: 36, alignment: .leading)
-                    .padding(.top, 3)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(contextText(lineIndex: idx, line: line, pool: pool))
-                        .font(.system(size: 14, weight: .semibold))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(line.text)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Theme.Color.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                if showSentenceTr, isPlayed, let tr = Self.sentenceTranslation(of: line) {
+                    Text(tr)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Theme.Color.textMuted)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    if showSentenceTr, isPlayed, let tr = Self.sentenceTranslation(of: line) {
-                        Text(tr)
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundStyle(Theme.Color.textMuted)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(opacity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
+            .padding(.leading, 17)
             .contentShape(Rectangle())
         }
         .buttonStyle(.pressable(scale: 0.99))
-    }
-
-    private func contextText(lineIndex: Int, line: ClipLine, pool: Set<String>) -> AttributedString {
-        // Lines with a word already in the learner's words are rebuilt to
-        // mark it as such; the rest use the copy built once in init.
-        if !pool.isEmpty, line.words.contains(where: { $0.starterId.map(pool.contains) ?? false }) {
-            return Self.structureAttributed(for: line, pooled: pool)
-        }
-        if contextTexts.indices.contains(index), contextTexts[index].indices.contains(lineIndex) {
-            return contextTexts[index][lineIndex]
-        }
-        return Self.structureAttributed(for: line)
     }
 
     /// The line's Turkish sentence; nil when missing or blank.
@@ -853,11 +826,6 @@ struct ClipPlayerView: View {
         return name
     }
 
-    private var dividerRule: some View {
-        Rectangle()
-            .fill(Color(hex: 0x1E2A42))
-            .frame(height: 1)
-    }
 
     private func currentLineBlock(_ line: ClipLine, lineIndex: Int, pool: Set<String>) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1285,73 +1253,6 @@ struct ClipPlayerView: View {
         guard let first = original.first, first.isUppercase else { return expanded }
         guard let firstExp = expanded.first else { return expanded }
         return String(firstExp).uppercased() + expanded.dropFirst()
-    }
-
-    /// The line with the same 3-color sentence-structure tagging as the
-    /// current row, without the karaoke overrides. Used by the context rows
-    /// so the structure colouring stays continuous across the transcript.
-    /// Contractions are split like in the current row. Untagged lines fall
-    /// back to the rest colour. Target (starter) words are underlined amber
-    /// like in the current row — or, when in `pooled` (the learner's words),
-    /// sit on a soft amber backdrop instead.
-    private static func structureAttributed(for line: ClipLine, pooled: Set<String> = []) -> AttributedString {
-        guard !line.words.isEmpty else {
-            var out = AttributedString(line.text)
-            out.foregroundColor = Theme.Color.textPrimary
-            return out
-        }
-
-        let subjectIdx = Set(line.structure?.subject ?? [])
-        let auxIdx     = Set(line.structure?.auxVerb  ?? [])
-
-        var out = AttributedString()
-        for (i, w) in line.words.enumerated() {
-            let idx = w.wordIndex ?? i
-            let bucket: BucketKind = {
-                if subjectIdx.contains(idx) { return .subject }
-                if auxIdx.contains(idx)     { return .auxVerb }
-                return .rest
-            }()
-            let baseColor = colorFor(bucket: bucket)
-            let token = w.word
-            let (core, suffix) = splitTrailingPunctuation(token)
-
-            var piece = AttributedString()
-            if let parts = contractionExpansion(of: core) {
-                let secondColor: Color = (bucket == .subject)
-                    ? colorFor(bucket: .auxVerb)
-                    : baseColor
-                let firstWord = matchCase(of: parts.first, mirroring: core)
-
-                var firstChunk = AttributedString(firstWord)
-                firstChunk.foregroundColor = baseColor
-                piece.append(firstChunk)
-
-                piece.append(AttributedString(" "))
-
-                var secondChunk = AttributedString(parts.second + suffix)
-                secondChunk.foregroundColor = secondColor
-                piece.append(secondChunk)
-            } else {
-                var chunk = AttributedString(token)
-                chunk.foregroundColor = baseColor
-                piece.append(chunk)
-            }
-
-            if let starterId = w.starterId {
-                if pooled.contains(starterId) {
-                    piece.backgroundColor = amber.opacity(0.18)
-                } else {
-                    piece.underlineStyle = Text.LineStyle(pattern: .solid, color: amber)
-                }
-            }
-            out.append(piece)
-
-            if i < line.words.count - 1 {
-                out.append(AttributedString(" "))
-            }
-        }
-        return out
     }
 
     // MARK: - Starter-word card

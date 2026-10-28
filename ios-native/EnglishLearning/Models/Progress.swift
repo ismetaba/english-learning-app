@@ -60,6 +60,15 @@ enum LearningLanguage: String, Codable, CaseIterable, Identifiable {
 
     var queryItem: URLQueryItem { URLQueryItem(name: "lang", value: rawValue) }
 
+    /// The voice that reads a sentence aloud: Latin American Spanish, so
+    /// Mexico's rather than Spain's.
+    var speechLanguage: String {
+        switch self {
+        case .en: return "en-US"
+        case .es: return "es-MX"
+        }
+    }
+
     // Ids are namespaced per language, so an id alone names its language
     // (and its server): videos "es-<slug>", starter words "a2-es-<word>"
     // (English "a2-<word>"), patterns "ser-estar-…" and "es-…". Everything

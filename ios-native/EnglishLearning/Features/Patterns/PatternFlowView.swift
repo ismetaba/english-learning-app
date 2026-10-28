@@ -99,6 +99,7 @@ struct PatternFlowView: View {
         }
         .preferredColorScheme(.dark)
         .navigationBarHidden(true)
+        .onDisappear { Speaker.shared.stop() }
         // Hide the floating tab bar via the same hook the video player uses.
         .hidesTabBarWhileVisible()
         .navigationDestination(item: $openedReels) { target in
@@ -117,6 +118,8 @@ struct PatternFlowView: View {
         // it is finishing: leaving by the X, the edge swipe or another tab
         // must count too, not only "Bitir". Idempotent: one haptic, one save.
         .onChange(of: visibleIndex) { _, i in
+            // A sentence read aloud belongs to its card.
+            Speaker.shared.stop()
             if i >= finishCardIndex {
                 appState.markPatternComplete(pattern.id)
             }
@@ -199,6 +202,7 @@ struct PatternFlowView: View {
 // MARK: - Single example card (with per-word Turkish)
 
 struct PatternFlowCard: View {
+    @ObservedObject private var speaker = Speaker.shared
     let pattern: Pattern
     let example: PatternExample
     let index: Int
@@ -249,6 +253,12 @@ struct PatternFlowCard: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 28)
 
+                listenButton
+
+                if let note = example.noteTr {
+                    noteBox(note)
+                }
+
                 // Compact formula reminder
                 FormulaRow(tokens: pattern.formula, size: 12)
                     .padding(.horizontal, 24)
@@ -259,6 +269,53 @@ struct PatternFlowCard: View {
                     .padding(.bottom, 80)
             }
         }
+    }
+
+    /// Reads the sentence aloud; while it plays, the same button stops it.
+    private var listenButton: some View {
+        let isPlaying = speaker.speaking == example.spoken
+        return Button {
+            Haptics.light()
+            speaker.toggle(example.spoken, language: LearningLanguage.of(patternId: pattern.id))
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 13, weight: .bold))
+                Text(isPlaying ? "Durdur" : "Dinle")
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 40)
+            .background(Capsule().fill(Color.white.opacity(isPlaying ? 0.2 : 0.1)))
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+            .padding(.vertical, 2)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.pressable)
+        .accessibilityLabel(isPlaying ? "Durdur" : "Cümleyi dinle")
+    }
+
+    /// Why the sentence is built this way, under it.
+    private func noteBox(_ note: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: "lightbulb.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color(hex: 0xFFC56B))
+                .padding(.top, 2)
+            Text(note)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
+                .multilineTextAlignment(.leading)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+        .padding(.horizontal, 24)
     }
 
     /// One subject/verb/rest chunk — English (color-coded) on top,
