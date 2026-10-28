@@ -231,6 +231,21 @@ test('a part with no words is no translation', async () => {
   for (const id of [1, 2]) assert.match(out.get(id) ?? '', /\p{L}/u, `line ${id} has no words: ${out.get(id)}`);
 });
 
+test('a line holding two turns of dialogue gets both on one line', async () => {
+  // Kung Fu Panda 4: WhisperX heard Zhen's "Muévete" and Po's "¿Quieres que
+  // me mueva?" as one line. The model answers each turn on its own line,
+  // and a reply over two lines was always rejected, so the line was left
+  // without Turkish.
+  assert.equal(cleanTranslation('— Kımılda.\n— Kımıldamamı mı istiyorsun?', 'Muévete ¿Quieres que me mueva?'),
+    'Kımılda. Kımıldamamı mı istiyorsun?');
+  // One sentence answered over two lines is still the context copied in.
+  assert.equal(cleanTranslation('Ne?\nHiç sıra beklemek zorunda kalmamamız.', 'Que nunca tenemos que esperar menta.'), null);
+  const lines = [line(1, '¡No!'), line(2, 'Muévete ¿Quieres que me mueva?')];
+  const model = fakeModel(user => user.includes('LINE: ¡No!') ? 'Hayır!' : '— Kımılda.\n— Kımıldamamı mı istiyorsun?');
+  const out = await translateLines(lines, model.ask, new Map());
+  assert.equal(out.get(2), 'Kımılda. Kımıldamamı mı istiyorsun?');
+});
+
 test('a hand correction wins and is not asked', async () => {
   // The model loops on "hasta" (sick) in this line; the audit's corrections
   // of wrong meanings are kept by line text.

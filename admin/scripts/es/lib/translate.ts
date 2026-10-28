@@ -30,6 +30,9 @@ const WRAP: Record<string, string> = { '"': '"', "'": "'", '«': '»', '“': '�
 const words = (s: string) => s.split(/\s+/).map(esGlossKey).filter(Boolean);
 const oddQuotes = (s: string) => (s.match(/"/g)?.length ?? 0) % 2 === 1;
 const hasLetters = (s: string) => /\p{L}/u.test(s);
+const undash = (s: string) => s.replace(/^[—–-]+\s*/, '');
+/** Sentences in a line: a break after .?!… or before an opening ¿ or ¡. */
+const sentenceCount = (s: string) => s.trim().split(/(?<=[.?!…])\s+|\s+(?=[¿¡])/u).filter(hasLetters).length;
 
 /** Most times one word comes up in the text. */
 function maxRepeat(s: string): number {
@@ -38,15 +41,19 @@ function maxRepeat(s: string): number {
   return Math.max(0, ...n.values());
 }
 
-/** The reply as a subtitle, or null when it is not one: empty, more than
- *  one line, markdown or a note about the translation, the context lines
- *  copied in (" / "), a loop cut off at the token limit (far longer than
- *  the source, one word over and over), a quote left open that the source
- *  doesn't leave open, no words at all for a source that has some ("." for
- *  "abrazos."). A leading dialogue dash goes, and quotes go only
- *  when they wrap the whole reply (`"Gelmeyecek" derken…` keeps its own). */
+/** The reply as a subtitle, or null when it is not one: empty, more lines
+ *  than the source has sentences, markdown or a note about the translation,
+ *  the context lines copied in (" / "), a loop cut off at the token limit
+ *  (far longer than the source, one word over and over), a quote left open
+ *  that the source doesn't leave open, no words at all for a source that
+ *  has some ("." for "abrazos."). Two turns heard as one line ("Muévete
+ *  ¿Quieres que me mueva?") come back a turn a line and are joined. A
+ *  leading dialogue dash goes, and quotes go only when they wrap the whole
+ *  reply (`"Gelmeyecek" derken…` keeps its own). */
 export function cleanTranslation(raw: string | null | undefined, source: string): string | null {
   let t = (raw ?? '').trim();
+  const turns = t.split(/\s*[\r\n]+\s*/);
+  if (turns.length > 1 && turns.length <= sentenceCount(source)) t = turns.map(undash).join(' ');
   if (!t || /[\r\n]/.test(t) || t.includes('**')) return null;
   if (/\b(note|translation|translated)\b/i.test(t)) return null;
   if (t.includes(' / ') && !source.includes('/')) return null;
@@ -54,7 +61,7 @@ export function cleanTranslation(raw: string | null | undefined, source: string)
   if (maxRepeat(t) > maxRepeat(source) + 3) return null;
   if (oddQuotes(t) && !oddQuotes(source)) return null;
   if (!hasLetters(t) && hasLetters(source)) return null;
-  t = t.replace(/^[—–-]+\s*/, '');
+  t = undash(t);
   const close = WRAP[t[0]];
   const src = source.trim();
   if (close && t.length > 1 && t.endsWith(close) && !(WRAP[src[0]] && src.endsWith(WRAP[src[0]]))) {
