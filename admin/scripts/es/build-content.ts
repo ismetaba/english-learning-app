@@ -5,10 +5,12 @@
 //                approved clip, subtitle lines and word timings (from
 //                YouTube's auto captions where the video has them)
 //   2. translate every line into Turkish (Gemma via LM Studio, with the
-//                lines around it as context)
+//                lines around it as context; the lines of a sentence split
+//                over several are asked together, one part per line)
 //   3. tag       sentence structure, verb-group convention (main verb in
 //                aux_verb), pro-drop subjects left empty
-//   4. glosses   a short Turkish gloss per distinct word (word_translations_es)
+//   4. glosses   a short Turkish gloss per distinct word (word_translations_es),
+//                asked with a few different sentences it occurs in
 //   5. vocab     starter words: the set's frequent A1-A2 content words,
 //                linked to every form they appear in
 //   6. sets      speed-ordered video sets (İspanyolca 1, 2, …), slowest first
@@ -26,6 +28,10 @@ import { JsonCache } from './lib/cache';
 import { playableScenes, toLines, toScenes, type Line } from './lib/lines';
 import { chat, chatJson } from './lib/lmstudio';
 import { audioWav, autoCaptions, transcribe } from './lib/media';
+import {
+  GLOSS_OVERRIDES, GLOSS_SYS, INTERJECTIONS, STARTER_TR_OVERRIDES, STOPWORDS,
+  cleanGloss, glossCacheKey, glossContexts, groupStarters, translateLines, type LemmaInfo,
+} from './lib/translate';
 
 interface Selected {
   youtubeId: string;
@@ -120,31 +126,18 @@ const allLines = db
 
 // ── 2. Translate ─────────────────────────────────────────────────────
 
-const TRANSLATE_SYS = `You are a professional subtitle translator. Translate the Latin American Spanish dialogue line marked LINE into natural, colloquial Turkish, the way a real Turkish subtitle would read it. The lines before and after are context only: do not translate them. Spanish often drops the subject pronoun, so use the context to choose the right Turkish person and ending. Keep it concise. Output ONLY the Turkish translation of LINE.`;
-
+/** Lines of one sentence go to the model together (lib/translate.ts), and
+ *  a broken reply is asked again rather than kept. */
 async function translateAll() {
   const cache = new JsonCache<string>(path.join(workDir, 'cache-translate.json'));
   const update = db.prepare('UPDATE subtitle_lines SET translation_tr = ? WHERE id = ?');
-  let asked = 0;
-  for (let i = 0; i < allLines.length; i++) {
-    const l = allLines[i];
-    const sameClip = (k: number) => allLines[k]?.clip_id === l.clip_id ? allLines[k].text : null;
-    const before = [sameClip(i - 2), sameClip(i - 1)].filter(Boolean).join(' / ');
-    const after = sameClip(i + 1) ?? '';
-    const key = `${before}|${l.text}|${after}`;
-    let tr = cache.get(key);
-    if (tr === undefined) {
-      const out = await chat(TRANSLATE_SYS,
-        `Source: ${l.movie_title}\nBefore: ${before || '—'}\nLINE: ${l.text}\nAfter: ${after || '—'}`,
-        { temperature: 0.2, maxTokens: 200 });
-      tr = out?.replace(/^["'«]|["'»]$/g, '').trim() ?? '';
-      if (tr) cache.set(key, tr);
-      asked++;
-    }
-    if (tr) update.run(tr, l.id);
-    if ((i + 1) % 100 === 0) console.log(`translate ${i + 1}/${allLines.length} (${asked} asked)`);
-  }
+  const out = await translateLines(allLines, chat, cache,
+    (done, asked) => console.log(`translate ${done}/${allLines.length} (${asked} asked)`));
   cache.save();
+  db.transaction(() => {
+    for (const [id, tr] of out) update.run(tr, id);
+  })();
+  console.log(`translate: ${allLines.length - out.size} lines left untranslated`);
 }
 
 // ── 3. Tag ───────────────────────────────────────────────────────────
@@ -245,39 +238,6 @@ async function tagAll() {
 
 // ── 4. Glosses ───────────────────────────────────────────────────────
 
-/** Hand-written glosses for the most frequent function words, which the
- *  model glosses from whichever sentence it saw first ("si" in "Si
- *  recuerdan…" came back as "-ıp -madığı"), and for frequent verb forms
- *  it got wrong: tener as "sahip" where Turkish says "-im var", and
- *  commands as nouns or passives ("espera" = "bekleyiş"). Keys are
- *  esGlossKey forms. */
-const GLOSS_OVERRIDES: Record<string, string> = {
-  el: '(belirli, eril)', la: '(belirli, dişil)', los: '(belirli, çoğul)', las: '(belirli, çoğul)',
-  un: 'bir', una: 'bir', unos: 'birkaç', unas: 'birkaç', al: "-e (a + el)", del: "-in (de + el)",
-  de: '-in / -den', a: '-e / -a', en: '-de / içinde', con: 'ile', sin: 'olmadan', por: 'için / -den dolayı',
-  para: 'için', sobre: 'hakkında / üstünde', desde: '-den beri', hasta: '-e kadar',
-  que: 'ki / -en', qué: 'ne', si: 'eğer', sí: 'evet', no: 'hayır / değil', y: 've', o: 'veya',
-  pero: 'ama', porque: 'çünkü', cuando: '-dığında', como: 'gibi', cómo: 'nasıl', dónde: 'nerede',
-  cuándo: 'ne zaman', quién: 'kim', cuál: 'hangisi', muy: 'çok', más: 'daha', ya: 'artık / zaten',
-  también: 'de / da', aquí: 'burada', ahí: 'orada', allí: 'orada', bien: 'iyi', mal: 'kötü',
-  yo: 'ben', tú: 'sen', él: 'o (erkek)', ella: 'o (kadın)', usted: 'siz', nosotros: 'biz',
-  nosotras: 'biz', ellos: 'onlar', ellas: 'onlar', ustedes: 'sizler',
-  me: 'beni / bana', te: 'seni / sana', se: 'kendini / kendine', lo: 'onu', le: 'ona', les: 'onlara',
-  nos: 'bizi / bize', mi: 'benim', mis: 'benim', tu: 'senin', tus: 'senin', su: 'onun', sus: 'onun',
-  esto: 'bu', eso: 'şu / o', este: 'bu', esta: 'bu', ese: 'şu', esa: 'şu',
-  soy: '-im (ser)', eres: '-sin (ser)', es: '-dir (ser)', somos: '-iz (ser)', son: '-dirler (ser)',
-  estoy: '-im (estar)', estás: '-sin (estar)', está: '-dir (estar)', estamos: '-iz (estar)',
-  están: '-dirler (estar)', hay: 'var',
-  tengo: '-im var / (que) -malıyım', tienes: '-in var', tiene: '-i var', tenemos: '-imiz var',
-  tienen: '-leri var', quiero: 'istiyorum', vamos: 'hadi / gidiyoruz', tal: 'öyle (qué tal: nasıl)',
-  hace: 'yapıyor / (süre) önce', fue: 'oldu / gitti', importa: 'önemli', veces: 'kez, defa',
-  vale: 'tamam / değer', claro: 'tabii', alto: 'dur! / yüksek',
-  habla: 'konuş / konuşuyor', ven: 'gel', espera: 'bekle', escucha: 'dinle', corre: 'koş',
-  ayuda: 'yardım (et)', dame: 'bana ver', dime: 'bana söyle',
-};
-
-const GLOSS_SYS = `You give Turkish glosses for a Spanish-learning app. Each item is a Spanish word with a sentence it appears in. Answer with the word's meaning IN THAT SENTENCE as the short Turkish gloss a learner sees under the word: 1-3 words. Conjugated verbs get the matching conjugated Turkish form ("quiero" → "istiyorum", "está" → "-dir / bulunuyor"). Articles and prepositions get the closest Turkish word or a short hint in parentheses ("el" → "(belirli)", "de" → "-in, -den"). Names get the name itself. Keep each "word" exactly as given.`;
-
 const GLOSS_SCHEMA = {
   type: 'object',
   properties: {
@@ -295,30 +255,34 @@ const GLOSS_SCHEMA = {
   additionalProperties: false,
 };
 
-/** Every distinct gloss key with the line it is most at home in. */
-function wordContexts(): Map<string, string> {
-  const rows = db.prepare('SELECT wt.word, sl.text FROM word_timestamps wt JOIN subtitle_lines sl ON sl.id = wt.line_id').all() as
-    { word: string; text: string }[];
-  const ctx = new Map<string, string>();
-  for (const r of rows) {
-    const k = esGlossKey(r.word);
-    if (!k || ctx.has(k)) continue;
-    ctx.set(k, r.text);
-  }
-  return ctx;
+/** Every distinct gloss key with a few different sentences it occurs in. */
+function wordContexts(): Map<string, string[]> {
+  return glossContexts(db.prepare(
+    'SELECT wt.word, sl.text FROM word_timestamps wt JOIN subtitle_lines sl ON sl.id = wt.line_id ORDER BY wt.id',
+  ).all() as { word: string; text: string }[]);
 }
 
 async function glossAll() {
   const cache = new JsonCache<string>(path.join(workDir, 'cache-gloss.json'));
   const ctx = wordContexts();
-  const todo = [...ctx.keys()].filter(k => cache.get(k) === undefined);
+  // A word heard in one sentence only was glossed from that very sentence
+  // before the glosses took several: its old answer stands.
+  for (const [k, sentences] of ctx) {
+    const old = cache.get(k);
+    if (sentences.length === 1 && old && cache.get(glossCacheKey(k)) === undefined) {
+      cache.set(glossCacheKey(k), cleanGloss(old));
+    }
+  }
+  const todo = [...ctx.keys()].filter(k => !GLOSS_OVERRIDES[k] && cache.get(glossCacheKey(k)) === undefined);
   console.log(`glosses: ${ctx.size} words, ${todo.length} to ask`);
   for (let i = 0; i < todo.length; i += 20) {
     const batch = todo.slice(i, i + 20);
-    const user = batch.map((w, k) => `${k + 1}. word: ${JSON.stringify(w)} — sentence: ${JSON.stringify(ctx.get(w))}`).join('\n');
+    const user = batch.map((w, k) =>
+      `${k + 1}. word: ${JSON.stringify(w)} — sentences: ${ctx.get(w)!.map(t => JSON.stringify(t)).join(' | ')}`).join('\n');
     const out = await chatJson<{ items: { word: string; tr: string }[] }>(GLOSS_SYS, user, GLOSS_SCHEMA, 1200);
     for (const it of out?.items ?? []) {
-      if (batch.includes(it.word) && it.tr.trim()) cache.set(it.word, it.tr.trim());
+      const tr = cleanGloss(it.tr);
+      if (batch.includes(it.word) && tr) cache.set(glossCacheKey(it.word), tr);
     }
     console.log(`glosses ${Math.min(i + 20, todo.length)}/${todo.length}`);
   }
@@ -326,16 +290,13 @@ async function glossAll() {
   const insert = db.prepare('INSERT INTO word_translations_es (word_lower, translation_tr) VALUES (?, ?)');
   db.transaction(() => {
     for (const k of ctx.keys()) {
-      const tr = GLOSS_OVERRIDES[k] ?? cache.get(k);
+      const tr = GLOSS_OVERRIDES[k] ?? cache.get(glossCacheKey(k));
       if (tr) insert.run(k, tr);
     }
   })();
 }
 
 // ── 5. Vocab ─────────────────────────────────────────────────────────
-
-/** Function words and the copulas the patterns already teach. */
-const STOPWORDS = new Set(`a al algo algún alguna alguno algunos ante antes aquí así aun aunque bien cada como con cual cuando de del desde donde dos e el ella ellas ello ellos en entonces entre era eres es esa ese eso esta está estaba estamos están estar estás este esto estoy fue fuera ha había han has hasta hay haber he la las le les lo los me mi mis muy más nada ni no nos nosotros o os para pero poco por porque que qué quien se ser si sí sin sobre soy su sus también tan te ti tu tú tus un una uno unos unas usted ustedes y ya yo él ah oh eh mm uh ay sí okay ok vale bueno pues hola adiós`.split(' '));
 
 const LEMMA_SYS = `You analyse Spanish words for a beginner vocabulary list. For each word (with a sentence it appears in) give: its dictionary form ("lemma": infinitive for verbs, masculine singular for adjectives, singular for nouns), its part of speech ("pos": noun, verb, adjective, adverb or other), the lemma's main Turkish meaning ("tr": 1-3 words, a verb as a Turkish infinitive like "gitmek"), and the CEFR level of the lemma ("cefr": A1, A2, B1 or B2). Keep each "word" exactly as given.`;
 
@@ -361,15 +322,8 @@ const LEMMA_SCHEMA = {
   required: ['items'],
   additionalProperties: false,
 };
-type LemmaInfo = { lemma: string; pos: string; tr: string; cefr: string };
 
 const STARTER_COUNT = 50;
-
-/** Starter meanings the model got wrong or doubled ("ahí" = "orada,
- *  orada"; "claro", which the films say as "¡Claro!", as "açık, net"). */
-const STARTER_TR_OVERRIDES: Record<string, string> = {
-  ahí: 'orada', claro: 'tabii, açık', pasar: 'geçmek, olmak',
-};
 
 /** ASCII id stem: accents dropped, ñ → n ("niño" → "nino"). */
 const idStem = (lemma: string) => lemma.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z]+/g, '-');
@@ -386,7 +340,7 @@ async function vocabAll() {
   const todo = candidates.filter(k => cache.get(k) === undefined);
   for (let i = 0; i < todo.length; i += 20) {
     const batch = todo.slice(i, i + 20);
-    const user = batch.map((w, k) => `${k + 1}. word: ${JSON.stringify(w)} — sentence: ${JSON.stringify(ctx.get(w))}`).join('\n');
+    const user = batch.map((w, k) => `${k + 1}. word: ${JSON.stringify(w)} — sentence: ${JSON.stringify(ctx.get(w)?.[0])}`).join('\n');
     const out = await chatJson<{ items: (LemmaInfo & { word: string })[] }>(LEMMA_SYS, user, LEMMA_SCHEMA, 2000);
     for (const it of out?.items ?? []) {
       if (batch.includes(it.word)) cache.set(it.word, { lemma: it.lemma.toLowerCase(), pos: it.pos, tr: it.tr, cefr: it.cefr });
@@ -395,17 +349,10 @@ async function vocabAll() {
   }
   cache.save();
 
-  // Group surface forms by lemma; keep beginner content words.
-  const byLemma = new Map<string, { info: LemmaInfo; forms: string[]; count: number }>();
-  for (const k of candidates) {
+  const chosen = groupStarters(candidates.flatMap(k => {
     const info = cache.get(k);
-    if (!info || info.pos === 'other' || !['A1', 'A2'].includes(info.cefr) || STOPWORDS.has(info.lemma)) continue;
-    const g = byLemma.get(info.lemma) ?? { info, forms: [], count: 0 };
-    g.forms.push(k);
-    g.count += freq.get(k) ?? 0;
-    byLemma.set(info.lemma, g);
-  }
-  const chosen = [...byLemma.values()].sort((a, b) => b.count - a.count).slice(0, STARTER_COUNT);
+    return info ? [{ form: k, count: freq.get(k) ?? 0, info }] : [];
+  })).slice(0, STARTER_COUNT);
 
   const insertWord = db.prepare(
     `INSERT INTO vocab_words (id, word, part_of_speech, translation_tr, frequency_rank, cefr_level, language)
@@ -428,7 +375,8 @@ async function vocabAll() {
     });
     const perClip = new Map<string, { clip: number; word: string; line: number; n: number }>();
     for (const t of tokens) {
-      const id = idOf.get(esGlossKey(t.word));
+      const k = esGlossKey(t.word);
+      const id = INTERJECTIONS.has(k) ? undefined : idOf.get(k);
       if (!id) continue;
       link.run(id, t.id);
       const key = `${t.clip_id}|${id}`;

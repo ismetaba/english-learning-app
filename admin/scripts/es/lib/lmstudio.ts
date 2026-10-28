@@ -11,7 +11,9 @@ interface ChatOptions {
   temperature?: number;
 }
 
-/** One chat turn; null after three failed attempts. */
+/** One chat turn; null after three failed attempts, or when the reply was
+ *  cut off at max_tokens: what is there is a loop or half an answer
+ *  ("Hasta hasta hasta…"), never something to keep. */
 export async function chat(system: string, user: string, opts: ChatOptions = {}): Promise<string | null> {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -32,7 +34,8 @@ export async function chat(system: string, user: string, opts: ChatOptions = {})
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const j = (await res.json()) as { choices?: { finish_reason?: string; message?: { content?: string } }[] };
+      if (j.choices?.[0]?.finish_reason === 'length') return null;
       let out = (j.choices?.[0]?.message?.content ?? '').trim();
       if (out.includes('</think>')) out = out.split('</think>').pop()!.trim();
       return out || null;

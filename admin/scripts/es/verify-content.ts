@@ -1,9 +1,10 @@
 // Checks a Spanish content database before it goes live, video by video:
 // subtitles in sync with the video (word onsets against YouTube's own
-// captions, the embedded video's clock), every line translated and tagged,
-// scene windows the app can play (one short scene per video), and starter
-// words that actually occur. Exits non-zero when a check fails, so a bad
-// build never reaches the server.
+// captions, the embedded video's clock), every line translated (with a
+// translation lib/translate.ts accepts) and tagged, scene windows the app
+// can play (one short scene per video), and starter words that actually
+// occur. Exits non-zero when a check fails, so a bad build never reaches
+// the server.
 //
 //   npx tsx scripts/es/verify-content.ts <content.db> <work-dir>
 //
@@ -13,6 +14,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { MIN_SCENE_LINES, MIN_SCENE_SEC } from './lib/lines';
 import type { Json3 } from './lib/media';
+import { cleanTranslation } from './lib/translate';
 
 const [dbPath, workDir] = process.argv.slice(2);
 if (!dbPath || !workDir) {
@@ -80,6 +82,9 @@ const videos = db.prepare(
           (SELECT COUNT(*) FROM subtitle_lines sl WHERE sl.clip_id = c.id AND sl.structure IS NULL) AS untagged
    FROM videos v JOIN clips c ON c.video_id = v.id ORDER BY v.id`,
 ).all() as { id: string; yt: string; clip: number; start: number; end: number; lines: number; untranslated: number; untagged: number }[];
+const translationsOf = db.prepare(
+  `SELECT id, text, translation_tr AS tr FROM subtitle_lines WHERE clip_id = ? AND translation_tr IS NOT NULL ORDER BY line_index`,
+);
 const wordsOf = db.prepare(
   `SELECT wt.word, wt.start_time AS t, wt.line_id AS line FROM word_timestamps wt JOIN subtitle_lines sl ON sl.id = wt.line_id
    WHERE sl.clip_id = ? ORDER BY sl.start_time, wt.word_index`,
@@ -101,6 +106,11 @@ for (const v of videos) {
   } else uncaptioned++;
   console.log(`${v.id.padEnd(46)} ${String(v.lines).padStart(5)}  ${sync}`);
   if (v.untranslated) problems.push(`${v.id}: ${v.untranslated} untranslated lines`);
+  // A loop, a note from the model, the context lines copied in: the build
+  // asks these again, so one here is a build that kept it.
+  for (const l of translationsOf.all(v.clip) as { id: number; text: string; tr: string }[]) {
+    if (!cleanTranslation(l.tr, l.text)) problems.push(`${v.id}: line ${l.id} has a broken translation: ${JSON.stringify(l.tr.slice(0, 80))}`);
+  }
   if (v.untagged > Math.max(1, v.lines * 0.02)) problems.push(`${v.id}: ${v.untagged} untagged lines`);
   if (v.end - v.start > MAX_SCENE_SEC || v.end - v.start < MIN_SCENE_SEC) {
     problems.push(`${v.id}: scene of ${Math.round(v.end - v.start)} s`);
