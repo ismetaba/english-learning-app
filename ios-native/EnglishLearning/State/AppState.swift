@@ -178,6 +178,30 @@ final class AppState: ObservableObject {
         guard !completedPatterns.contains(id) else { return }
         completedPatterns.insert(id)
         Haptics.success()
+        Task { await syncPatternWords() }
+    }
+
+    // MARK: - Pattern path (Spanish)
+    //
+    // The Spanish learner learns a pattern on Kalıplar first, then watches
+    // the scenes that use it (its set), and its words join theirs. English
+    // keeps its tabs open as before.
+
+    /// Video and Kelimeler follow the pattern path.
+    var followsPatternPath: Bool { learningLanguage == .es }
+
+    var patternUnlocks: PatternUnlocks {
+        PatternUnlocks(path: PatternCatalog.catalog(for: .es).map(\.id), completed: completedPatterns)
+    }
+
+    /// Adds the words of the patterns done to the learner's words. Safe to
+    /// call any time: a word already there stays where it is.
+    func syncPatternWords() async {
+        guard followsPatternPath, patternUnlocks.isOpen else { return }
+        guard let sets = try? await CurriculumRepository.shared.patternSets(lang: .es) else { return }
+        let new = patternUnlocks.words(of: sets).filter { !progress.learnedWords.contains($0) }
+        guard !new.isEmpty else { return }
+        progress.learnedWords.append(contentsOf: new)
     }
 
     // MARK: - XP / level

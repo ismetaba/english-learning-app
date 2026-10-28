@@ -13,12 +13,18 @@ struct VideoSet: Codable, Identifiable, Hashable {
     let difficulty: String?
     let sortOrder: Int
     let videos: [PocVideo]
+    /// A pattern-first set (`/api/v1/pattern-sets`): the pattern its scenes
+    /// are chosen for and target, and the starter words it adds to the
+    /// learner's words. Nil for the speed-ordered sets.
+    var patternId: String? = nil
+    var words: [String]? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, title, description, difficulty, videos
+        case id, title, description, difficulty, videos, words
         case titleTr       = "title_tr"
         case descriptionTr = "description_tr"
         case sortOrder     = "sort_order"
+        case patternId     = "pattern_id"
     }
 
     /// Prefers Turkish when available so the home feed reads natively.

@@ -5,6 +5,8 @@ import SwiftUI
 @MainActor
 final class VideoFeedViewModel: ObservableObject {
     @Published var sets: [VideoSet] = []
+    /// The Spanish path's pattern sets (none for English).
+    @Published var patternSets: [VideoSet] = []
     @Published var isLoading = true
     @Published var errorMessage: String? = nil
     /// The learning language `sets` belong to.
@@ -12,13 +14,15 @@ final class VideoFeedViewModel: ObservableObject {
 
     func load(lang: LearningLanguage, forceRefresh: Bool = false) async {
         // Another language's sets must not linger while this one loads.
-        if lang != loadedLang { sets = [] }
+        if lang != loadedLang { sets = []; patternSets = [] }
         // A refresh over cards on screen stays quiet; with nothing on screen
         // (a retry from the error state) the spinner shows.
         if !forceRefresh || sets.isEmpty { isLoading = true }
         errorMessage = nil
         do {
+            async let patterns = lang == .es ? CurriculumRepository.shared.patternSets(lang: lang) : []
             self.sets = try await CurriculumRepository.shared.videoSets(lang: lang, forceRefresh: forceRefresh)
+            self.patternSets = (try? await patterns) ?? patternSets
             self.loadedLang = lang
         } catch {
             // Superseded by a language switch: the newer load owns the state.
@@ -41,12 +45,16 @@ struct VideoFeedView: View {
             ZStack {
                 BackgroundAmbience()
 
-                if vm.isLoading && vm.sets.isEmpty {
+                if appState.followsPatternPath && !appState.patternUnlocks.isOpen {
+                    PatternGateView(kind: .video)
+                } else if vm.isLoading && vm.sets.isEmpty {
                     LoadingState(label: appState.t.t("loading"))
                 } else if let err = vm.errorMessage, vm.sets.isEmpty {
                     ErrorState(message: err) {
                         Task { await vm.load(lang: appState.learningLanguage, forceRefresh: true) }
                     }
+                } else if appState.followsPatternPath {
+                    patternContent
                 } else {
                     content
                 }
@@ -69,7 +77,8 @@ struct VideoFeedView: View {
 
     /// The first unwatched video of each set (where its CTA starts).
     private func prefetchNextVideos() {
-        let videoIds = vm.sets.compactMap { set in
+        let shown = appState.followsPatternPath ? appState.patternUnlocks.openSets(vm.patternSets) : vm.sets
+        let videoIds = shown.compactMap { set in
             set.videos.first(where: { !appState.isVideoWatched($0.id) })?.id
         }
         guard !videoIds.isEmpty else { return }
@@ -103,6 +112,76 @@ struct VideoFeedView: View {
             }
         }
         .refreshable { await vm.load(lang: appState.learningLanguage, forceRefresh: true) }
+    }
+
+    /// Spanish: the sets of the patterns learned, the next pattern to learn,
+    /// and the speed-ordered sets once the whole path is done.
+    private var patternContent: some View {
+        let unlocks = appState.patternUnlocks
+        let open = unlocks.openSets(vm.patternSets).map { set in
+            PatternCatalog.pattern(id: set.patternId ?? "").map(set.asPatternSet) ?? set
+        }
+        return ScrollView(showsIndicators: false) {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                header(eyebrow: "KALIP SETLERİ", title: "Öğrendiğin kalıplar,\nfilm sahnelerinde.")
+                    .padding(.horizontal, 20)
+                    .padding(.top, 56)
+                    .padding(.bottom, 4)
+
+                ForEach(Array(open.enumerated()), id: \.element.id) { idx, set in
+                    SetHeroCard(
+                        set: set,
+                        index: idx + 1,
+                        watchedCount: set.videos.filter { appState.isVideoWatched($0.id) }.count
+                    ) {
+                        selectedSet = set
+                    }
+                    .padding(.horizontal, 20)
+                }
+
+                if let next = unlocks.next, let pattern = PatternCatalog.pattern(id: next) {
+                    NextPatternCard(pattern: pattern) { appState.selectedTab = .patterns }
+                        .padding(.horizontal, 20)
+                }
+
+                header(eyebrow: "SERBEST İZLEME", title: "Bütün setler")
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                if unlocks.freeWatchOpen {
+                    ForEach(Array(vm.sets.enumerated()), id: \.element.id) { idx, set in
+                        SetHeroCard(
+                            set: set,
+                            index: idx + 1,
+                            watchedCount: set.videos.filter { appState.isVideoWatched($0.id) }.count
+                        ) {
+                            selectedSet = set
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                } else {
+                    FreeWatchLockedRow(done: unlocks.path.filter(unlocks.completed.contains).count,
+                                       total: unlocks.path.count)
+                        .padding(.horizontal, 20)
+                }
+
+                Spacer().frame(height: 140) // Tab bar clearance.
+            }
+        }
+        .refreshable { await vm.load(lang: appState.learningLanguage, forceRefresh: true) }
+    }
+
+    private func header(eyebrow: String, title: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(eyebrow)
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .tracking(2)
+                .foregroundStyle(Theme.Color.accent)
+            Text(title)
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.Color.textPrimary)
+                .tracking(-0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var heroHeader: some View {
@@ -202,7 +281,11 @@ private struct SetHeroCard: View {
 
             HStack(spacing: 8) {
                 MetaPill(icon: "film.stack", label: "\(set.videos.count) video")
-                MetaPill(icon: "character.book.closed", label: "\(set.distinctStarterWordCount) kelime")
+                if set.patternId != nil {
+                    MetaPill(icon: "scope", label: "\(set.targetLineCount) hedef cümle")
+                } else {
+                    MetaPill(icon: "character.book.closed", label: "\(set.distinctStarterWordCount) kelime")
+                }
                 Spacer(minLength: 0)
                 Image(systemName: "arrow.right.circle.fill")
                     .font(.system(size: 22, weight: .heavy))
@@ -220,6 +303,7 @@ private struct SetHeroCard: View {
         case "elementary":   return "TEMEL"
         case "intermediate": return "ORTA"
         case "advanced":     return "İLERİ"
+        case "pattern":      return "KALIP"
         default:             return "POC"
         }
     }

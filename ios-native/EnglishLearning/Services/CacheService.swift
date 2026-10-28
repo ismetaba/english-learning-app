@@ -98,6 +98,11 @@ actor CurriculumRepository {
         try await APIClient.shared.fetchVideoSets(lang: lang)
     }
 
+    /// Not cached either: the sets follow the content as it grows.
+    func patternSets(lang: LearningLanguage) async throws -> [VideoSet] {
+        try await APIClient.shared.fetchPatternSets(lang: lang)
+    }
+
     func starterWordContexts(id: String, forceRefresh: Bool = false) async throws -> StarterWordContexts {
         // 24h cache — context list for a given starter only changes
         // when the corpus is re-tagged, which is rare. Pull-to-refresh

@@ -91,6 +91,8 @@ struct MainTabView: View {
         }
         .animation(.easeInOut(duration: 0.22), value: appState.isVideoPlayerActive)
         .onAppear { appState.updateStreak() }
+        // Words of patterns done on another device or an earlier build.
+        .task(id: appState.learningLanguage) { await appState.syncPatternWords() }
         // No dimming or auto-lock mid-scene, or while the word card holds
         // a paused video; the system idle timer is back everywhere else.
         .onChange(of: keepsScreenAwake, initial: true) { _, awake in

@@ -358,6 +358,13 @@ export const PATTERN_FILTERS: Record<string, PatternFilter> = {
   }])),
 };
 
+/** The app's Spanish pattern path (PatternCatalog.spanishAll), in order:
+ *  a learner unlocks one set per pattern along it. */
+export const SPANISH_PATTERN_PATH = [
+  'ser-estar-adj-yo', 'ser-estar-adj-tu', 'ser-estar-adj-el',
+  'es-quiero', 'es-tengo', 'es-tengo-que', 'es-puedo', 'es-voy-a', 'es-se', 'es-hay',
+];
+
 /** Spanish pattern ids, in path order: the patterns a Spanish clip line
  *  can be marked with. */
 export const SPANISH_PATTERN_IDS = Object.keys(PATTERN_FILTERS).filter(id => PATTERN_FILTERS[id].lang === 'es');

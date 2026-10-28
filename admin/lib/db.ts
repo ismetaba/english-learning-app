@@ -352,15 +352,7 @@ export function getPocVideos(lang: Lang = 'en'): PocVideo[] {
     )
     .all(lang) as Omit<PocVideo, 'starter_words'>[];
 
-  const wordsStmt = db.prepare(
-    `SELECT vw.id, vw.word, vw.translation_tr AS tr, SUM(cv.occurrence_count) AS occurrences
-     FROM clip_vocab cv
-     JOIN clips c ON c.id = cv.clip_id
-     JOIN vocab_words vw ON vw.id = cv.word_id
-     WHERE c.video_id = ? AND c.status = 'approved' AND cv.word_id LIKE 'a2-%'
-     GROUP BY vw.id
-     ORDER BY occurrences DESC`,
-  );
+  const wordsStmt = prepareStarterWords(db);
 
   return videos.map(v => ({
     ...v,
@@ -387,19 +379,10 @@ export interface VideoSet {
  * toward the 7-context mastery threshold without forcing extra reps
  * of the same scene.
  */
-export function getVideoSets(lang: Lang = 'en'): VideoSet[] {
-  const db = getDb();
-
-  const sets = db
-    .prepare(
-      `SELECT id, title, title_tr, description, description_tr, difficulty, sort_order
-       FROM video_sets
-       ORDER BY sort_order, id`,
-    )
-    .all() as Omit<VideoSet, 'videos'>[];
-
-  const videoStmt = db.prepare(
-    `SELECT
+/** A video card's columns (PocVideo without its starter words), for `v`
+ *  a videos row: shared by /video-sets and /pattern-sets so both list
+ *  videos alike. */
+export const VIDEO_CARD_COLUMNS = `
        v.id, v.youtube_video_id, v.title, v.movie_title, v.difficulty,
        (SELECT COUNT(*) FROM clips c WHERE c.video_id = v.id AND c.status = 'approved') AS clip_count,
        (SELECT COUNT(*) FROM subtitle_lines sl JOIN clips c ON c.id = sl.clip_id
@@ -419,14 +402,11 @@ export function getVideoSets(lang: Lang = 'en'): VideoSet[] {
        (SELECT AVG(c.avg_sentence_len) FROM clips c
         WHERE c.video_id = v.id AND c.status = 'approved'
           AND c.wpm BETWEEN 80 AND 200
-          AND c.avg_sentence_len BETWEEN 3 AND 12) AS avg_sentence_len
-     FROM videos v
-     JOIN video_set_items vsi ON vsi.video_id = v.id
-     WHERE vsi.set_id = ? AND v.language = ?
-     ORDER BY vsi.sort_order`,
-  );
+          AND c.avg_sentence_len BETWEEN 3 AND 12) AS avg_sentence_len`;
 
-  const wordsStmt = db.prepare(
+/** A video's starter words, most frequent first (bind: the video id). */
+export function prepareStarterWords(db: Database.Database) {
+  return db.prepare(
     `SELECT vw.id, vw.word, vw.translation_tr AS tr, SUM(cv.occurrence_count) AS occurrences
      FROM clip_vocab cv
      JOIN clips c ON c.id = cv.clip_id
@@ -435,6 +415,28 @@ export function getVideoSets(lang: Lang = 'en'): VideoSet[] {
      GROUP BY vw.id
      ORDER BY occurrences DESC`,
   );
+}
+
+export function getVideoSets(lang: Lang = 'en'): VideoSet[] {
+  const db = getDb();
+
+  const sets = db
+    .prepare(
+      `SELECT id, title, title_tr, description, description_tr, difficulty, sort_order
+       FROM video_sets
+       ORDER BY sort_order, id`,
+    )
+    .all() as Omit<VideoSet, 'videos'>[];
+
+  const videoStmt = db.prepare(
+    `SELECT ${VIDEO_CARD_COLUMNS}
+     FROM videos v
+     JOIN video_set_items vsi ON vsi.video_id = v.id
+     WHERE vsi.set_id = ? AND v.language = ?
+     ORDER BY vsi.sort_order`,
+  );
+
+  const wordsStmt = prepareStarterWords(db);
 
   return sets
     .map(set => {

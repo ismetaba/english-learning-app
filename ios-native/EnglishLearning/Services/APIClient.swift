@@ -112,6 +112,11 @@ actor APIClient {
         try await get("/api/v1/video-sets", on: lang, query: [lang.queryItem])
     }
 
+    /// One set per pattern of the Spanish path (none for English).
+    func fetchPatternSets(lang: LearningLanguage) async throws -> [VideoSet] {
+        try await get("/api/v1/pattern-sets", on: lang, query: [lang.queryItem])
+    }
+
     func fetchStarterWordContexts(id: String) async throws -> StarterWordContexts {
         try await get("/api/v1/starter-words/\(id)/contexts", on: .of(wordId: id))
     }

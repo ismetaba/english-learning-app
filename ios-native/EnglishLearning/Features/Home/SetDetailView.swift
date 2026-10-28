@@ -170,6 +170,7 @@ struct SetDetailView: View {
         case "elementary":   return "TEMEL"
         case "intermediate": return "ORTA"
         case "advanced":     return "İLERİ"
+        case "pattern":      return "KALIP"
         default:             return "POC"
         }
     }
@@ -253,6 +254,11 @@ private struct SetVideoRow: View {
                         .foregroundStyle(Theme.Color.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
+                    if let n = video.targetLines, n > 0 {
+                        Label("\(n) hedef cümle", systemImage: "scope")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(Theme.Color.accent)
+                    }
                 }
 
                 Spacer(minLength: 4)
@@ -480,6 +486,7 @@ struct SetPlayerView: View {
                 onUnplayable: { [videoId = currentVideo.id] in skipUnplayableVideo(videoId) },
                 headerSubtitle: videoPositionLabel,
                 trimsSilence: true,
+                focusPatternId: self.set.patternId,
             )
             .id(currentVideo.id)
             .environmentObject(appState)

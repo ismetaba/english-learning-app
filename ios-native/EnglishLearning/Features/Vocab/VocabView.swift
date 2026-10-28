@@ -87,7 +87,9 @@ struct VocabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                if mode == .feed {
+                if isGated {
+                    PatternGateView(kind: .words)
+                } else if mode == .feed {
                     VocabFeedView(vm: feed, visibleId: $feedVisibleId, isMuted: $feedIsMuted,
                                   landsOnNewestWord: $feedLandsOnNewestWord)
                         .environmentObject(appState)
@@ -99,7 +101,7 @@ struct VocabView: View {
 
                 // Floating mode switch — sits above whichever layer
                 // is showing so the user can flip without leaving.
-                VStack {
+                if !isGated { VStack {
                     HStack {
                         Spacer(minLength: 0)
                         modeSwitch
@@ -107,7 +109,7 @@ struct VocabView: View {
                     }
                     .padding(.top, 16)
                     Spacer()
-                }
+                } }
             }
             .navigationDestination(item: $selectedWord) { word in
                 VocabWordDetailView(summary: word)
@@ -117,6 +119,8 @@ struct VocabView: View {
         .task(id: appState.learnedWordsInLearning) {
             await vm.load(learnedWords: appState.learnedWordsInLearning)
         }
+        // The words of the patterns done join the learner's words.
+        .task(id: appState.completedPatterns) { await appState.syncPatternWords() }
         // "Kelimelerimi gör" from another tab: back to the root (an old word
         // may still be pushed) and, in Akış, onto the word caught last.
         // Liste needs no more: it's newest first.
@@ -126,6 +130,11 @@ struct VocabView: View {
             selectedWord = nil
             if mode == .feed { feedLandsOnNewestWord = true }
         }
+    }
+
+    /// Spanish waits for the first pattern (`PatternGateView`).
+    private var isGated: Bool {
+        appState.followsPatternPath && !appState.patternUnlocks.isOpen
     }
 
     private var modeSwitch: some View {

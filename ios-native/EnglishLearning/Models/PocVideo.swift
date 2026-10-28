@@ -26,9 +26,12 @@ struct PocVideo: Codable, Identifiable, Hashable {
     let totalLines: Int
     let taggedLines: Int
     let starterWords: [PocStarterWord]
+    /// In a pattern set: the scene's lines that use the set's pattern.
+    var targetLines: Int? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, title, difficulty, wpm
+        case targetLines      = "target_lines"
         case youtubeVideoId   = "youtube_video_id"
         case movieTitle       = "movie_title"
         case a2Ratio          = "a2_ratio"

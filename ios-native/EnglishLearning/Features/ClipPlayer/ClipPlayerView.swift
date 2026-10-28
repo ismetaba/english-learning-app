@@ -67,6 +67,8 @@ struct ClipPlayerView: View {
     /// learner came for one sentence (a word's or a pattern's scene): the
     /// hint would pause the video right on it.
     let showsStarterHint: Bool
+    /// In a pattern set: the set's pattern, whose lines are the targets.
+    let focusPatternId: String?
 
     @EnvironmentObject var appState: AppState
     /// Full-sentence Turkish under the current line (and under played lines).
@@ -154,7 +156,9 @@ struct ClipPlayerView: View {
         headerSubtitle: String? = nil,
         trimsSilence: Bool = false,
         showsStarterHint: Bool = true,
+        focusPatternId: String? = nil,
     ) {
+        self.focusPatternId = focusPatternId
         let prepared = clips.map { ClipTiming.sanitize($0) }
         self.prepared = prepared
         self.windows = prepared.map { ClipTiming.playbackWindow(for: $0, trimSilence: trimsSilence) }
@@ -841,8 +845,9 @@ struct ClipPlayerView: View {
                     .foregroundStyle(Color(hex: 0x8577FF))
             }
 
-            if let pattern = Self.finishedPattern(of: line, completed: appState.completedPatterns) {
-                patternChip(pattern)
+            if let mark = line.markedPattern(focus: focusPatternId, completed: appState.completedPatterns),
+               let pattern = PatternCatalog.pattern(id: mark.id) {
+                patternChip(pattern, isTarget: mark.isFocus)
             }
 
             tappableWordsLine(for: line, lineIndex: lineIndex, pool: pool)
@@ -872,26 +877,23 @@ struct ClipPlayerView: View {
         }
     }
 
-    /// A pattern of the line the learner has finished on Kalıplar, so they
-    /// spot it in the scene.
-    private static func finishedPattern(of line: ClipLine, completed: Set<String>) -> Pattern? {
-        line.finishedPatternId(completed: completed).flatMap(PatternCatalog.pattern(id:))
-    }
-
-    private func patternChip(_ pattern: Pattern) -> some View {
-        let color = PatternSlotKind.verb.color
+    /// A pattern of the line the learner has learned on Kalıplar, so they
+    /// spot it in the scene. In a pattern set, the set's own pattern is the
+    /// target and stands out; earlier ones are marked plainly.
+    private func patternChip(_ pattern: Pattern, isTarget: Bool) -> some View {
+        let color = isTarget ? Theme.Color.accent : PatternSlotKind.verb.color
         return HStack(spacing: 5) {
-            Image(systemName: "puzzlepiece.fill")
-                .font(.system(size: 9, weight: .bold))
-            Text("Kalıp: " + pattern.titleTr)
+            Image(systemName: isTarget ? "scope" : "puzzlepiece.fill")
+                .font(.system(size: isTarget ? 10 : 9, weight: .bold))
+            Text((isTarget ? "Hedef kalıp: " : "Kalıp: ") + pattern.titleTr)
                 .font(.system(size: 11, weight: .heavy))
                 .lineLimit(1)
         }
-        .foregroundStyle(color)
+        .foregroundStyle(isTarget ? Color.black : color)
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
-        .background(Capsule().fill(color.opacity(0.14)))
-        .overlay(Capsule().strokeBorder(color.opacity(0.35), lineWidth: 1))
+        .background(Capsule().fill(isTarget ? color : color.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(color.opacity(isTarget ? 0 : 0.35), lineWidth: 1))
     }
 
     /// One-time teaching moment (until the learner has caught a word): the

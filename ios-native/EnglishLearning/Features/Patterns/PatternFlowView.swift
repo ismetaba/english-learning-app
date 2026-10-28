@@ -72,7 +72,8 @@ struct PatternFlowView: View {
                         PatternFlowFinishCard(
                             pattern: pattern,
                             onFinish: finish,
-                            onAgain: { advance(to: 0) }
+                            onAgain: { advance(to: 0) },
+                            onWatchSet: appState.followsPatternPath ? watchSet : nil
                         )
                         .frame(width: geo.size.width, height: geo.size.height)
                         .id(finishCardIndex)
@@ -142,6 +143,12 @@ struct PatternFlowView: View {
         } else {
             dismiss()
         }
+    }
+
+    /// Spanish: on to the scenes that use the pattern, its set on Video.
+    private func watchSet() {
+        finish()
+        appState.selectedTab = .home
     }
 
     private func advance(to idx: Int, haptic: Bool = true) {
@@ -468,6 +475,8 @@ struct PatternFlowFinishCard: View {
     let pattern: Pattern
     let onFinish: () -> Void
     let onAgain: () -> Void
+    /// Opens the pattern's set (Spanish path); nil hides the button.
+    var onWatchSet: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -514,10 +523,18 @@ struct PatternFlowFinishCard: View {
                     .padding(.top, 4)
 
                 VStack(spacing: 10) {
+                    if let onWatchSet {
+                        PrimaryButton(
+                            title: "Bu kalıbın setini izle",
+                            icon: "film.stack",
+                            style: .success,
+                            fullWidth: true
+                        ) { onWatchSet() }
+                    }
                     PrimaryButton(
                         title: "Bitir",
                         icon: "checkmark",
-                        style: .success,
+                        style: onWatchSet == nil ? .success : .secondary,
                         fullWidth: true
                     ) { onFinish() }
 

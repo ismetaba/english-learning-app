@@ -355,6 +355,14 @@ struct ClipLine: Codable, Identifiable, Equatable, Hashable {
         patternIds?.first { completed.contains($0) }
     }
 
+    /// The pattern the player marks the line with: in a pattern set the
+    /// set's own pattern (`focus`, the target) when the line has it, else
+    /// the first pattern the learner has finished.
+    func markedPattern(focus: String?, completed: Set<String>) -> (id: String, isFocus: Bool)? {
+        if let focus, patternIds?.contains(focus) == true { return (focus, true) }
+        return finishedPatternId(completed: completed).map { ($0, false) }
+    }
+
     /// Every line in the database defaults to the speaker "Speaker", which
     /// the player printed as "SPEAKER" above each line like debug output.
     /// That placeholder (and a blank name) decodes as "" (no label); real

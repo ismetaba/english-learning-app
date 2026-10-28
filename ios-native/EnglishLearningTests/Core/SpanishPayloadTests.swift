@@ -83,6 +83,19 @@ final class ClipLinePatternTests: XCTestCase {
         XCTAssertEqual(ClipTiming.sanitize(l).patternIds, ["es-tengo-que"])
     }
 
+    /// In a pattern set the set's own pattern is the target: marked even
+    /// where the line also has an earlier finished one, which is marked
+    /// plainly elsewhere.
+    func test_theSetsPatternIsTheTarget() throws {
+        let l = try line(#", "patternIds": ["ser-estar-adj-yo", "es-quiero"]"#)
+        let done: Set<String> = ["ser-estar-adj-yo", "es-quiero"]
+        XCTAssertEqual(l.markedPattern(focus: "es-quiero", completed: done)?.id, "es-quiero")
+        XCTAssertEqual(l.markedPattern(focus: "es-quiero", completed: done)?.isFocus, true)
+        XCTAssertEqual(l.markedPattern(focus: "es-hay", completed: done)?.id, "ser-estar-adj-yo")
+        XCTAssertEqual(l.markedPattern(focus: "es-hay", completed: done)?.isFocus, false)
+        XCTAssertNil(l.markedPattern(focus: nil, completed: []))
+    }
+
     func test_linesWithoutPatternsDecode() throws {
         let l = try line("")
         XCTAssertNil(l.patternIds)
