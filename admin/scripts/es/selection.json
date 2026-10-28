@@ -1136,5 +1136,40 @@
     "movieTitle": "La vida secreta de tus mascotas 2",
     "title": "Daisy pide ayuda a Snowball",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "bYRJ3AyaGg0",
+    "slug": "kung-fu-panda-2-shen-y-el-maestro-rino",
+    "movieTitle": "Kung Fu Panda 2",
+    "title": "Shen y el maestro Rino",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "BbXcDVsJja8",
+    "slug": "kung-fu-panda-3-kai-regresa",
+    "movieTitle": "Kung Fu Panda 3",
+    "title": "Kai regresa",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "oEGlkI73_EU",
+    "slug": "raya-el-bebe-estafador",
+    "movieTitle": "Raya y el último dragón",
+    "title": "El bebé estafador",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "9McK6-WdoL8",
+    "slug": "los-pinguinos-de-madagascar-atacan-north-wind",
+    "movieTitle": "Los pingüinos de Madagascar",
+    "title": "Atacan la sede de North Wind",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "8wyBBypjPpg",
+    "slug": "los-pinguinos-de-madagascar-los-pajaros-equivocados",
+    "movieTitle": "Los pingüinos de Madagascar",
+    "title": "Los pájaros equivocados",
+    "genre": "animation"
   }
 ]
