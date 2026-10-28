@@ -744,5 +744,131 @@
     "movieTitle": "Buscando a Dory",
     "title": "Con Becky a la cuarentena",
     "genre": "animation"
+  },
+  {
+    "youtubeId": "cUsYe0USGnM",
+    "slug": "soul-el-final",
+    "movieTitle": "Soul",
+    "title": "El final",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "pnWihrKVZ3o",
+    "slug": "soul-escenas-cortas",
+    "movieTitle": "Soul",
+    "title": "Escenas cortas",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "bdrrnSTdIdE",
+    "slug": "monsters-university-el-gran-susto",
+    "movieTitle": "Monsters University",
+    "title": "El gran susto",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "cmdXOg83wpk",
+    "slug": "intensa-mente-2-las-nuevas-emociones",
+    "movieTitle": "Intensa-Mente 2",
+    "title": "Las nuevas emociones",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "3V7-7ZPSOJc",
+    "slug": "lightyear-buzz-contra-zurg",
+    "movieTitle": "Lightyear",
+    "title": "Buzz contra Zurg",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "44oRzVs93zY",
+    "slug": "lightyear-adios-a-alisha",
+    "movieTitle": "Lightyear",
+    "title": "Adiós a Alisha",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "se92h75N6sM",
+    "slug": "la-sirenita-scuttle",
+    "movieTitle": "La Sirenita",
+    "title": "Scuttle",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "StY1DapDDLM",
+    "slug": "aladdin-conoce-a-jasmine",
+    "movieTitle": "Aladdín",
+    "title": "Aladdín conoce a Jasmine",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "pFMp6SY-mEU",
+    "slug": "tarzan-jane-conoce-a-tarzan",
+    "movieTitle": "Tarzán",
+    "title": "Jane conoce a Tarzán",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "yeqUTjBIOcM",
+    "slug": "el-lorax-el-lorax-y-el-una-vez",
+    "movieTitle": "El Lorax",
+    "title": "El Lorax y el Una-Vez",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "PcUwDJRfr90",
+    "slug": "el-lorax-el-ultimo-arbol",
+    "movieTitle": "El Lorax",
+    "title": "El último árbol",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "iX-5S5CpS4A",
+    "slug": "klaus-los-samis",
+    "movieTitle": "Klaus",
+    "title": "Los samis",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "9megGoXU9tA",
+    "slug": "ratatouille-el-puente",
+    "movieTitle": "Ratatouille",
+    "title": "En el puente",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "ZoGMpm66mCA",
+    "slug": "robot-salvaje-modo-de-aprendizaje",
+    "movieTitle": "Robot salvaje",
+    "title": "Modo de aprendizaje",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "QtEmAbwpFTc",
+    "slug": "robot-salvaje-vontra",
+    "movieTitle": "Robot salvaje",
+    "title": "Vontra",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "v8_FXAUro_g",
+    "slug": "moana-2-escena-post-creditos",
+    "movieTitle": "Moana 2",
+    "title": "Escena post créditos",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "Zu4Sns-4uBQ",
+    "slug": "atlantis-abordando-el-ulysses",
+    "movieTitle": "Atlantis: el imperio perdido",
+    "title": "Abordando el Ulysses",
+    "genre": "animation"
+  },
+  {
+    "youtubeId": "G0RQrrqtDTw",
+    "slug": "atlantis-regresen-con-su-pueblo",
+    "movieTitle": "Atlantis: el imperio perdido",
+    "title": "Regresen con su pueblo",
+    "genre": "animation"
   }
 ]
