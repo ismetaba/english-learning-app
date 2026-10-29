@@ -79,7 +79,7 @@ struct VideoFeedView: View {
     private func prefetchNextVideos() {
         let shown = appState.followsPatternPath ? appState.patternUnlocks.openSets(vm.patternSets) : vm.sets
         let videoIds = shown.compactMap { set in
-            set.videos.first(where: { !appState.isVideoWatched($0.id) })?.id
+            appState.watchRound(of: set).nextUnwatched.map { set.videos[$0].id }
         }
         guard !videoIds.isEmpty else { return }
         Task {
@@ -101,7 +101,7 @@ struct VideoFeedView: View {
                     SetHeroCard(
                         set: set,
                         index: idx + 1,
-                        watchedCount: set.videos.filter { appState.isVideoWatched($0.id) }.count
+                        watchedCount: appState.watchRound(of: set).watchedCount
                     ) {
                         selectedSet = set
                     }
@@ -132,7 +132,7 @@ struct VideoFeedView: View {
                     SetHeroCard(
                         set: set,
                         index: idx + 1,
-                        watchedCount: set.videos.filter { appState.isVideoWatched($0.id) }.count
+                        watchedCount: appState.watchRound(of: set).watchedCount
                     ) {
                         selectedSet = set
                     }
@@ -152,7 +152,7 @@ struct VideoFeedView: View {
                         SetHeroCard(
                             set: set,
                             index: idx + 1,
-                            watchedCount: set.videos.filter { appState.isVideoWatched($0.id) }.count
+                            watchedCount: appState.watchRound(of: set).watchedCount
                         ) {
                             selectedSet = set
                         }

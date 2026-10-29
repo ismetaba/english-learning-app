@@ -245,12 +245,19 @@ final class AppState: ObservableObject {
 
     /// Records that the learner watched a `PocVideo` to the end.
     func markVideoWatched(_ videoId: String) {
-        guard !progress.watchedVideos.contains(videoId) else { return }
-        progress.watchedVideos.append(videoId)
+        progress.recordVideoWatched(videoId)
     }
 
-    func isVideoWatched(_ id: String) -> Bool {
-        progress.watchedVideos.contains(id)
+    /// Where the learner is in a set (a pattern set is watched in rounds).
+    func watchRound(of set: VideoSet) -> SetRound {
+        SetRound(set: set, progress: progress)
+    }
+
+    /// The learner starts playing a set: a pattern set whose scenes are all
+    /// watched starts over, its scenes unwatched in it again.
+    func startSet(_ set: VideoSet) {
+        guard watchRound(of: set).startsOver else { return }
+        progress.startNewRound(of: set.id)
     }
 
     func updateStreak() {

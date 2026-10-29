@@ -224,6 +224,14 @@ struct UserProgress: Codable, Equatable {
     var watchedClips: [String] = []
     /// `PocVideo.id`s the learner watched to the end (set flow).
     var watchedVideos: [String] = []
+    /// Watches to the end are numbered in order (`videoWatchCount` is the
+    /// latest); each video keeps the number of its last one. A pattern set
+    /// that started over counts only what was watched after it did.
+    var videoWatchCount: Int = 0
+    var videoWatchNumbers: [String: Int] = [:]
+    /// Pattern sets started over after all their scenes were watched: the
+    /// watch number each started over at.
+    var setRoundStarts: [String: Int] = [:]
 }
 
 // MARK: - Tolerant decoding
@@ -271,6 +279,9 @@ extension UserProgress {
         achievements = try c.decodeIfPresent([String].self, forKey: .achievements) ?? achievements
         watchedClips = try c.decodeIfPresent([String].self, forKey: .watchedClips) ?? watchedClips
         watchedVideos = try c.decodeIfPresent([String].self, forKey: .watchedVideos) ?? watchedVideos
+        videoWatchCount = try c.decodeIfPresent(Int.self, forKey: .videoWatchCount) ?? videoWatchCount
+        videoWatchNumbers = try c.decodeIfPresent([String: Int].self, forKey: .videoWatchNumbers) ?? videoWatchNumbers
+        setRoundStarts = try c.decodeIfPresent([String: Int].self, forKey: .setRoundStarts) ?? setRoundStarts
     }
 }
 

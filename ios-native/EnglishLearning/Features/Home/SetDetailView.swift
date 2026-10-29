@@ -92,7 +92,9 @@ struct SetDetailView: View {
             // first unwatched video, or starts over once all are watched.
             Button(action: {
                 Haptics.success()
-                startIndex = primaryAction.startIndex
+                let start = primaryAction.startIndex
+                appState.startSet(set)
+                startIndex = start
             }) {
                 HStack(spacing: 10) {
                     Image(systemName: primaryAction.icon)
@@ -132,13 +134,15 @@ struct SetDetailView: View {
             }
             .padding(.bottom, 4)
 
+            let round = appState.watchRound(of: set)
             ForEach(Array(set.videos.enumerated()), id: \.element.id) { i, v in
                 SetVideoRow(
                     video: v,
                     position: i + 1,
-                    isWatched: appState.isVideoWatched(v.id),
+                    isWatched: round.isWatched(v.id),
                     onTap: {
                         Haptics.medium()
+                        appState.startSet(set)
                         startIndex = i
                     },
                 )
@@ -147,18 +151,18 @@ struct SetDetailView: View {
     }
 
     private var watchedCount: Int {
-        self.set.videos.filter { appState.isVideoWatched($0.id) }.count
+        appState.watchRound(of: self.set).watchedCount
     }
 
     /// The hero button: start, continue at the first unwatched video, or
-    /// rewatch from the top.
+    /// rewatch from the top (a pattern set starts over).
     private var primaryAction: (title: String, icon: String, startIndex: Int) {
         let total = self.set.videos.count
         let watched = watchedCount
         if watched == 0 {
             return ("Sete başla", "play.fill", 0)
         }
-        if let next = self.set.videos.firstIndex(where: { !appState.isVideoWatched($0.id) }) {
+        if let next = appState.watchRound(of: self.set).nextUnwatched {
             return ("Devam et · \(watched)/\(total)", "play.fill", next)
         }
         return ("Baştan izle", "arrow.counterclockwise", 0)
@@ -394,10 +398,11 @@ struct SetPlayerView: View {
 
             // Transition overlay (between videos). Both of its ways forward
             // name the video that just finished, so only one advance happens.
-            if phase == .transitioning, index < set.videos.count - 1 {
+            if phase == .transitioning, let next = nextIndex {
                 NextUpOverlay(
                     set: set,
                     finishedIndex: index,
+                    nextIndex: next,
                     caught: caughtInVideo,
                     onContinueNow: { [finished = index] in continueAfterNextUp(finishedIndex: finished) },
                     onExit: { dismiss() },
@@ -444,7 +449,11 @@ struct SetPlayerView: View {
         self.set.videos[index]
     }
 
-    private var hasNextVideo: Bool { index < self.set.videos.count - 1 }
+    /// The video after this one: the next, or in a pattern set the next not
+    /// watched in this round.
+    private var nextIndex: Int? { appState.watchRound(of: self.set).next(after: index) }
+
+    private var hasNextVideo: Bool { nextIndex != nil }
 
     /// The loaded clips belong to the current video (never the previous
     /// one's data in a fresh player).
@@ -682,8 +691,7 @@ struct SetPlayerView: View {
         // Step into the next video. Clear clips first so the previous
         // video's data is unambiguously gone before we mount a fresh
         // player — playerLayer's videoId-match guard is the safety net.
-        let next = index + 1
-        guard next < self.set.videos.count else { return }
+        guard let next = nextIndex else { return }
         Haptics.medium()
         // The new video starts at its own beginning.
         playhead.reset()
@@ -779,8 +787,8 @@ struct SetPlayerView: View {
     /// Warms the next video's clips while this one plays, so the advance
     /// is instant.
     private func prefetchNextVideo() {
-        guard hasNextVideo else { return }
-        let nextId = self.set.videos[index + 1].id
+        guard let next = nextIndex else { return }
+        let nextId = self.set.videos[next].id
         Task { await CurriculumRepository.shared.prefetchPocVideoClips(videoId: nextId) }
     }
 }
@@ -844,6 +852,8 @@ private enum SetFlowText {
 private struct NextUpOverlay: View {
     let set: VideoSet
     let finishedIndex: Int
+    /// The video the countdown leads to.
+    let nextIndex: Int
     /// Words the learner added during the video that just ended.
     let caught: [PocStarterWord]
     let onContinueNow: () -> Void
@@ -869,6 +879,7 @@ private struct NextUpOverlay: View {
     init(
         set: VideoSet,
         finishedIndex: Int,
+        nextIndex: Int,
         caught: [PocStarterWord],
         onContinueNow: @escaping () -> Void,
         onExit: @escaping () -> Void,
@@ -876,6 +887,7 @@ private struct NextUpOverlay: View {
     ) {
         self.set = set
         self.finishedIndex = finishedIndex
+        self.nextIndex = nextIndex
         self.caught = caught
         self.onContinueNow = onContinueNow
         self.onExit = onExit
@@ -886,8 +898,7 @@ private struct NextUpOverlay: View {
     }
 
     private var nextVideo: PocVideo? {
-        let next = finishedIndex + 1
-        return next < self.set.videos.count ? self.set.videos[next] : nil
+        self.set.videos.indices.contains(nextIndex) ? self.set.videos[nextIndex] : nil
     }
 
     private var finishedVideo: PocVideo {
@@ -1218,7 +1229,7 @@ private struct SetCompleteOverlay: View {
     private static let maxChips = 12
 
     private var watchedCount: Int {
-        self.set.videos.filter { appState.isVideoWatched($0.id) }.count
+        appState.watchRound(of: self.set).watchedCount
     }
 
     /// Every video watched to its end. A run that skipped an unplayable
