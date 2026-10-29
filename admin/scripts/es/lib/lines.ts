@@ -36,7 +36,7 @@ const SENTENCE_END = /[.?!…]["'»)\]]*$/;
 /** A word that carries on a sentence rather than starting one. */
 const CONTINUES = /^["'«(]*\p{Ll}/u;
 /** Whisper's training-data residue: credits and outros it "hears" in silence. */
-const HALLUCINATIONS = /amara\.org|subt[ií]tulos (realizados|por)|suscr[ií]bete|gracias por ver el v[ií]deo/i;
+const HALLUCINATIONS = /amara\.org|subt[ií]tulos (realizados|por)|suscr[ií]bete|gracias por ver el v[ií]deo|^cc por |antarctica films/i;
 
 /** How far from its audio WhisperX may put a line (around music in the
  *  Frozen clip it was 19 s off). Captions farther away are not paired. */

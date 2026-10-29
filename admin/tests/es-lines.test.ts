@@ -81,6 +81,17 @@ test('known Whisper hallucinations are dropped', () => {
   assert.deepEqual(lines.map(l => l.text), ['Adiós.']);
 });
 
+test('a subtitle credit Whisper hears in silence is dropped ("CC por Antarctica Films Argentina")', () => {
+  // The Rise of the Guardians opening (GiZZKB7S_qY): heard at 4 s, 30 s
+  // before the first real line.
+  const credit = 'CC por Antarctica Films Argentina';
+  const lines = toLines([
+    { text: credit, start: 4.3, end: 5.2, words: credit.split(' ').map((t, i) => w(t, 4.3 + i * 0.15, 4.4 + i * 0.15)) },
+    { text: '¿Oscuridad?', start: 37.4, end: 38.2, words: [w('¿Oscuridad?', 37.4, 38.2)] },
+  ]);
+  assert.deepEqual(lines.map(l => l.text), ['¿Oscuridad?']);
+});
+
 test('with captions, words start where YouTube hears them, on the video clock, in WhisperX words', () => {
   // The audio window starts 100 s into the video: WhisperX's times are the
   // window's, the captions' the video's. YouTube heard "están", not "estás".
